@@ -1,4 +1,7 @@
 # websocket_csit_uet
+
+# Server Address
+https://wsscsituet.up.railway.app/
  
 # Getting Started
 
