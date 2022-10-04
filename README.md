@@ -3,7 +3,7 @@
 # Server Address
 https://wsscsituet.up.railway.app/
  
-# Getting Started
+# Running Locally
 
 Make sure to have nodejs installed: https://nodejs.org/en/download/
 
