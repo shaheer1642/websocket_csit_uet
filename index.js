@@ -17,20 +17,25 @@ var clients = {}
 
 io.on('connection', (socket) => {
     console.log('a user connected',socket.id);
+    clients[socket.id] = socket
     console.log('connected clients',new Date(),Object.keys(clients).length)
     //if (!socket.handshake.query.session_key)
     //  return
-    clients[socket.id] = socket
 
     // check if user was previously logged in
     setTimeout(() => {
       checkUserLogin(socket.handshake.query.session_key)
     }, 500);
 
+    socket.on('testMsg', () => {
+      console.log('client called testMsg')
+      socket.emit('testMsgRes', {code: 200, status: 'OK', data: 'hello there'})
+    })
+
     socket.on('disconnect', () => {
       console.log('a user disconnected');
-      console.log('connected clients',new Date(),Object.keys(clients).length)
       delete clients[socket.id]
+      console.log('connected clients',new Date(),Object.keys(clients).length)
       socket.removeAllListeners()
     });
 });
