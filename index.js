@@ -27,9 +27,9 @@ io.on('connection', (socket) => {
       checkUserLogin(socket.handshake.query.session_key)
     }, 500);
 
-    socket.on('testMsg', () => {
+    socket.on('testMsg', (data) => {
       console.log('client called testMsg')
-      socket.emit('testMsgRes', {code: 200, status: 'OK', data: 'hello there'})
+      socket.emit('testMsgRes', {code: 200, status: 'OK', data: data})
     })
 
     socket.on('disconnect', () => {
