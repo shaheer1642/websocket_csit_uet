@@ -8,12 +8,13 @@ const {db} = require('./modules/db_connection')
 const axios = require('axios')
 const uuid = require('uuid');
 const db_modules = require('./modules/db_modules')
+const events = require('./modules/endpoints/events')
 
 app.get('/', (req, res) => {
   res.send('<center><h1>Websocket for MIS developed for CSIT Dept. of UET as the Final Year Project</h1></center>');
 });
 
-var clients = {}
+const clients = {}
 
 io.on('connection', (socket) => {
     console.log('a user connected',socket.id);
@@ -26,6 +27,10 @@ io.on('connection', (socket) => {
     setTimeout(() => {
       checkUserLogin(socket.handshake.query.session_key)
     }, 500);
+
+    // ------------- events -------------
+    socket.addListener('events/create',events.eventsCreate)
+    socket.addListener('events/fetch',events.eventsFetch)
 
     socket.on('testMsg', (data) => {
       console.log('client called testMsg')
