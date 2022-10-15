@@ -32,9 +32,10 @@ io.on('connection', (socket) => {
     socket.addListener('events/create',events.eventsCreate)
     socket.addListener('events/fetch',events.eventsFetch)
 
-    socket.on('testMsg', (data) => {
-      console.log('client called testMsg')
-      socket.emit('testMsgRes', {code: 200, status: 'OK', data: data})
+    socket.addListener('testMsg', (data,callback) => {
+      console.log('[testMsg] called')
+      console.log('[testMsg] data received:',data)
+      callback({code: 200, status: 'OK', data: data})
     })
 
     socket.on('disconnect', () => {
