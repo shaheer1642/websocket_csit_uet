@@ -36,6 +36,7 @@ function getEndpoints() {
         string += `</table>`
 
         string += `<h3>Endpoints</h3>`
+        string += `<p>All endpoints response contain code, status and message fields.<br>code 200 means response is good<br>code 400 means there was an error in submitted request<br>code 500 means there was an internal server error</p>`
         string += `<table><tr><th>Endpoint</th><th>Required keys</th><th>Optional keys</th><th>Call example (Flutter/Dart)</th></tr>`
         for (const subendpoint in endpoint.subendpoints) {
             console.log(subendpoint)
@@ -62,6 +63,7 @@ function getEndpoints() {
         string += `</table>`
 
         string += `<h3>Real-time Events</h3>`
+        string += `<p>All listeners response contain code, status, trigger and data fields.<br>Usually code should be 200<br>Trigger field contains the name of the listener</p>`
         string += `<table><tr><th>Listener</th><th>Description</th><th>Listen example (Flutter/Dart)</th></tr>`
         for (const listener in endpoint.listeners) {
             console.log(listener)
