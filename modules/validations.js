@@ -103,8 +103,20 @@ function validateDBSelectQueryError(err) {
     }
 }
 
+function validateDBDeleteQueryError(err) {
+    var code = 500
+    var status = 'INTERNAL ERROR'
+    var message = err
+    return {
+        code: code, 
+        status: status,
+        message: message
+    }
+}
+
 module.exports = {
     validateRequestData,
     validateDBInsertQueryError,
-    validateDBSelectQueryError
+    validateDBSelectQueryError,
+    validateDBDeleteQueryError
 }

@@ -13,7 +13,7 @@ class Events {
     event_id = {
         type: 'uuid',
         required: [], 
-        optional: ['events/fetch'],
+        optional: ['events/fetch','events/delete'],
         example_value: 'caa1534e-da15-41b6-8110-cc3fcffb14ed'
     };
     user_id = {
@@ -46,7 +46,7 @@ class Events {
         optional: [],
         example_value: 1665774803
     };
-    
+
     record_limit = {
         type: 'number',
         required: [],
@@ -159,7 +159,57 @@ function eventsFetch(data, callback) {
     }
 }
 
+function eventsDelete(data, callback) {
+    console.log('[events/delete] called')
+    console.log('[events/delete] data received:',data)
+    const validator = validations.validateRequestData(data,new Events,'events/delete')
+    if (!validator.valid) {
+        if (callback) {
+            callback({
+                code: 400, 
+                status: 'BAD REQUEST',
+                message: validator.reason
+            });
+        }
+    } else {
+        db.query(`DELETE FROM events WHERE event_id = '${data.event_id}'`)
+        .then(res => {
+            if (res.rowCount == 1) {
+                if (callback) {
+                    callback({
+                        code: 200, 
+                        status: 'OK',
+                        message: `deleted event ${data.event_id} record from db`
+                    });
+                }
+            } else if (res.rowCount == 0) {
+                if (callback) {
+                    callback({
+                        code: 400, 
+                        status: 'BAD REQUEST',
+                        message: `event ${data.event_id} does not exist`
+                    });
+                }
+            } else {
+                if (callback) {
+                    callback({
+                        code: 500, 
+                        status: 'INTERNAL ERROR',
+                        message: `${res.rowCount} rows deleted`
+                    });
+                }
+            }
+        }).catch(err => {
+            console.log(err)
+            if (callback) {
+                callback(validations.validateDBDeleteQueryError(err));
+            }
+        })
+    }
+}
+
 module.exports = {
     eventsCreate,
-    eventsFetch
+    eventsFetch,
+    eventsDelete
 }

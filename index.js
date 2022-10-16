@@ -31,6 +31,7 @@ io.on('connection', (socket) => {
     // ------------- events -------------
     socket.addListener('events/create',events.eventsCreate)
     socket.addListener('events/fetch',events.eventsFetch)
+    socket.addListener('events/delete',events.eventsDelete)
 
     socket.addListener('testMsg', (data,callback) => {
       console.log('[testMsg] called')
@@ -68,6 +69,38 @@ db.on('notification', (notification) => {
   console.log('db notification')
   console.log(notification.payload)
   console.log(notification.channel)
+  const payload = JSON.parse(notification.payload);
+  
+  if (notification.channel == 'events_insert') {
+    for (const socket in clients) {
+      clients[socket].emit('events/listener/insert', {
+        code: 200, 
+        status: 'OK',
+        trigger: notification.channel,
+        data: payload
+      })
+    }
+  }
+  if (notification.channel == 'events_update') {
+    for (const socket in clients) {
+      clients[socket].emit('events/listener/update', {
+        code: 200, 
+        status: 'OK',
+        trigger: notification.channel,
+        data: payload[0]
+      })
+    }
+  }
+  if (notification.channel == 'events_delete') {
+    for (const socket in clients) {
+      clients[socket].emit('events/listener/delete', {
+        code: 200, 
+        status: 'OK',
+        trigger: notification.channel,
+        data: payload
+      })
+    }
+  }
 })
 
 server.listen(process.env.PORT, () => {

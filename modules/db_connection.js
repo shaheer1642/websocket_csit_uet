@@ -10,6 +10,10 @@ const db = new DB.Client({
 
 db.connect().then(async res => {
     console.log('DB Connection established.')
+
+    db.query('LISTEN events_insert').catch(console.error)
+    db.query('LISTEN events_update').catch(console.error)
+    db.query('LISTEN events_delete').catch(console.error)
 }).catch(err => {
     console.log('DB Connection failure.\n' + err)
 });
@@ -21,8 +25,7 @@ db.on('error', err => {
 })
 
 setInterval(() => {
-    return
-    db.query(`SELECT * FROM items_list`).then(res => {
+    db.query(`SELECT * FROM events`).then(res => {
         console.log('Pinged the DB. Received rows:',res.rowCount)
     }).catch(console.error)
 }, 3600000);
