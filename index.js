@@ -9,9 +9,14 @@ const axios = require('axios')
 const uuid = require('uuid');
 const db_modules = require('./modules/db_modules')
 const events = require('./modules/endpoints/events')
+const {getEndpoints} = require('./modules/endpoints/endpoints')
 
 app.get('/', (req, res) => {
   res.send('<center><h1>Websocket for MIS developed for CSIT Dept. of UET as the Final Year Project</h1></center>');
+});
+
+app.get('/endpoints', (req, res) => {
+  res.send(getEndpoints());
 });
 
 const clients = {}

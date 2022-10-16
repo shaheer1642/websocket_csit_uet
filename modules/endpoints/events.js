@@ -4,43 +4,80 @@ const validations = require('../validations');
 
 
 class Events {
+    name = 'Events';
+    description = 'Endpoints for creating news & events to be displayed on the main webpage'
+    subendpoints = {
+        "events/create": {
+            call_example: `socket.emitWithAck("events/create", <pre><code>${JSON.stringify({"user_id": "caa1534e-da15-41b6-8110-cc3fcffb14ed","title": "some event title","body": "some event body","expiry_timestamp": 1665774803},null,4)}</code></pre>, (res) => print(res))`
+        },
+        "events/fetch": {
+            call_example: `socket.emitWithAck("events/fetch", {}, (res) => print(res))`
+        },
+        "events/update": {
+            call_example: `socket.emitWithAck("events/update", <pre><code>${JSON.stringify({"event_id": "6af9c7cc-9a71-4847-8794-fef3a0ca9b42","title": "some new event title","body": "some new event body"},null,4)}</code></pre>, (res) => print(res))`
+        },
+        "events/delete": {
+            call_example: `socket.emitWithAck("events/delete", <pre><code>${JSON.stringify({"event_id": "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => print(res))`
+        }
+    }
+    listeners = {
+        "events/listener/insert": {
+            description: 'Triggered after a new record is inserted in the table',
+            listen_example: `socket.on("events/listener/insert", (data) => print(data))`
+        },
+        "events/listener/update": {
+            description: 'Triggered after a record is updated in the table',
+            listen_example: `socket.on("events/listener/update", (data) => print(data))`
+        },
+        "events/listener/delete": {
+            description: 'Triggered after a record is deleted from the table',
+            listen_example: `socket.on("events/listener/delete", (data) => print(data))`
+        }
+    }
     s_no = {
+        attribute: true,
         type: 'autonumber',
         required: [],
         optional: [],
         example_value: 3
     };
     event_id = {
+        attribute: true,
         type: 'uuid',
-        required: ['events/update'], 
-        optional: ['events/fetch','events/delete'],
+        required: ['events/update','events/delete'], 
+        optional: ['events/fetch'],
         example_value: 'caa1534e-da15-41b6-8110-cc3fcffb14ed'
     };
     user_id = {
+        attribute: true,
         type: 'uuid',
         required: ['events/create'],
         optional: ['events/fetch'],
         example_value: 'caa1534e-da15-41b6-8110-cc3fcffb14ed'
     };
     title = {
+        attribute: true,
         type: 'string',
         required: ['events/create'],
         optional: ['events/update'],
         example_value: 'some-title-string'
     };
     body = {
+        attribute: true,
         type: 'string',
         required: ['events/create'],
         optional: ['events/update'],
         example_value: 'some-body-string'
     };
     creation_timestamp = {
+        attribute: true,
         type: 'unix_timestamp_second',
         required: [],
         optional: [],
         example_value: 1665774803
     };
     expiry_timestamp = {
+        attribute: true,
         type: 'unix_timestamp_second',
         required: ['events/create'],
         optional: ['events/update'],
@@ -281,5 +318,6 @@ module.exports = {
     eventsCreate,
     eventsFetch,
     eventsDelete,
-    eventsUpdate
+    eventsUpdate,
+    Events
 }
