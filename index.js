@@ -32,6 +32,7 @@ io.on('connection', (socket) => {
     socket.addListener('events/create',events.eventsCreate)
     socket.addListener('events/fetch',events.eventsFetch)
     socket.addListener('events/delete',events.eventsDelete)
+    socket.addListener('events/update',events.eventsUpdate)
 
     socket.addListener('testMsg', (data,callback) => {
       console.log('[testMsg] called')

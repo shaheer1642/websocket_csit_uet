@@ -12,7 +12,7 @@ class Events {
     };
     event_id = {
         type: 'uuid',
-        required: [], 
+        required: ['events/update'], 
         optional: ['events/fetch','events/delete'],
         example_value: 'caa1534e-da15-41b6-8110-cc3fcffb14ed'
     };
@@ -25,13 +25,13 @@ class Events {
     title = {
         type: 'string',
         required: ['events/create'],
-        optional: [],
+        optional: ['events/update'],
         example_value: 'some-title-string'
     };
     body = {
         type: 'string',
         required: ['events/create'],
-        optional: [],
+        optional: ['events/update'],
         example_value: 'some-body-string'
     };
     creation_timestamp = {
@@ -43,7 +43,7 @@ class Events {
     expiry_timestamp = {
         type: 'unix_timestamp_second',
         required: ['events/create'],
-        optional: [],
+        optional: ['events/update'],
         example_value: 1665774803
     };
 
@@ -208,8 +208,78 @@ function eventsDelete(data, callback) {
     }
 }
 
+function eventsUpdate(data, callback) {
+    console.log('[events/update] called')
+    console.log('[events/update] data received:',data)
+    const validator = validations.validateRequestData(data,new Events,'events/update')
+    if (!validator.valid) {
+        if (callback) {
+            callback({
+                code: 400, 
+                status: 'BAD REQUEST',
+                message: validator.reason
+            });
+        }
+    } else {
+        var update_clauses = []
+        if (data.title)
+            update_clauses.push(`title = '${data.title}'`)
+        if (data.body)
+            update_clauses.push(`body = '${data.body}'`)
+        if (data.expiry_timestamp)
+            update_clauses.push(`expiry_timestamp = ${data.expiry_timestamp}`)
+        if (update_clauses.length == 0) {
+            if (callback) {
+                callback({
+                    code: 400, 
+                    status: 'BAD REQUEST',
+                    message: `No valid parameters found in requested data.`,
+                });
+            }
+            return
+        }
+        db.query(`
+            UPDATE events SET
+            ${update_clauses.join(',')}
+            WHERE event_id = '${data.event_id}'
+        `).then(res => {
+            if (res.rowCount == 1) {
+                if (callback) {
+                    callback({
+                        code: 200, 
+                        status: 'OK',
+                        message: `updated event ${data.event_id} record in db`
+                    });
+                }
+            } else if (res.rowCount == 0) {
+                if (callback) {
+                    callback({
+                        code: 400, 
+                        status: 'BAD REQUEST',
+                        message: `event ${data.event_id} does not exist`
+                    });
+                }
+            } else {
+                if (callback) {
+                    callback({
+                        code: 500, 
+                        status: 'INTERNAL ERROR',
+                        message: `${res.rowCount} rows updated`
+                    });
+                }
+            }
+        }).catch(err => {
+            console.log(err)
+            if (callback) {
+                callback(validations.validateDBUpdateQueryError(err));
+            }
+        })
+    }
+}
+
 module.exports = {
     eventsCreate,
     eventsFetch,
-    eventsDelete
+    eventsDelete,
+    eventsUpdate
 }
