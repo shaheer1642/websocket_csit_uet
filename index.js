@@ -39,9 +39,9 @@ io.on('connection', (socket) => {
     socket.addListener('events/delete',events.eventsDelete)
     socket.addListener('events/update',events.eventsUpdate)
 
-    socket.addListener('testMsg', (data,callback) => {
-      console.log('[testMsg] called')
-      console.log('[testMsg] data received:',data)
+    socket.addListener('ping', (data,callback) => {
+      console.log('[ping] called')
+      console.log('[ping] data received:',data)
       callback({code: 200, status: 'OK', data: data})
     })
 
