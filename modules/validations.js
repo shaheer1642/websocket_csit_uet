@@ -37,43 +37,41 @@ function validateKeyValue(key,value,type) {
 function validateRequestData(data,object,event) {
     var required_keys = 0
     var optional_keys = 0
-    for (const key in object) {
-        if (object.data_types[key].required.includes(event)) {
+    var required_length = 0
+    var optional_length = 0
+    for (const key in object.data_types) {
+        const field = object.data_types[key]
+        required_length = field.required.length
+        optional_length = field.optional.length
+        if (field.required.includes(event)) {
             if (data[key]) {
                 required_keys++;
-                if (validateKeyValue(key, data[key], object.data_types[key].type).valid) continue
+                if (validateKeyValue(key, data[key], field.type).valid) continue
                 else return {
                     valid: false,
                     key: key,
-                    reason: `Invalid value ${data[key]} for key \'${key}\' of type ${object.data_types[key].type}. Example value: ${object.data_types[key].example_value}`
+                    reason: `Invalid value ${data[key]} for key \'${key}\' of type ${field.type}. Example value: ${field.example_value}`
                 }
             }
             else return {
                 valid: false,
                 key: key,
-                reason: `Invalid data. Missing key \'${key}\' of type ${object.data_types[key].type}. Example value: ${object.data_types[key].example_value}`,
+                reason: `Invalid data. Missing key \'${key}\' of type ${field.type}. Example value: ${field.example_value}`,
             }
-        } else if (object.data_types[key].optional.includes(event)) {
+        } else if (field.optional.includes(event)) {
             if (data[key]) {
                 optional_keys++;
-                if (validateKeyValue(key, data[key], object.data_types[key].type).valid) continue
+                if (validateKeyValue(key, data[key], field.type).valid) continue
                 else return {
                     valid: false,
                     key: key,
-                    reason: `Invalid value ${data[key]} for key \'${key}\' of type ${object.data_types[key].type}. Example value: ${object.data_types[key].example_value}`
+                    reason: `Invalid value ${data[key]} for key \'${key}\' of type ${field.type}. Example value: ${field.example_value}`
                 }
             }
         }
     }
-    if (required_keys == 0 && optional_keys == 0) {
-        return {
-            valid: false,
-            reason: `No valid parameters found in requested data.`,
-        }
-    } else {
-        return {
-            valid: true
-        }
+    return {
+        valid: true
     }
 }
 

@@ -4,38 +4,8 @@ const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 
 class Events {
-    constructor() {}
-
     name = 'Events';
     description = 'Endpoints for creating news & events to be displayed on the main webpage'
-    subendpoints = {
-        "events/create": {
-            call_example: `socket.emitWithAck("events/create", <pre><code>${JSON.stringify({"user_id": "caa1534e-da15-41b6-8110-cc3fcffb14ed","title": "some event title","body": "some event body","expiry_timestamp": 1665774803},null,4)}</code></pre>, (res) => print(res))`
-        },
-        "events/fetch": {
-            call_example: `socket.emitWithAck("events/fetch", {}, (res) => print(res))`
-        },
-        "events/update": {
-            call_example: `socket.emitWithAck("events/update", <pre><code>${JSON.stringify({"event_id": "6af9c7cc-9a71-4847-8794-fef3a0ca9b42","title": "some new event title","body": "some new event body"},null,4)}</code></pre>, (res) => print(res))`
-        },
-        "events/delete": {
-            call_example: `socket.emitWithAck("events/delete", <pre><code>${JSON.stringify({"event_id": "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => print(res))`
-        }
-    }
-    listeners = {
-        "events/listener/insert": {
-            description: 'Triggered after a new record is inserted in the table',
-            listen_example: `socket.on("events/listener/insert", (data) => print(data))`
-        },
-        "events/listener/update": {
-            description: 'Triggered after a record is updated in the table',
-            listen_example: `socket.on("events/listener/update", (data) => print(data))`
-        },
-        "events/listener/delete": {
-            description: 'Triggered after a record is deleted from the table',
-            listen_example: `socket.on("events/listener/delete", (data) => print(data))`
-        }
-    }
     data_types = {
         s_no: new DataTypes(true).autonumber,
         event_id: new DataTypes(true,['events/update','events/delete'],['events/fetch']).uuid,
@@ -45,6 +15,72 @@ class Events {
         creation_timestamp: new DataTypes(true).unix_timestamp_second,
         expiry_timestamp: new DataTypes(true,['events/create'],['events/update']).unix_timestamp_second,
         record_limit: new DataTypes(false, [], ['events/fetch']).number
+    }
+}
+
+function eventsFetch(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    if (!data || Object.keys(data).length == 0) {
+        db.query(`SELECT * FROM events ORDER BY creation_timestamp DESC`)
+        .then(res => {
+            if (callback) {
+                callback({
+                    code: 200, 
+                    status: 'OK',
+                    data: res.rows
+                })
+            }
+        }).catch(err => {
+            console.log(err)
+            if (callback) {
+                callback(validations.validateDBSelectQueryError(err));
+            }
+        })
+    } else {
+        const validator = validations.validateRequestData(data,new Events,data.event)
+        if (!validator.valid) {
+            if (callback) {
+                callback({
+                    code: 400, 
+                    status: 'BAD REQUEST',
+                    message: validator.reason
+                });
+            }
+        } else {
+            var where_clauses = []
+            if (data.user_id)
+                where_clauses.push(`user_id = '${data.user_id}'`)
+            if (data.event_id)
+                where_clauses.push(`event_id = '${data.event_id}'`)
+            console.log(`
+                SELECT * FROM events 
+                ${where_clauses.length > 0 ? 'WHERE':''}
+                ${where_clauses.join(' AND ')}
+                ORDER BY creation_timestamp DESC
+                ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
+            `)
+            db.query(`
+                SELECT * FROM events 
+                ${where_clauses.length > 0 ? 'WHERE':''}
+                ${where_clauses.join(' AND ')}
+                ORDER BY creation_timestamp DESC
+                ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
+            `)
+            .then(res => {
+                if (callback) {
+                    callback({
+                        code: 200, 
+                        status: 'OK',
+                        data: res.rows
+                    })
+                }
+            }).catch(err => {
+                console.log(err)
+                if (callback) {
+                    callback(validations.validateDBSelectQueryError(err));
+                }
+            })
+        }
     }
 }
 
@@ -90,73 +126,6 @@ function eventsCreate(data, callback) {
                 callback(validations.validateDBInsertQueryError(err));
             }
         })
-    }
-}
-
-function eventsFetch(data, callback) {
-    console.log('[events/fetch] called')
-    console.log('[events/fetch] data received:',data)
-    if (!data || Object.keys(data).length == 0) {
-        db.query(`SELECT * FROM events ORDER BY creation_timestamp DESC`)
-        .then(res => {
-            if (callback) {
-                callback({
-                    code: 200, 
-                    status: 'OK',
-                    data: res.rows
-                })
-            }
-        }).catch(err => {
-            console.log(err)
-            if (callback) {
-                callback(validations.validateDBSelectQueryError(err));
-            }
-        })
-    } else {
-        const validator = validations.validateRequestData(data,new Events,'events/fetch')
-        if (!validator.valid) {
-            if (callback) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: validator.reason
-                });
-            }
-        } else {
-            var where_clauses = []
-            if (data.user_id)
-                where_clauses.push(`user_id = '${data.user_id}'`)
-            if (data.event_id)
-                where_clauses.push(`event_id = '${data.event_id}'`)
-            console.log(`
-                SELECT * FROM events 
-                ${where_clauses.length > 0 ? 'WHERE':''}
-                ${where_clauses.join(' AND ')}
-                ORDER BY creation_timestamp DESC
-                ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
-            `)
-            db.query(`
-                SELECT * FROM events 
-                ${where_clauses.length > 0 ? 'WHERE':''}
-                ${where_clauses.join(' AND ')}
-                ORDER BY creation_timestamp DESC
-                ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
-            `)
-            .then(res => {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        data: res.rows
-                    })
-                }
-            }).catch(err => {
-                console.log(err)
-                if (callback) {
-                    callback(validations.validateDBSelectQueryError(err));
-                }
-            })
-        }
     }
 }
 

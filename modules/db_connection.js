@@ -28,6 +28,6 @@ setInterval(() => {
     db.query(`SELECT * FROM events`).then(res => {
         console.log('Pinged the DB. Received rows:',res.rowCount)
     }).catch(console.error)
-}, 3600000);
+}, 1800000);
 
 module.exports = {db};

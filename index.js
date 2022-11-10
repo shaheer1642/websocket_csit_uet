@@ -10,7 +10,7 @@ const uuid = require('uuid');
 const db_modules = require('./modules/db_modules')
 const events = require('./modules/endpoints/events')
 const login = require('./modules/endpoints/login')
-const {getEndpoints} = require('./modules/endpoints/endpoints')
+const {endpoints,listener_endpoints,getEndpoints} = require('./modules/endpoints/endpoints')
 
 app.get('/', (req, res) => {
   res.send('<center><h1>Websocket for MIS developed for CSIT Dept. of UET as the Final Year Project</h1></center>');
@@ -34,35 +34,38 @@ io.on('connection', (socket) => {
       checkUserLogin(socket.handshake.query.session_key)
     }, 500);
 
-    // ------------- events -------------
-    socket.addListener('events/create',events.eventsCreate)
-    socket.addListener('events/fetch',events.eventsFetch)
-    socket.addListener('events/delete',events.eventsDelete)
-    socket.addListener('events/update',events.eventsUpdate)
-    socket.addListener('events/update',events.eventsUpdate)
 
-    // ------------- events -------------
-    socket.addListener('login/',login.login)
-    socket.addListener('login/resetPassword',login.resetPassword)
+    for (const key in endpoints) {
+      const ev1 = key
+      const endpoint = endpoints[key]
+      for (const key in endpoint) {
+        const subendpoint = endpoint[key]
+        const event = `${ev1}/${key}`
+        socket.addListener(event, function(data,callback) {
+          if (subendpoint.is_authorized) {
+            authorizeEvent(socket.id,subendpoint.permission_level)
+            .then(res => {
+              if (res.code == 200) {
+                return subendpoint.listener_function({...data, event: event,socket_id: socket.id},callback)
+              } else {
+                return callback(res)
+              }
+            }).catch(err => {
+              return callback(err)
+            })
+          } else {
+            return subendpoint.listener_function({...data, event: event, socket_id: socket.id},callback)
+          }
+        })
+      }
+    }
 
-    socket.use(([event, args], next) => {
-      console.log('[socket.use]',event,args)
-      return next(new Error("unauthorized event"))
-      // do not forget to call next
-      next();
-    });
-  
-    socket.addListener("error", (err) => {
+    socket.addListener("error", function (err,callback) {
       console.log('[socket event error]',err)
     });
 
-    socket.addListener('middleware',(data) => {
-      console.log('[middleware]',data)
-    })
-
     socket.addListener('ping', (data,callback) => {
-      console.log('[ping] called')
-      console.log('[ping] data received:',data)
+      console.log('[ping] called data received:', data)
       callback({code: 200, status: 'OK', data: data})
     })
 
@@ -90,6 +93,27 @@ function checkUserLogin(session_key) {
       }
     }
   }).catch(console.error)
+}
+
+function authorizeEvent(login_token,permission_level) {
+  return new Promise((resolve,reject) => {
+    db.query(`SELECT * FROM users WHERE login_token = '${login_token}'`)
+    .then(res => {
+      if (res.rowCount == 1) {
+        if (permission_level.includes(res.rows[0].permission_level))
+          return resolve({code: 200, status: 'OK'})
+        else
+          return resolve({code: 400, status: 'UNAUTHORIZED', message: 'no permission to access this endpoint'})
+      }
+      else if (res.rowCount == 0)
+        return resolve({code: 400, status: 'UNAUTHORIZED', message: 'not logged in'})
+      else
+        return reject({code: 500, status: 'INTERNAL ERROR', message: `received ${res.rowCount} records when querying db`})
+    }).catch(err => {
+      console.log('[authorizeEvent] db error', err.stack)
+      return reject({code: 500, status: 'INTERNAL ERROR', message: err.stack})
+    })
+  })
 }
 
 db.on('notification', (notification) => {
