@@ -29,7 +29,7 @@ const endpoints = {
         ),
         create: new Endpoint(
             `socket.emit("events/create", <pre><code>${JSON.stringify({user_id: "caa1534e-da15-41b6-8110-cc3fcffb14ed",title: "some event title",body: "some event body",expiry_timestamp: 1665774803},null,4)}</code></pre>, (res) => print(res))`,
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: '${record_schema}'},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             [100],
             events.eventsCreate
