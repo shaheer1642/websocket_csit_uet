@@ -22,14 +22,14 @@ const endpoints = {
     events: {
         fetch: new Endpoint(
             `socket.emit("events/fetch", {}, (res) => print(res))`,
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: [{s_no: 3, event_id: "caa1534e-da15-41b6-8110-cc3fcffb14ed", user_id: "caa1534e-da15-41b6-8110-cc3fcffb14ed", title: "some-title-string", body: "some-title-string", creation_timestamp: 1665774803, expiry_timestamp: 1665774803}]},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             events.eventsFetch
         ),
         create: new Endpoint(
             `socket.emit("events/create", <pre><code>${JSON.stringify({user_id: "caa1534e-da15-41b6-8110-cc3fcffb14ed",title: "some event title",body: "some event body",expiry_timestamp: 1665774803},null,4)}</code></pre>, (res) => print(res))`,
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'added record to db'},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: '${record_schema}'},null,4)}</code></pre>`,
             true,
             [100],
             events.eventsCreate
@@ -52,7 +52,7 @@ const endpoints = {
     login: {
         auth: new Endpoint(
             `socket.emit("login/auth", <pre><code>${JSON.stringify({username: "test",password: "123"},null,4)}</code></pre>, (res) => print(res))`,
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: '{...database_user_record}'},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: '${record_schema}'},null,4)}</code></pre>`,
             false,
             ['ALL'],
             login.loginAuth
@@ -73,17 +73,17 @@ const listener_endpoints = {
             insert: new ListenerEndpoint(
                 'Triggered after a new record is inserted in the table',
                 `socket.on("events/listener/insert", (data) => print(data))`,
-                `<pre><code>${JSON.stringify({code: 200, status: 'OK', trigger: 'events_insert', data: "{...payload}"},null,4)}</code></pre>`
+                `<pre><code>${JSON.stringify({code: 200, status: 'OK', trigger: 'events_insert', data: "${record_schema}"},null,4)}</code></pre>`
             ),
             update: new ListenerEndpoint(
                 'Triggered after a record is updated in the table',
                 `socket.on("events/listener/update", (data) => print(data))`,
-                `<pre><code>${JSON.stringify({code: 200, status: 'OK', trigger: 'events_update', data: "{...payload}"},null,4)}</code></pre>`
+                `<pre><code>${JSON.stringify({code: 200, status: 'OK', trigger: 'events_update', data: ["${record_schema}","${record_schema}"]},null,4)}</code></pre>`
             ),
             delete: new ListenerEndpoint(
                 'Triggered after a record is deleted from the table',
                 `socket.on("events/listener/delete", (data) => print(data))`,
-                `<pre><code>${JSON.stringify({code: 200, status: 'OK', trigger: 'events_delete', data: "{...payload}"},null,4)}</code></pre>`
+                `<pre><code>${JSON.stringify({code: 200, status: 'OK', trigger: 'events_delete', data: "${record_schema}"},null,4)}</code></pre>`
             )
         }
     }
@@ -182,7 +182,7 @@ function processWebPage(classes) {
         }
         string += `</td>`
         string += `<td>${ep2.call_example}</td>`
-        string += `<td>${ep2.response_example}</td>`
+        string += `<td>${ep2.response_example.replaceAll('${record_schema}',JSON.stringify(schema,null,8))}</td>`
         string += `</tr>`
     }
     string += `</table>`
@@ -190,12 +190,13 @@ function processWebPage(classes) {
     if (class3) {
         string += `<h3>Real-time Events</h3>`
         string += `<p>All listeners response contain code, status, trigger and data fields.<br>Usually code should be 200<br>Trigger field contains the name of the listener</p>`
-        string += `<table><tr><th>Listener</th><th>Description</th><th>Listen example (Flutter/Dart)</th></tr>`
+        string += `<table><tr><th>Listener</th><th>Description</th><th>Listen example</th><th>Response example</th></tr>`
         for (const key in class3.listener) {
             const listener = class3.listener[key]
             string += `<tr><td>${id}/listener/${key}</td>`
             string += `<td>${listener.description}</td>`
             string += `<td>${listener.listen_example}</td>`
+            string += `<td>${listener.response_example.replaceAll('${record_schema}',JSON.stringify(schema,null,8))}</td>`
             string += `</tr>`
         }
         string += `</table>`
