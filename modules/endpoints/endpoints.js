@@ -1,5 +1,7 @@
 const {Events} = require('./events')
 
+console.log(new Events().data_types.s_no)
+
 const endpoints = [
     new Events
 ]
@@ -15,9 +17,11 @@ function getEndpoints() {
 
         string += `<h3>Record Schema</h3>`
         var schema = {}
-        for (const key in endpoint) {
-            if (endpoint[key].attribute) {
-                schema[key] = endpoint[key].type
+        for (const key in endpoint.data_types) {
+            const field = endpoint.data_types[key]
+            //console.log(field)
+            if (field.attribute) {
+                schema[key] = field.type
             }
         }
         string += `<p style="font-size:20px"><pre><code>${JSON.stringify(schema, null, 4)}</code></pre></p>`
@@ -39,12 +43,12 @@ function getEndpoints() {
         string += `<p>All endpoints response contain code, status and message fields.<br>code 200 means response is good<br>code 400 means there was an error in submitted request<br>code 500 means there was an internal server error</p>`
         string += `<table><tr><th>Endpoint</th><th>Required keys</th><th>Optional keys</th><th>Call example (Flutter/Dart)</th></tr>`
         for (const subendpoint in endpoint.subendpoints) {
-            console.log(subendpoint)
+            //console.log(subendpoint)
             string += `<tr><td>${subendpoint}</td>`
 
             string += `<td>`
             for (const key in endpoint) {
-                console.log(key)
+                //console.log(key)
                 if (endpoint[key].required?.includes(subendpoint))
                     string += `${key}<br>`
             }
@@ -52,7 +56,7 @@ function getEndpoints() {
             
             string += `<td>`
             for (const key in endpoint) {
-                console.log(key)
+                //console.log(key)
                 if (endpoint[key].optional?.includes(subendpoint))
                     string += `${key}<br>`
             }
@@ -66,7 +70,7 @@ function getEndpoints() {
         string += `<p>All listeners response contain code, status, trigger and data fields.<br>Usually code should be 200<br>Trigger field contains the name of the listener</p>`
         string += `<table><tr><th>Listener</th><th>Description</th><th>Listen example (Flutter/Dart)</th></tr>`
         for (const listener in endpoint.listeners) {
-            console.log(listener)
+            //console.log(listener)
             string += `<tr><td>${listener}</td>`
             string += `<td>${endpoint.listeners[listener].description}</td>`
             string += `<td>${endpoint.listeners[listener].listen_example}</td>`
@@ -81,7 +85,7 @@ function getEndpoints() {
     string = string.replace(/<table>/g,'<table style="border: 2px solid black">')
     string = string.replace(/<th>/g,'<th style="border: 1px solid black;border-collapse: collapse;padding: 15px;">')
     string = string.replace(/<td>/g,'<td style="border: 1px solid black;border-collapse: collapse;padding: 15px;">')
-    console.log(string)
+    //console.log(string)
 
     return string
 }

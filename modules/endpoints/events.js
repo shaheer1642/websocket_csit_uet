@@ -1,9 +1,11 @@
 const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
-import DataTypes from '../classes/DataTypes';
+const {DataTypes} = require('../classes/DataTypes')
 
 class Events {
+    constructor() {}
+
     name = 'Events';
     description = 'Endpoints for creating news & events to be displayed on the main webpage'
     subendpoints = {

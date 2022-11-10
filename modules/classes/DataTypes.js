@@ -1,4 +1,4 @@
-export default class DataTypes {
+class DataTypes {
     #attribute;
     #required_for_endpoints;
     #optional_for_endpoints;
@@ -42,4 +42,8 @@ export default class DataTypes {
         type: 'unix_timestamp_second',
         example_value: 1665774803
     }
+}
+
+module.exports = {
+    DataTypes
 }

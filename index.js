@@ -9,7 +9,7 @@ const axios = require('axios')
 const uuid = require('uuid');
 const db_modules = require('./modules/db_modules')
 const events = require('./modules/endpoints/events')
-const events = require('./modules/endpoints/login')
+const login = require('./modules/endpoints/login')
 const {getEndpoints} = require('./modules/endpoints/endpoints')
 
 app.get('/', (req, res) => {
