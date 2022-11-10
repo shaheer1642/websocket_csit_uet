@@ -9,6 +9,7 @@ const axios = require('axios')
 const uuid = require('uuid');
 const db_modules = require('./modules/db_modules')
 const events = require('./modules/endpoints/events')
+const events = require('./modules/endpoints/login')
 const {getEndpoints} = require('./modules/endpoints/endpoints')
 
 app.get('/', (req, res) => {
@@ -38,6 +39,26 @@ io.on('connection', (socket) => {
     socket.addListener('events/fetch',events.eventsFetch)
     socket.addListener('events/delete',events.eventsDelete)
     socket.addListener('events/update',events.eventsUpdate)
+    socket.addListener('events/update',events.eventsUpdate)
+
+    // ------------- events -------------
+    socket.addListener('login/',login.login)
+    socket.addListener('login/resetPassword',login.resetPassword)
+
+    socket.use(([event, args], next) => {
+      console.log('[socket.use]',event,args)
+      return next(new Error("unauthorized event"))
+      // do not forget to call next
+      next();
+    });
+  
+    socket.addListener("error", (err) => {
+      console.log('[socket event error]',err)
+    });
+
+    socket.addListener('middleware',(data) => {
+      console.log('[middleware]',data)
+    })
 
     socket.addListener('ping', (data,callback) => {
       console.log('[ping] called')

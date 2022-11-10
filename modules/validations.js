@@ -38,29 +38,29 @@ function validateRequestData(data,object,event) {
     var required_keys = 0
     var optional_keys = 0
     for (const key in object) {
-        if (object[key].required.includes(event)) {
+        if (object.data_types[key].required.includes(event)) {
             if (data[key]) {
                 required_keys++;
-                if (validateKeyValue(key, data[key], object[key].type).valid) continue
+                if (validateKeyValue(key, data[key], object.data_types[key].type).valid) continue
                 else return {
                     valid: false,
                     key: key,
-                    reason: `Invalid value ${data[key]} for key \'${key}\' of type ${object[key].type}. Example value: ${object[key].example_value}`
+                    reason: `Invalid value ${data[key]} for key \'${key}\' of type ${object.data_types[key].type}. Example value: ${object.data_types[key].example_value}`
                 }
             }
             else return {
                 valid: false,
                 key: key,
-                reason: `Invalid data. Missing key \'${key}\' of type ${object[key].type}. Example value: ${object[key].example_value}`,
+                reason: `Invalid data. Missing key \'${key}\' of type ${object.data_types[key].type}. Example value: ${object.data_types[key].example_value}`,
             }
-        } else if (object[key].optional.includes(event)) {
+        } else if (object.data_types[key].optional.includes(event)) {
             if (data[key]) {
                 optional_keys++;
-                if (validateKeyValue(key, data[key], object[key].type).valid) continue
+                if (validateKeyValue(key, data[key], object.data_types[key].type).valid) continue
                 else return {
                     valid: false,
                     key: key,
-                    reason: `Invalid value ${data[key]} for key \'${key}\' of type ${object[key].type}. Example value: ${object[key].example_value}`
+                    reason: `Invalid value ${data[key]} for key \'${key}\' of type ${object.data_types[key].type}. Example value: ${object.data_types[key].example_value}`
                 }
             }
         }

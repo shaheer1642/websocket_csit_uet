@@ -3,46 +3,31 @@ const uuid = require('uuid');
 const validations = require('../validations');
 import DataTypes from '../classes/DataTypes';
 
-class Events {
-    name = 'Events';
-    description = 'Endpoints for creating news & events to be displayed on the main webpage'
+class Login {
+    name = 'Login';
+    description = 'Endpoints user login'
     subendpoints = {
-        "events/create": {
-            call_example: `socket.emitWithAck("events/create", <pre><code>${JSON.stringify({"user_id": "caa1534e-da15-41b6-8110-cc3fcffb14ed","title": "some event title","body": "some event body","expiry_timestamp": 1665774803},null,4)}</code></pre>, (res) => print(res))`
+        "login/": {
+            call_example: ``,
+            permission_level: ['ALL']
         },
-        "events/fetch": {
-            call_example: `socket.emitWithAck("events/fetch", {}, (res) => print(res))`
-        },
-        "events/update": {
-            call_example: `socket.emitWithAck("events/update", <pre><code>${JSON.stringify({"event_id": "6af9c7cc-9a71-4847-8794-fef3a0ca9b42","title": "some new event title","body": "some new event body"},null,4)}</code></pre>, (res) => print(res))`
-        },
-        "events/delete": {
-            call_example: `socket.emitWithAck("events/delete", <pre><code>${JSON.stringify({"event_id": "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => print(res))`
+        "login/resetPassword": {
+            call_example: ``,
+            permission_level: ['ALL']
         }
     }
     listeners = {
-        "events/listener/insert": {
-            description: 'Triggered after a new record is inserted in the table',
-            listen_example: `socket.on("events/listener/insert", (data) => print(data))`
-        },
-        "events/listener/update": {
-            description: 'Triggered after a record is updated in the table',
-            listen_example: `socket.on("events/listener/update", (data) => print(data))`
-        },
-        "events/listener/delete": {
-            description: 'Triggered after a record is deleted from the table',
-            listen_example: `socket.on("events/listener/delete", (data) => print(data))`
-        }
     }
     data_types = {
         s_no: new DataTypes(true).autonumber,
-        event_id: new DataTypes(true,['events/update','events/delete'],['events/fetch']).uuid,
-        user_id: new DataTypes(true,['events/create'],['events/fetch']).uuid,
-        title: new DataTypes(true,['events/create'],['events/update']).string,
-        body: new DataTypes(true,['events/create'],['events/update']).string,
-        creation_timestamp: new DataTypes(true).unix_timestamp_second,
-        expiry_timestamp: new DataTypes(true,['events/create'],['events/update']).unix_timestamp_second,
-        record_limit: new DataTypes(false, [], ['events/fetch']).number
+        user_id: new DataTypes(true).uuid,
+        username: new DataTypes(true,['login/','login/resetPassword']).string,
+        password: new DataTypes(true,['login/']).string,
+        old_password: new DataTypes(true,['login/resetPassword']).string,
+        new_password: new DataTypes(true,['login/resetPassword']).string,
+        permission_level: new DataTypes(true).number,
+        user_type: new DataTypes(true).string,
+        login_token: new DataTypes(true).uuid,
     }
 }
 
