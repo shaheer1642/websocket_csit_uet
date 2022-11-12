@@ -159,12 +159,12 @@ function processWebPage(classes) {
 
     string += `<h3>Endpoints</h3>`
     string += `<p>All endpoints response contain code, status and message fields.<br>code 200 means response is good<br>code 400 means there was an error in submitted request<br>code 500 means there was an internal server error</p>`
-    string += `<table><tr><th>Endpoint</th><th>Required keys</th><th>Optional keys</th><th>Call example</th><th>Response example</th></tr>`
+    string += `<table><tr><th>Endpoint</th><th>Permission level</th><th>Required keys</th><th>Optional keys</th><th>Call example</th><th>Response example</th></tr>`
     
     for (const key in class2) {
         const ep2 = class2[key]
         const event = `${id}/${key}`
-        string += `<tr><td>${event}</td>`
+        string += `<tr><td>${event}</td><td>${ep2.permission_level}</td>`
 
         string += `<td>`
         for (const key in class1.data_types) {
