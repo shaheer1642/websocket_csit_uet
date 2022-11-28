@@ -48,10 +48,10 @@ io.on('connection', (socket) => {
               if (res.code == 200) {
                 return subendpoint.listener_function({...data, event: event,socket_id: socket.id},callback)
               } else {
-                return callback(res)
+                if (callback) return callback(res)
               }
             }).catch(err => {
-              return callback(err)
+              if (callback) return callback(err)
             })
           } else {
             return subendpoint.listener_function({...data, event: event, socket_id: socket.id},callback)
