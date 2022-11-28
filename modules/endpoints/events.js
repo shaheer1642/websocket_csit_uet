@@ -9,7 +9,7 @@ class Events {
     data_types = {
         s_no: new DataTypes(true).autonumber,
         event_id: new DataTypes(true,['events/update','events/delete'],['events/fetch']).uuid,
-        user_id: new DataTypes(true,['events/create'],['events/fetch']).uuid,
+        user_id: new DataTypes(true,[],['events/fetch']).uuid,
         title: new DataTypes(true,['events/create'],['events/update']).string,
         body: new DataTypes(true,['events/create'],['events/update']).string,
         creation_timestamp: new DataTypes(true).unix_timestamp_second,
@@ -97,7 +97,7 @@ function eventsCreate(data, callback) {
             });
         }
     } else {
-        db.query(`INSERT INTO events(
+        db.query(`INSERT INTO events (
             event_id,
             user_id,
             title,
@@ -106,10 +106,10 @@ function eventsCreate(data, callback) {
             expiry_timestamp
         ) VALUES (
             '${uuid.v4()}',
-            '${data.user_id}',
+            (SELECT user_id FROM users WHERE login_token = '${data.socket_id}'),
             '${data.title}',
             '${data.body}',
-            ${new Date().getTime() / 1000},
+            ${new Date().getTime()},
             ${data.expiry_timestamp}
         )
         `).then(res => {

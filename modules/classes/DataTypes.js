@@ -32,8 +32,8 @@ class DataTypes {
             attribute: attribute,
             required: required_for_endpoints || [],
             optional: optional_for_endpoints || [],
-            type: 'unix_timestamp_second',
-            example_value: 1665774803
+            type: 'unix_timestamp_milliseconds',
+            example_value: 1665774803000
         }
     }
 }

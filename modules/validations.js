@@ -1,8 +1,8 @@
 const uuid = require('uuid');
 
 function validateKeyValue(key,value,type) {
-    if (type == 'unix_timestamp_second') {
-        if (Number(value) && value < 9999999999) return {
+    if (type == 'unix_timestamp_milliseconds') {
+        if (Number(value) && value < 9999999999999) return {
             valid: true
         } 
         else return {
