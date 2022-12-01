@@ -23,58 +23,59 @@ app.get('/endpoints', (req, res) => {
 const clients = {}
 
 io.on('connection', (socket) => {
-    console.log('a user connected',socket.id);
-    clients[socket.id] = socket
-    console.log('connected clients',new Date(),Object.keys(clients).length)
-    //if (!socket.handshake.query.session_key)
-    //  return
+  console.log('a user connected',socket.id, socket.handshake.query);
+  if (!socket.handshake.query.token) return
+  clients[socket.id] = socket
+  console.log('connected clients',new Date(),Object.keys(clients).length)
+  //if (!socket.handshake.query.session_key)
+  //  return
 
-    // check if user was previously logged in
-    setTimeout(() => {
-      checkUserLogin(socket.handshake.query.session_key)
-    }, 500);
+  // check if user was previously logged in
+  setTimeout(() => {
+    checkUserLogin(socket.handshake.query.session_key)
+  }, 500);
 
 
-    for (const key in endpoints) {
-      const ev1 = key
-      const endpoint = endpoints[key]
-      for (const key in endpoint) {
-        const subendpoint = endpoint[key]
-        const event = `${ev1}/${key}`
-        socket.addListener(event, function(data,callback) {
-          if (subendpoint.is_authorized) {
-            authorizeEvent(socket.id,subendpoint.permission_level)
-            .then(res => {
-              if (res.code == 200) {
-                return subendpoint.listener_function({...data, event: event,socket_id: socket.id},callback)
-              } else {
-                if (callback) return callback(res)
-              }
-            }).catch(err => {
-              if (callback) return callback(err)
-            })
-          } else {
-            return subendpoint.listener_function({...data, event: event, socket_id: socket.id},callback)
-          }
-        })
-      }
+  for (const key in endpoints) {
+    const ev1 = key
+    const endpoint = endpoints[key]
+    for (const key in endpoint) {
+      const subendpoint = endpoint[key]
+      const event = `${ev1}/${key}`
+      socket.addListener(event, function(data,callback) {
+        if (subendpoint.is_authorized) {
+          authorizeEvent(socket.id,subendpoint.permission_level)
+          .then(res => {
+            if (res.code == 200) {
+              return subendpoint.listener_function({...data, event: event,socket_id: socket.id},callback)
+            } else {
+              if (callback) return callback(res)
+            }
+          }).catch(err => {
+            if (callback) return callback(err)
+          })
+        } else {
+          return subendpoint.listener_function({...data, event: event, token: socket.handshake.query.token},callback)
+        }
+      })
     }
+  }
 
-    socket.addListener("error", function (err,callback) {
-      console.log('[socket event error]',err)
-    });
+  socket.addListener("error", function (err,callback) {
+    console.log('[socket event error]',err)
+  });
 
-    socket.addListener('ping', (data,callback) => {
-      console.log('[ping] called data received:', data)
-      callback({code: 200, status: 'OK', data: data})
-    })
+  socket.addListener('ping', (data,callback) => {
+    console.log('[ping] called data received:', data)
+    callback({code: 200, status: 'OK', data: data})
+  })
 
-    socket.on('disconnect', () => {
-      console.log('a user disconnected');
-      delete clients[socket.id]
-      console.log('connected clients',new Date(),Object.keys(clients).length)
-      socket.removeAllListeners()
-    });
+  socket.on('disconnect', () => {
+    console.log('a user disconnected');
+    delete clients[socket.id]
+    console.log('connected clients',new Date(),Object.keys(clients).length)
+    socket.removeAllListeners()
+  });
 });
 
 function checkUserLogin(session_key) {

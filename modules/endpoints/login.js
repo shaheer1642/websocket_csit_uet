@@ -22,68 +22,81 @@ class Login {
 function loginAuth(data, callback) {
     console.log(`[${data.event}] called, data received: `, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Login,data.event)
-    if (!validator.valid) {
-        callback({
-            code: 400, 
-            status: 'BAD REQUEST',
-            message: validator.reason
-        });
-        return
-    }
-    db.query(`SELECT * FROM users`)
+    db.query(`SELECT * FROM users WHERE login_token='${data.token}';`)
     .then(res => {
-        const users = res.rows
-        var matched_username = false
-        var matched_password = false
-        for (const user of users) {
-            if (user.username.toLowerCase() == data.username) matched_username = true;
-            if (!matched_username) continue
-            if (user.password == data.password) matched_password = true;
-            if (!matched_password) {
-                return callback({
-                    code: 402, 
-                    status: 'INVALID CREDENTIALS',
-                    message: 'Invalid password'
+        if (res.rowCount == 1) {
+            const userObj = res.rows[0]
+            delete userObj.password
+            return callback({
+                code: 200, 
+                status: 'OK',
+                data: userObj
+            });
+        } else {
+            const validator = validations.validateRequestData(data,new Login,data.event)
+            if (!validator.valid) {
+                callback({
+                    code: 400, 
+                    status: 'BAD REQUEST',
+                    message: validator.reason
                 });
+                return
             }
-            db.query(`
-                UPDATE users SET login_token = '${data.socket_id}' WHERE user_id = '${user.user_id}';
-                SELECT * FROM users WHERE user_id = '${user.user_id}';
-            `)
+            db.query(`SELECT * FROM users`)
             .then(res => {
-                if (res[0].rowCount == 1) {
-                    const userObj = res[1].rows[0]
-                    delete userObj.password
+                const users = res.rows
+                var matched_username = false
+                var matched_password = false
+                for (const user of users) {
+                    if (user.username.toLowerCase() == data.username) matched_username = true;
+                    if (!matched_username) continue
+                    if (user.password == data.password) matched_password = true;
+                    if (!matched_password) {
+                        return callback({
+                            code: 402, 
+                            status: 'INVALID CREDENTIALS',
+                            message: 'Invalid password'
+                        });
+                    }
+                    db.query(`
+                        UPDATE users SET login_token = '${data.socket_id}' WHERE user_id = '${user.user_id}';
+                        SELECT * FROM users WHERE user_id = '${user.user_id}';
+                    `)
+                    .then(res => {
+                        if (res[0].rowCount == 1) {
+                            const userObj = res[1].rows[0]
+                            delete userObj.password
+                            return callback({
+                                code: 200, 
+                                status: 'OK',
+                                data: userObj
+                            });
+                        } else {
+                            return callback({
+                                code: 500, 
+                                status: 'INTERNAL ERROR',
+                                message: `${res[0].rowCount} rows received while updating record`
+                            });
+                        }
+                    }).catch(err => {
+                        console.log(`[${data.event}] internal error: ${err}`)
+                        return callback(validations.validateDBUpdateQueryError(err));
+                    })
+                    return
+                }
+                if (!matched_username) {
                     return callback({
-                        code: 200, 
-                        status: 'OK',
-                        data: userObj
-                    });
-                } else {
-                    return callback({
-                        code: 500, 
-                        status: 'INTERNAL ERROR',
-                        message: `${res[0].rowCount} rows received while updating record`
+                        code: 401, 
+                        status: 'INVALID CREDENTIALS',
+                        message: 'Invalid username'
                     });
                 }
             }).catch(err => {
                 console.log(`[${data.event}] internal error: ${err}`)
-                return callback(validations.validateDBUpdateQueryError(err));
+                callback(validations.validateDBInsertQueryError(err));
             })
-            return
         }
-        if (!matched_username) {
-            return callback({
-                code: 401, 
-                status: 'INVALID CREDENTIALS',
-                message: 'Invalid username'
-            });
-        }
-    }).catch(err => {
-        console.log(`[${data.event}] internal error: ${err}`)
-        callback(validations.validateDBInsertQueryError(err));
-    })
+    }).catch(console.error)
 }
 
 function resetPassword(data, callback) {
