@@ -59,7 +59,7 @@ function loginAuth(data, callback) {
                         });
                     }
                     db.query(`
-                        UPDATE users SET login_token = '${data.socket_id}' WHERE user_id = '${user.user_id}';
+                        UPDATE users SET login_token = '${data.token}' WHERE user_id = '${user.user_id}';
                         SELECT * FROM users WHERE user_id = '${user.user_id}';
                     `)
                     .then(res => {

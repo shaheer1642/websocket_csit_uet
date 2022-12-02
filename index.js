@@ -23,18 +23,10 @@ app.get('/endpoints', (req, res) => {
 const clients = {}
 
 io.on('connection', (socket) => {
-  console.log('a user connected',socket.id, socket.handshake.query);
-  if (!socket.handshake.query.token) return
+  console.log('a user connected',socket.id, socket.handshake.auth);
+  if (!socket.handshake.auth.token) return
   clients[socket.id] = socket
   console.log('connected clients',new Date(),Object.keys(clients).length)
-  //if (!socket.handshake.query.session_key)
-  //  return
-
-  // check if user was previously logged in
-  setTimeout(() => {
-    checkUserLogin(socket.handshake.query.session_key)
-  }, 500);
-
 
   for (const key in endpoints) {
     const ev1 = key
@@ -55,7 +47,7 @@ io.on('connection', (socket) => {
             if (callback) return callback(err)
           })
         } else {
-          return subendpoint.listener_function({...data, event: event, token: socket.handshake.query.token},callback)
+          return subendpoint.listener_function({...data, event: event, token: socket.handshake.auth.token},callback)
         }
       })
     }
