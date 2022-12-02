@@ -106,7 +106,7 @@ function eventsCreate(data, callback) {
             expiry_timestamp
         ) VALUES (
             '${uuid.v4()}',
-            (SELECT user_id FROM users WHERE login_token = '${data.socket_id}'),
+            (SELECT user_id FROM users WHERE login_token = '${data.token}'),
             '${data.title}',
             '${data.body}',
             ${new Date().getTime()},

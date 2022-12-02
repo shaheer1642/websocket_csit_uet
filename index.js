@@ -25,6 +25,7 @@ const clients = {}
 io.on('connection', (socket) => {
   console.log('a user connected',socket.id, socket.handshake.auth);
   if (!socket.handshake.auth.token) return
+  const login_token = socket.handshake.auth.token
   clients[socket.id] = socket
   console.log('connected clients',new Date(),Object.keys(clients).length)
 
@@ -36,10 +37,10 @@ io.on('connection', (socket) => {
       const event = `${ev1}/${key}`
       socket.addListener(event, function(data,callback) {
         if (subendpoint.is_authorized) {
-          authorizeEvent(socket.id,subendpoint.permission_level)
+          authorizeEvent(login_token,subendpoint.permission_level)
           .then(res => {
             if (res.code == 200) {
-              return subendpoint.listener_function({...data, event: event,socket_id: socket.id},callback)
+              return subendpoint.listener_function({...data, event: event, token: login_token},callback)
             } else {
               if (callback) return callback(res)
             }
@@ -47,7 +48,7 @@ io.on('connection', (socket) => {
             if (callback) return callback(err)
           })
         } else {
-          return subendpoint.listener_function({...data, event: event, token: socket.handshake.auth.token},callback)
+          return subendpoint.listener_function({...data, event: event, token: login_token},callback)
         }
       })
     }
@@ -69,24 +70,6 @@ io.on('connection', (socket) => {
     socket.removeAllListeners()
   });
 });
-
-function checkUserLogin(session_key) {
-  return
-  db.query(`select * from hubapp_users WHERE session_key = '${session_key}'`).then(res => {
-    if (res.rowCount == 1) {
-      // find the socket which has the session_key
-      for (const socket in clients) {
-        if (clients[socket].handshake.query.session_key == session_key) {
-          console.log('a user logged in, emitting login event')
-          clients[socket].emit('hubapp/discordLoginAuthorized', {
-            code: 200,
-            response: res.rows[0]
-          })
-        }
-      }
-    }
-  }).catch(console.error)
-}
 
 function authorizeEvent(login_token,permission_level) {
   return new Promise((resolve,reject) => {
