@@ -64,6 +64,15 @@ const endpoints = {
             ['ALL'],
             login.resetPassword
         ),
+    },
+    schema: {
+        events: new Endpoint(
+            `socket.emit("schema/events", {}, (res) => print(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            (data,callback) => callback ? callback({code: 200, status: 'OK', data: new events.Events}) : {}
+        ),
     }
 }
 

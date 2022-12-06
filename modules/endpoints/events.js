@@ -11,7 +11,7 @@ class Events {
         event_id: new DataTypes(true,['events/update','events/delete'],['events/fetch']).uuid,
         user_id: new DataTypes(true,[],['events/fetch']).uuid,
         title: new DataTypes(true,['events/create'],['events/update']).string,
-        body: new DataTypes(true,['events/create'],['events/update']).string,
+        body: new DataTypes(true,['events/create'],['events/update'],true).string,
         creation_timestamp: new DataTypes(true).unix_timestamp_second,
         expiry_timestamp: new DataTypes(true,['events/create'],['events/update']).unix_timestamp_second,
         record_limit: new DataTypes(false, [], ['events/fetch']).number

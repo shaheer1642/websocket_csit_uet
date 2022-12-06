@@ -1,11 +1,11 @@
 class DataTypes {
-    constructor(attribute, required_for_endpoints, optional_for_endpoints) {
+    constructor(attribute, required_for_endpoints, optional_for_endpoints, multiline) {
         this.autonumber = {
             attribute: attribute,
             required: required_for_endpoints || [],
             optional: optional_for_endpoints || [],
             type: 'autonumber',
-            example_value: 3
+            example_value: 3,
         };
         this.number = {
             attribute: attribute,
@@ -19,7 +19,8 @@ class DataTypes {
             required: required_for_endpoints || [],
             optional: optional_for_endpoints || [],
             type: 'string',
-            example_value: 'some-title-string'
+            example_value: 'some-title-string',
+            multiline: multiline || false
         }
         this.uuid = {
             attribute: attribute,

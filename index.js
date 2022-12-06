@@ -24,7 +24,10 @@ const clients = {}
 
 io.on('connection', (socket) => {
   console.log('a user connected',socket.id, socket.handshake.auth);
-  if (!socket.handshake.auth.token) return
+  if (!socket.handshake.auth.token) {
+    //socket.disconnect()
+    //return
+  }
   const login_token = socket.handshake.auth.token
   clients[socket.id] = socket
   console.log('connected clients',new Date(),Object.keys(clients).length)
