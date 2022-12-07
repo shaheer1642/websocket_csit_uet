@@ -31,21 +31,21 @@ const endpoints = {
             `socket.emit("events/create", <pre><code>${JSON.stringify({title: "some event title",body: "some event body",expiry_timestamp: 1665774803000},null,4)}</code></pre>, (res) => print(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
-            [100],
+            ['admin'],
             events.eventsCreate
         ),
         update: new Endpoint(
             `socket.emit("events/update", <pre><code>${JSON.stringify({event_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42",title: "some new event title",body: "some new event body"},null,4)}</code></pre>, (res) => print(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated event caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
-            [100],
+            ['admin'],
             events.eventsUpdate
         ),
         delete: new Endpoint(
             `socket.emit("events/delete", <pre><code>${JSON.stringify({event_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => print(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted event caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
-            [100],
+            ['admin'],
             events.eventsDelete
         )
     },

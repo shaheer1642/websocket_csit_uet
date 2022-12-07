@@ -79,7 +79,7 @@ function authorizeEvent(login_token,permission_level) {
     db.query(`SELECT * FROM users WHERE login_token = '${login_token}'`)
     .then(res => {
       if (res.rowCount == 1) {
-        if (permission_level.includes(res.rows[0].permission_level))
+        if (permission_level.includes(res.rows[0].user_type))
           return resolve({code: 200, status: 'OK'})
         else
           return resolve({code: 400, status: 'UNAUTHORIZED', message: 'no permission to access this endpoint'})

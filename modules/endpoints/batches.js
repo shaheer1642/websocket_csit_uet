@@ -3,38 +3,26 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 
-class Events {
-    name = 'Events';
-    description = 'Endpoints for creating news & events to be displayed on the main webpage'
+class Batches {
+    name = 'Batches';
+    description = 'Endpoints for creating student batches'
     data_types = {
         serial: new DataTypes(true).autonumber,
-        event_id: new DataTypes(true,['events/update','events/delete'],['events/fetch']).uuid,
+        batch_id: new DataTypes(true,['batches/update','batches/delete'],['batches/fetch']).uuid,
+        user_id: new DataTypes(true,[],['events/fetch']).uuid,
         title: new DataTypes(true,['events/create'],['events/update']).string,
         body: new DataTypes(true,['events/create'],['events/update'],true).string,
-        event_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
-        event_expiry_timestamp: new DataTypes(true,['events/create'],['events/update']).unix_timestamp_milliseconds,
+        creation_timestamp: new DataTypes(true).unix_timestamp_second,
+        expiry_timestamp: new DataTypes(true,['events/create'],['events/update']).unix_timestamp_second,
         record_limit: new DataTypes(false, [], ['events/fetch']).number
     }
 }
 
 function eventsFetch(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Events,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-    } else {
-        db.query(`
-            SELECT * FROM events 
-            ${data.event_id ? ` WHERE event_id = '${data.event_id}'`:''}
-            ORDER BY event_creation_timestamp DESC
-            ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
-        `).then(res => {
+    if (!data || Object.keys(data).length == 0) {
+        db.query(`SELECT * FROM events ORDER BY creation_timestamp DESC`)
+        .then(res => {
             if (callback) {
                 callback({
                     code: 200, 
@@ -48,6 +36,51 @@ function eventsFetch(data, callback) {
                 callback(validations.validateDBSelectQueryError(err));
             }
         })
+    } else {
+        const validator = validations.validateRequestData(data,new Events,data.event)
+        if (!validator.valid) {
+            if (callback) {
+                callback({
+                    code: 400, 
+                    status: 'BAD REQUEST',
+                    message: validator.reason
+                });
+            }
+        } else {
+            var where_clauses = []
+            if (data.user_id)
+                where_clauses.push(`user_id = '${data.user_id}'`)
+            if (data.event_id)
+                where_clauses.push(`event_id = '${data.event_id}'`)
+            console.log(`
+                SELECT * FROM events 
+                ${where_clauses.length > 0 ? 'WHERE':''}
+                ${where_clauses.join(' AND ')}
+                ORDER BY creation_timestamp DESC
+                ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
+            `)
+            db.query(`
+                SELECT * FROM events 
+                ${where_clauses.length > 0 ? 'WHERE':''}
+                ${where_clauses.join(' AND ')}
+                ORDER BY creation_timestamp DESC
+                ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
+            `)
+            .then(res => {
+                if (callback) {
+                    callback({
+                        code: 200, 
+                        status: 'OK',
+                        data: res.rows
+                    })
+                }
+            }).catch(err => {
+                console.log(err)
+                if (callback) {
+                    callback(validations.validateDBSelectQueryError(err));
+                }
+            })
+        }
     }
 }
 
@@ -65,13 +98,17 @@ function eventsCreate(data, callback) {
         }
     } else {
         db.query(`INSERT INTO events (
+            user_id,
             title,
             body,
-            event_expiry_timestamp
+            creation_timestamp,
+            expiry_timestamp
         ) VALUES (
+            (SELECT user_id FROM users WHERE login_token = '${data.token}'),
             '${data.title}',
             '${data.body}',
-            ${data.event_expiry_timestamp}
+            ${new Date().getTime()},
+            ${data.expiry_timestamp}
         )
         `).then(res => {
             if (callback) {

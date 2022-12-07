@@ -29,7 +29,7 @@ class DataTypes {
             type: 'uuid',
             example_value: 'caa1534e-da15-41b6-8110-cc3fcffb14ed'
         }
-        this.unix_timestamp_second = {
+        this.unix_timestamp_milliseconds = {
             attribute: attribute,
             required: required_for_endpoints || [],
             optional: optional_for_endpoints || [],
