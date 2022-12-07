@@ -9,20 +9,31 @@ class Batches {
     data_types = {
         serial: new DataTypes(true).autonumber,
         batch_id: new DataTypes(true,['batches/update','batches/delete'],['batches/fetch']).uuid,
-        user_id: new DataTypes(true,[],['events/fetch']).uuid,
-        title: new DataTypes(true,['events/create'],['events/update']).string,
-        body: new DataTypes(true,['events/create'],['events/update'],true).string,
-        creation_timestamp: new DataTypes(true).unix_timestamp_second,
-        expiry_timestamp: new DataTypes(true,['events/create'],['events/update']).unix_timestamp_second,
-        record_limit: new DataTypes(false, [], ['events/fetch']).number
+        batch_advisor_id: new DataTypes(true,[],['batches/create','batches/update']).uuid,
+        batch_no: new DataTypes(true,['batches/create'],['batches/update']).number,
+        joined_semester: new DataTypes(true,['batches/create'],['batches/update']).string,
+        degree_type: new DataTypes(true,['batches/create'],['batches/update']).string,
+        batch_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
 }
 
-function eventsFetch(data, callback) {
+function batchesFetch(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    if (!data || Object.keys(data).length == 0) {
-        db.query(`SELECT * FROM events ORDER BY creation_timestamp DESC`)
-        .then(res => {
+    const validator = validations.validateRequestData(data,new Batches,data.event)
+    if (!validator.valid) {
+        if (callback) {
+            callback({
+                code: 400, 
+                status: 'BAD REQUEST',
+                message: validator.reason
+            });
+        }
+    } else {
+        db.query(`
+            SELECT * FROM batches 
+            ${data.batch_id ? ` WHERE batch_id = '${data.batch_id}'`:''}
+            ORDER BY batch_creation_timestamp ASC
+        `).then(res => {
             if (callback) {
                 callback({
                     code: 200, 
@@ -36,58 +47,12 @@ function eventsFetch(data, callback) {
                 callback(validations.validateDBSelectQueryError(err));
             }
         })
-    } else {
-        const validator = validations.validateRequestData(data,new Events,data.event)
-        if (!validator.valid) {
-            if (callback) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: validator.reason
-                });
-            }
-        } else {
-            var where_clauses = []
-            if (data.user_id)
-                where_clauses.push(`user_id = '${data.user_id}'`)
-            if (data.event_id)
-                where_clauses.push(`event_id = '${data.event_id}'`)
-            console.log(`
-                SELECT * FROM events 
-                ${where_clauses.length > 0 ? 'WHERE':''}
-                ${where_clauses.join(' AND ')}
-                ORDER BY creation_timestamp DESC
-                ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
-            `)
-            db.query(`
-                SELECT * FROM events 
-                ${where_clauses.length > 0 ? 'WHERE':''}
-                ${where_clauses.join(' AND ')}
-                ORDER BY creation_timestamp DESC
-                ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
-            `)
-            .then(res => {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        data: res.rows
-                    })
-                }
-            }).catch(err => {
-                console.log(err)
-                if (callback) {
-                    callback(validations.validateDBSelectQueryError(err));
-                }
-            })
-        }
     }
 }
 
-function eventsCreate(data, callback) {
-    console.log('[events/create] called')
-    console.log('[events/create] data received:',data)
-    const validator = validations.validateRequestData(data,new Events,'events/create')
+function batchesCreate(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new Batches,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -97,18 +62,16 @@ function eventsCreate(data, callback) {
             });
         }
     } else {
-        db.query(`INSERT INTO events (
-            user_id,
-            title,
-            body,
-            creation_timestamp,
-            expiry_timestamp
+        db.query(`INSERT INTO batches (
+            batch_no,
+            joined_semester,
+            degree_type
+            ${data.batch_advisor_id ? ',batch_advisor_id':''}
         ) VALUES (
-            (SELECT user_id FROM users WHERE login_token = '${data.token}'),
-            '${data.title}',
-            '${data.body}',
-            ${new Date().getTime()},
-            ${data.expiry_timestamp}
+            '${data.batch_no}',
+            '${data.joined_semester}',
+            '${data.degree_type}'
+            ${data.batch_advisor_id ? `,'${data.batch_advisor_id}'`:''}
         )
         `).then(res => {
             if (callback) {
@@ -127,10 +90,9 @@ function eventsCreate(data, callback) {
     }
 }
 
-function eventsDelete(data, callback) {
-    console.log('[events/delete] called')
-    console.log('[events/delete] data received:',data)
-    const validator = validations.validateRequestData(data,new Events,'events/delete')
+function batchesDelete(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new Batches,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -140,14 +102,14 @@ function eventsDelete(data, callback) {
             });
         }
     } else {
-        db.query(`DELETE FROM events WHERE event_id = '${data.event_id}'`)
+        db.query(`DELETE FROM batches WHERE batch_id = '${data.batch_id}'`)
         .then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
                         code: 200, 
                         status: 'OK',
-                        message: `deleted event ${data.event_id} record from db`
+                        message: `deleted ${data.batch_id} record from db`
                     });
                 }
             } else if (res.rowCount == 0) {
@@ -155,7 +117,7 @@ function eventsDelete(data, callback) {
                     callback({
                         code: 400, 
                         status: 'BAD REQUEST',
-                        message: `event ${data.event_id} does not exist`
+                        message: `record ${data.batch_id} does not exist`
                     });
                 }
             } else {
@@ -176,10 +138,9 @@ function eventsDelete(data, callback) {
     }
 }
 
-function eventsUpdate(data, callback) {
-    console.log('[events/update] called')
-    console.log('[events/update] data received:',data)
-    const validator = validations.validateRequestData(data,new Events,'events/update')
+function batchesUpdate(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new Events,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -188,14 +149,13 @@ function eventsUpdate(data, callback) {
                 message: validator.reason
             });
         }
+        return
     } else {
         var update_clauses = []
-        if (data.title)
-            update_clauses.push(`title = '${data.title}'`)
-        if (data.body)
-            update_clauses.push(`body = '${data.body}'`)
-        if (data.expiry_timestamp)
-            update_clauses.push(`expiry_timestamp = ${data.expiry_timestamp}`)
+        if (data.batch_no) update_clauses.push(`batch_no = '${data.batch_no}'`)
+        if (data.joined_semester) update_clauses.push(`joined_semester = '${data.joined_semester}'`)
+        if (data.degree_type) update_clauses.push(`degree_type = '${data.degree_type}'`)
+        if (data.batch_advisor_id) update_clauses.push(`batch_advisor_id = '${data.batch_advisor_id}'`)
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({
@@ -207,16 +167,16 @@ function eventsUpdate(data, callback) {
             return
         }
         db.query(`
-            UPDATE events SET
+            UPDATE batches SET
             ${update_clauses.join(',')}
-            WHERE event_id = '${data.event_id}'
+            WHERE batch_id = '${data.batch_id}';
         `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
                         code: 200, 
                         status: 'OK',
-                        message: `updated event ${data.event_id} record in db`
+                        message: `updated ${data.batch_id} record in db`
                     });
                 }
             } else if (res.rowCount == 0) {
@@ -224,7 +184,7 @@ function eventsUpdate(data, callback) {
                     callback({
                         code: 400, 
                         status: 'BAD REQUEST',
-                        message: `event ${data.event_id} does not exist`
+                        message: `record ${data.batch_id} does not exist`
                     });
                 }
             } else {
@@ -246,9 +206,9 @@ function eventsUpdate(data, callback) {
 }
 
 module.exports = {
-    eventsCreate,
-    eventsFetch,
-    eventsDelete,
-    eventsUpdate,
-    Events
+    batchesCreate,
+    batchesFetch,
+    batchesDelete,
+    batchesUpdate,
+    Batches
 }

@@ -1,4 +1,5 @@
 const events = require('./events')
+const batches = require('./batches')
 const login = require('./login')
 
 class Endpoint {
@@ -21,44 +22,74 @@ class ListenerEndpoint {
 const endpoints = {
     events: {
         fetch: new Endpoint(
-            `socket.emit("events/fetch", {}, (res) => print(res))`,
+            `socket.emit("events/fetch", {}, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             events.eventsFetch
         ),
         create: new Endpoint(
-            `socket.emit("events/create", <pre><code>${JSON.stringify({title: "some event title",body: "some event body",expiry_timestamp: 1665774803000},null,4)}</code></pre>, (res) => print(res))`,
+            `socket.emit("events/create", <pre><code>${JSON.stringify({title: "some event title",body: "some event body",expiry_timestamp: 1665774803000},null,4)}</code></pre>, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             events.eventsCreate
         ),
         update: new Endpoint(
-            `socket.emit("events/update", <pre><code>${JSON.stringify({event_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42",title: "some new event title",body: "some new event body"},null,4)}</code></pre>, (res) => print(res))`,
+            `socket.emit("events/update", <pre><code>${JSON.stringify({event_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42",title: "some new event title",body: "some new event body"},null,4)}</code></pre>, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated event caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin'],
             events.eventsUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("events/delete", <pre><code>${JSON.stringify({event_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => print(res))`,
+            `socket.emit("events/delete", <pre><code>${JSON.stringify({event_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted event caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
             events.eventsDelete
         )
     },
+    batches: {
+        fetch: new Endpoint(
+            `socket.emit("batches/fetch", {}, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            batches.batchesFetch
+        ),
+        create: new Endpoint(
+            `socket.emit("batches/create", <pre><code>${JSON.stringify({batch_no: 2020,batch_advisor_id: "teacher uuid",joined_semester: "fall",degree_type: "msc"},null,4)}</code></pre>, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
+            true,
+            ['admin'],
+            batches.batchesCreate
+        ),
+        update: new Endpoint(
+            `socket.emit("batches/update", <pre><code>${JSON.stringify({batch_no: 2020,batch_advisor_id: "teacher uuid",joined_semester: "fall",degree_type: "msc"},null,4)}</code></pre>, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin'],
+            batches.batchesUpdate
+        ),
+        delete: new Endpoint(
+            `socket.emit("batches/delete", <pre><code>${JSON.stringify({batch_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
+            true,
+            ['admin'],
+            batches.batchesDelete
+        )
+    },
     login: {
         auth: new Endpoint(
-            `socket.emit("login/auth", <pre><code>${JSON.stringify({username: "test",password: "123"},null,4)}</code></pre>, (res) => print(res))`,
+            `socket.emit("login/auth", <pre><code>${JSON.stringify({username: "test",password: "123"},null,4)}</code></pre>, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: '${record_schema}'},null,4)}</code></pre>`,
             false,
             ['ALL'],
             login.loginAuth
         ),
         resetPassword: new Endpoint(
-            `socket.emit("login/resetPassword", <pre><code>${JSON.stringify({username: "test", old_password: "123", new_password: "456"},null,4)}</code></pre>, (res) => print(res))`,
+            `socket.emit("login/resetPassword", <pre><code>${JSON.stringify({username: "test", old_password: "123", new_password: "456"},null,4)}</code></pre>, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'password reset successful'},null,4)}</code></pre>`,
             false,
             ['ALL'],
@@ -67,7 +98,7 @@ const endpoints = {
     },
     schema: {
         events: new Endpoint(
-            `socket.emit("schema/events", {}, (res) => print(res))`,
+            `socket.emit("schema/events", {}, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
@@ -109,6 +140,11 @@ const endpointsClasses = [
         id: 'login',
         class1: new login.Login(),
         class2: endpoints.login,
+    },
+    {
+        id: 'batches',
+        class1: new batches.Batches(),
+        class2: endpoints.batches,
     }
 ]
 
