@@ -84,6 +84,11 @@ function validateDBInsertQueryError(err) {
         status = 'BAD REQUEST',
         message =  err.detail
     }
+    if (err.code == '23505') {
+        code = 400,
+        status = 'BAD REQUEST',
+        message =  err.detail
+    }
     return {
         code: code, 
         status: status,

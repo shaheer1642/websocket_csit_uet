@@ -11,9 +11,15 @@ const db = new DB.Client({
 db.connect().then(async res => {
     console.log('DB Connection established.')
 
-    db.query('LISTEN events_insert').catch(console.error)
-    db.query('LISTEN events_update').catch(console.error)
-    db.query('LISTEN events_delete').catch(console.error)
+    db.query(`
+        LISTEN events_insert;
+        LISTEN events_update;
+        LISTEN events_delete;
+
+        LISTEN students_insert;
+        LISTEN students_update;
+        LISTEN students_delete;
+    `).catch(console.error)
 }).catch(err => {
     console.log('DB Connection failure.\n' + err)
 });

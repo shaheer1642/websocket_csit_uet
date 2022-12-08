@@ -24,9 +24,9 @@ const clients = {}
 
 io.on('connection', (socket) => {
   console.log('a user connected',socket.id, socket.handshake.auth);
-  if (!socket.handshake.auth.token) {
-    //socket.disconnect()
-    //return
+  if (!socket.handshake.auth.token && !socket.handshake.query.postman) {
+    socket.disconnect()
+    return
   }
   const login_token = socket.handshake.auth.token
   clients[socket.id] = socket
@@ -39,7 +39,7 @@ io.on('connection', (socket) => {
       const subendpoint = endpoint[key]
       const event = `${ev1}/${key}`
       socket.addListener(event, function(data,callback) {
-        if (subendpoint.is_authorized) {
+        if (subendpoint.is_authorized && !socket.handshake.query.postman) {
           authorizeEvent(login_token,subendpoint.permission_level)
           .then(res => {
             if (res.code == 200) {
@@ -102,35 +102,45 @@ db.on('notification', (notification) => {
   const payload = JSON.parse(notification.payload);
   
   if (notification.channel == 'events_insert') {
-    for (const socket in clients) {
-      clients[socket].emit('events/listener/insert', {
-        code: 200, 
-        status: 'OK',
-        trigger: notification.channel,
-        data: payload
-      })
-    }
+    io.emit('events/listener/insert', payload)
   }
   if (notification.channel == 'events_update') {
-    for (const socket in clients) {
-      clients[socket].emit('events/listener/update', {
-        code: 200, 
-        status: 'OK',
-        trigger: notification.channel,
-        data: payload[0]
-      })
-    }
+    io.emit('events/listener/update', payload[0])
   }
   if (notification.channel == 'events_delete') {
-    for (const socket in clients) {
-      clients[socket].emit('events/listener/delete', {
-        code: 200, 
-        status: 'OK',
-        trigger: notification.channel,
-        data: payload
-      })
-    }
+    io.emit('events/listener/delete', payload)
   }
+
+  if (notification.channel == 'students_insert') {
+    db.query(`
+      SELECT * FROM students
+      JOIN students_batch on students_batch.student_id = students.student_id
+      JOIN batches on batches.batch_id = students_batch.batch_id
+      JOIN users ON users.user_id = students.user_id
+      WHERE students.student_id = '${payload.student_id}'
+    `).then(res => {
+      if (res.rowCount == 1) {
+        io.emit('students/listener/insert', res.rows[0])
+      }
+    })
+  }
+  if (notification.channel == 'students_update') {
+    db.query(`
+      SELECT * FROM students
+      JOIN students_batch on students_batch.student_id = students.student_id
+      JOIN batches on batches.batch_id = students_batch.batch_id
+      JOIN users ON users.user_id = students.user_id
+      WHERE students.student_id = '${payload[0].student_id}'
+    `).then(res => {
+      if (res.rowCount == 1) {
+        io.emit('students/listener/update', res.rows[0])
+      }
+    })
+  }
+  if (notification.channel == 'students_delete') {
+    io.emit('students/listener/delete', payload)
+  }
+
 })
 
 server.listen(process.env.PORT, () => {
