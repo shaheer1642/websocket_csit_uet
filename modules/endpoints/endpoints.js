@@ -162,17 +162,17 @@ const listener_endpoints = {
         listener: {
             insert: new ListenerEndpoint(
                 'Triggered after a new record is inserted in the table',
-                `socket.on("events/listener/insert", (data) => print(data))`,
+                `socket.on("students/listener/insert", (data) => print(data))`,
                 `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
             ),
             update: new ListenerEndpoint(
                 'Triggered after a record is updated in the table',
-                `socket.on("events/listener/update", (data) => print(data))`,
+                `socket.on("students/listener/update", (data) => print(data))`,
                 `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
             ),
             delete: new ListenerEndpoint(
                 'Triggered after a record is deleted from the table',
-                `socket.on("events/listener/delete", (data) => print(data))`,
+                `socket.on("students/listener/delete", (data) => print(data))`,
                 `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
             )
         }
