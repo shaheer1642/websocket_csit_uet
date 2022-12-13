@@ -135,6 +135,20 @@ const endpoints = {
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new events.Events}) : {}
         ),
+        batches: new Endpoint(
+            `socket.emit("schema/batches", {}, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            (data,callback) => callback ? callback({code: 200, status: 'OK', data: new batches.Batches}) : {}
+        ),
+        students: new Endpoint(
+            `socket.emit("schema/students", {}, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            (data,callback) => callback ? callback({code: 200, status: 'OK', data: new students.Students}) : {}
+        ),
     }
 }
 
