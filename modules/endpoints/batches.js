@@ -102,7 +102,21 @@ function batchesDelete(data, callback) {
             });
         }
     } else {
-        db.query(`DELETE FROM batches WHERE batch_id = '${data.batch_id}'`)
+        db.query(`
+            WITH query_one AS ( 
+                DELETE FROM users WHERE user_id IN (
+                    SELECT user_id from users
+                    JOIN students_batch ON students_batch.student_id = users.user_id
+                    WHERE students_batch.batch_id = '${data.batch_id}'
+                    AND users.user_id NOT IN (
+	                    SELECT user_id from users
+	                    JOIN students_batch ON students_batch.student_id = users.user_id
+	                    where students_batch.batch_id != '${data.batch_id}'
+                    )
+                )
+            )
+            DELETE FROM batches WHERE batch_id = '${data.batch_id}';
+        `)
         .then(res => {
             if (res.rowCount == 1) {
                 if (callback) {

@@ -16,6 +16,10 @@ db.connect().then(async res => {
         LISTEN events_update;
         LISTEN events_delete;
 
+        LISTEN batches_insert;
+        LISTEN batches_update;
+        LISTEN batches_delete;
+
         LISTEN students_insert;
         LISTEN students_update;
         LISTEN students_delete;

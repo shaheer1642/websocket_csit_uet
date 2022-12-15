@@ -8,7 +8,9 @@ class Students {
     description = 'Endpoints for creating student'
     data_types = {
         serial: new DataTypes(true).autonumber,
-        student_id: new DataTypes(true,['students/update','students/delete','students/create'],['students/fetch']).string,
+        student_id: new DataTypes(true,['students/update','students/delete'],['students/fetch']).uuid,
+        cnic: new DataTypes(true,['students/update',],['students/create']).string,
+        reg_no: new DataTypes(true,['students/update'],['students/create']).string,
         student_name: new DataTypes(true,['students/create'],['students/update']).string,
         student_father_name: new DataTypes(true,[],['students/update','students/create']).string,
         student_address: new DataTypes(true,[],['students/update','students/create']).string,
@@ -44,7 +46,7 @@ function studentsFetch(data, callback) {
             SELECT * FROM students
             JOIN students_batch on students_batch.student_id = students.student_id
             JOIN batches on batches.batch_id = students_batch.batch_id
-            JOIN users ON users.user_id = students.user_id
+            JOIN users ON users.user_id = students.student_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
@@ -72,19 +74,30 @@ function studentsCreate(data, callback) {
             });
         }
     } else {
+        if (!data.cnic && !data.reg_no) {
+            if (callback) {
+                callback({
+                    code: 400, 
+                    status: 'BAD REQUEST',
+                    message: 'Both CNIC and Reg No cannot be empty'
+                });
+            }
+            return
+        }
         db.query(`
             WITH query_one AS ( 
                 INSERT INTO users (username, user_type) 
                 VALUES (
-                    '${data.student_id}',
+                    '${data.cnic || data.reg_no}',
                     'student'
                 ) 
                 RETURNING user_id 
             ), query_two AS (
-                INSERT INTO students (student_id, user_id, student_name, student_father_name, student_address) 
+                INSERT INTO students (student_id, cnic, reg_no, student_name, student_father_name, student_address) 
                 VALUES (
-                    '${data.student_id}', 
                     ( select user_id from query_one ),
+                    ${data.cnic ? `'${data.cnic}'`:null},
+                    ${data.reg_no ? `'${data.reg_no}'`:null},
                     '${data.student_name}',
                     ${data.student_father_name ? `'${data.student_father_name}'`:null},
                     ${data.student_address ? `'${data.student_address}'`:null}
@@ -92,7 +105,7 @@ function studentsCreate(data, callback) {
             )
             INSERT INTO students_batch (student_id, batch_id)
             VALUES (
-                '${data.student_id}', 
+                ( select user_id from query_one ),
                 '${data.batch_id}'
             );
         `).then(res => {
@@ -132,9 +145,7 @@ function studentsDelete(data, callback) {
         }
     } else {
         db.query(`
-            WITH query_one AS ( 
-                DELETE FROM users WHERE username='${data.student_id}'
-            ) DELETE FROM students WHERE student_id='${data.student_id}';
+            DELETE FROM users WHERE user_id='${data.student_id}'
         `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
@@ -185,6 +196,8 @@ function studentsUpdate(data, callback) {
     } else {
         var update_clauses = []
         if (data.student_name) update_clauses.push(`student_name = '${data.student_name}'`)
+        if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
+        if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
         if (data.student_father_name) update_clauses.push(`student_father_name = '${data.student_father_name}'`)
         if (data.student_address) update_clauses.push(`student_address = '${data.student_address}'`)
         if (update_clauses.length == 0) {

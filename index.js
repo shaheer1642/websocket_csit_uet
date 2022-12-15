@@ -111,12 +111,22 @@ db.on('notification', (notification) => {
     io.emit('events/listener/delete', payload)
   }
 
+  if (notification.channel == 'batches_insert') {
+    io.emit('batches/listener/insert', payload)
+  }
+  if (notification.channel == 'batches_update') {
+    io.emit('batches/listener/update', payload[0])
+  }
+  if (notification.channel == 'batches_delete') {
+    io.emit('batches/listener/delete', payload)
+  }
+
   if (notification.channel == 'students_insert') {
     db.query(`
       SELECT * FROM students
       JOIN students_batch on students_batch.student_id = students.student_id
       JOIN batches on batches.batch_id = students_batch.batch_id
-      JOIN users ON users.user_id = students.user_id
+      JOIN users ON users.user_id = students.student_id
       WHERE students.student_id = '${payload.student_id}'
     `).then(res => {
       if (res.rowCount == 1) {
@@ -129,7 +139,7 @@ db.on('notification', (notification) => {
       SELECT * FROM students
       JOIN students_batch on students_batch.student_id = students.student_id
       JOIN batches on batches.batch_id = students_batch.batch_id
-      JOIN users ON users.user_id = students.user_id
+      JOIN users ON users.user_id = students.student_id
       WHERE students.student_id = '${payload[0].student_id}'
     `).then(res => {
       if (res.rowCount == 1) {
