@@ -157,8 +157,8 @@ function eventsUpdate(data, callback) {
             update_clauses.push(`title = '${data.title}'`)
         if (data.body)
             update_clauses.push(`body = '${data.body}'`)
-        if (data.expiry_timestamp)
-            update_clauses.push(`expiry_timestamp = ${data.expiry_timestamp}`)
+        if (data.event_expiry_timestamp)
+            update_clauses.push(`event_expiry_timestamp = ${data.event_expiry_timestamp}`)
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({
