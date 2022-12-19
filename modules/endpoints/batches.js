@@ -154,7 +154,8 @@ function batchesDelete(data, callback) {
 
 function batchesUpdate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Events,data.event)
+    const validator = validations.validateRequestData(data,new Batches,data.event)
+    console.log('hi1')
     if (!validator.valid) {
         if (callback) {
             callback({
