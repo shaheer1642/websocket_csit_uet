@@ -23,6 +23,14 @@ db.connect().then(async res => {
         LISTEN students_insert;
         LISTEN students_update;
         LISTEN students_delete;
+
+        LISTEN teachers_insert;
+        LISTEN teachers_update;
+        LISTEN teachers_delete;
+
+        LISTEN courses_insert;
+        LISTEN courses_update;
+        LISTEN courses_delete;
     `).catch(console.error)
 }).catch(err => {
     console.log('DB Connection failure.\n' + err)
@@ -32,6 +40,10 @@ db.on('error', err => {
     console.log('=============== DB Connection error. ==============')
     console.log(err)
     process.exit()
+})
+
+db.on('notification', (notification) => {
+    console.log('[DB Notification]',notification.channel)
 })
 
 setInterval(() => {

@@ -2,6 +2,7 @@ const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
+const {event_emitter} = require('../event_emitter')
 
 class Batches {
     name = 'Batches';
@@ -218,6 +219,20 @@ function batchesUpdate(data, callback) {
         })
     }
 }
+
+db.on('notification', (notification) => {
+    const payload = JSON.parse(notification.payload);
+    
+    if (notification.channel == 'batches_insert') {
+        event_emitter.emit('notifyAll', {event: 'batches/listener/insert', data: payload})
+    }
+    if (notification.channel == 'batches_update') {
+        event_emitter.emit('notifyAll', {event: 'batches/listener/update', data: payload[0]})
+    }
+    if (notification.channel == 'batches_delete') {
+        event_emitter.emit('notifyAll', {event: 'batches/listener/delete', data: payload})
+    }
+})
 
 module.exports = {
     batchesCreate,

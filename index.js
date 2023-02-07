@@ -11,6 +11,7 @@ const db_modules = require('./modules/db_modules')
 const events = require('./modules/endpoints/events')
 const login = require('./modules/endpoints/login')
 const {endpoints,listener_endpoints,getEndpoints} = require('./modules/endpoints/endpoints')
+const {event_emitter} = require('./modules/event_emitter')
 
 app.get('/', (req, res) => {
   res.send('<center><h1>Websocket for MIS developed for CSIT Dept. of UET as the Final Year Project</h1></center>');
@@ -95,62 +96,9 @@ function authorizeEvent(login_token,permission_level) {
   })
 }
 
-db.on('notification', (notification) => {
-  console.log('db notification')
-  console.log(notification.payload)
-  console.log(notification.channel)
-  const payload = JSON.parse(notification.payload);
-  
-  if (notification.channel == 'events_insert') {
-    io.emit('events/listener/insert', payload)
-  }
-  if (notification.channel == 'events_update') {
-    io.emit('events/listener/update', payload[0])
-  }
-  if (notification.channel == 'events_delete') {
-    io.emit('events/listener/delete', payload)
-  }
-
-  if (notification.channel == 'batches_insert') {
-    io.emit('batches/listener/insert', payload)
-  }
-  if (notification.channel == 'batches_update') {
-    io.emit('batches/listener/update', payload[0])
-  }
-  if (notification.channel == 'batches_delete') {
-    io.emit('batches/listener/delete', payload)
-  }
-
-  if (notification.channel == 'students_insert') {
-    db.query(`
-      SELECT * FROM students
-      JOIN students_batch on students_batch.student_id = students.student_id
-      JOIN batches on batches.batch_id = students_batch.batch_id
-      JOIN users ON users.user_id = students.student_id
-      WHERE students.student_id = '${payload.student_id}'
-    `).then(res => {
-      if (res.rowCount == 1) {
-        io.emit('students/listener/insert', res.rows[0])
-      }
-    })
-  }
-  if (notification.channel == 'students_update') {
-    db.query(`
-      SELECT * FROM students
-      JOIN students_batch on students_batch.student_id = students.student_id
-      JOIN batches on batches.batch_id = students_batch.batch_id
-      JOIN users ON users.user_id = students.student_id
-      WHERE students.student_id = '${payload[0].student_id}'
-    `).then(res => {
-      if (res.rowCount == 1) {
-        io.emit('students/listener/update', res.rows[0])
-      }
-    })
-  }
-  if (notification.channel == 'students_delete') {
-    io.emit('students/listener/delete', payload)
-  }
-
+event_emitter.on('notifyAll',(e) => {
+  console.log('[io.emit]',e.event)
+  io.emit(e.event, e.data)
 })
 
 server.listen(process.env.PORT, () => {

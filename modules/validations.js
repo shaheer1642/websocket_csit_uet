@@ -29,6 +29,14 @@ function validateKeyValue(key,value,type) {
             }
         }
     }
+    else if (type == 'boolean') {
+        if (typeof value == 'boolean') return {
+            valid: true
+        } 
+        else return {
+            valid: false,
+        }
+    }
     return {
         valid: true
     }

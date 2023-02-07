@@ -19,8 +19,15 @@ class DataTypes {
             required: required_for_endpoints || [],
             optional: optional_for_endpoints || [],
             type: 'string',
-            example_value: 'some-title-string',
+            example_value: 'some-string',
             multiline: multiline || false
+        }
+        this.boolean = {
+            attribute: attribute,
+            required: required_for_endpoints || [],
+            optional: optional_for_endpoints || [],
+            type: 'boolean',
+            example_value: true,
         }
         this.uuid = {
             attribute: attribute,

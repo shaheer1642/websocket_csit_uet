@@ -4,23 +4,51 @@ const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter')
 
-class Events {
-    name = 'Events';
-    description = 'Endpoints for creating news & events to be displayed on the main webpage'
+class Courses {
+    name = 'Courses';
+    description = 'Endpoints for creating courses'
     data_types = {
-        serial: new DataTypes(true).autonumber,
-        event_id: new DataTypes(true,['events/update','events/delete'],['events/fetch']).uuid,
-        title: new DataTypes(true,['events/create'],['events/update']).string,
-        body: new DataTypes(true,['events/create'],['events/update'],true).string,
-        event_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
-        event_expiry_timestamp: new DataTypes(true,['events/create'],['events/update']).unix_timestamp_milliseconds,
-        record_limit: new DataTypes(false, [], ['events/fetch']).number
+        course_id: new DataTypes(true,['courses/create','courses/update','courses/delete'],['courses/fetch']).string,
+        course_name: new DataTypes(true,['courses/create'],['courses/update']).string,
+        departmental: new DataTypes(true,['courses/create'],['courses/update']).boolean,
+        course_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
 }
 
-function eventsFetch(data, callback) {
+function coursesFetch(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Events,data.event)
+    if (!callback) return
+    const validator = validations.validateRequestData(data,new Courses,data.event)
+    if (!validator.valid) {
+        callback({
+            code: 400, 
+            status: 'BAD REQUEST',
+            message: validator.reason
+        });
+    } else {
+        var where_clauses = []
+        if (data.course_id)
+            where_clauses.push(`course_id = '${data.course_id}'`)
+        db.query(`
+            SELECT * FROM courses
+            ${where_clauses.length > 0 ? 'WHERE':''}
+            ${where_clauses.join(' AND ')}
+        `).then(res => {
+            callback({
+                code: 200, 
+                status: 'OK',
+                data: res.rows
+            })
+        }).catch(err => {
+            console.log(err)
+            callback(validations.validateDBSelectQueryError(err));
+        })
+    }
+}
+
+function coursesCreate(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new Courses,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -31,55 +59,25 @@ function eventsFetch(data, callback) {
         }
     } else {
         db.query(`
-            SELECT * FROM events 
-            ${data.event_id ? ` WHERE event_id = '${data.event_id}'`:''}
-            ORDER BY event_creation_timestamp DESC
-            ${data.record_limit ? `LIMIT ${data.record_limit}`:''}
+            INSERT INTO courses (course_id,course_name, departmental) 
+            VALUES (
+                '${data.course_id}',
+                '${data.course_name}',
+                ${data.departmental}
+            );
         `).then(res => {
-            if (callback) {
-                callback({
-                    code: 200, 
-                    status: 'OK',
-                    data: res.rows
-                })
-            }
-        }).catch(err => {
-            console.log(err)
-            if (callback) {
-                callback(validations.validateDBSelectQueryError(err));
-            }
-        })
-    }
-}
-
-function eventsCreate(data, callback) {
-    console.log('[events/create] called')
-    console.log('[events/create] data received:',data)
-    const validator = validations.validateRequestData(data,new Events,'events/create')
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-    } else {
-        db.query(`INSERT INTO events (
-            title,
-            body,
-            event_expiry_timestamp
-        ) VALUES (
-            '${data.title}',
-            '${data.body}',
-            ${data.event_expiry_timestamp}
-        )
-        `).then(res => {
-            if (callback) {
+            if (!callback) return
+            if (res.rowCount == 1) {
                 callback({
                     code: 200, 
                     status: 'OK',
                     message: 'added record to db'
+                });
+            } else {
+                callback({
+                    code: 500, 
+                    status: 'INTERNAL ERROR',
+                    message: 'unexpected DB response'
                 });
             }
         }).catch(err => {
@@ -91,10 +89,9 @@ function eventsCreate(data, callback) {
     }
 }
 
-function eventsDelete(data, callback) {
-    console.log('[events/delete] called')
-    console.log('[events/delete] data received:',data)
-    const validator = validations.validateRequestData(data,new Events,'events/delete')
+function coursesDelete(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new Courses,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -104,14 +101,15 @@ function eventsDelete(data, callback) {
             });
         }
     } else {
-        db.query(`DELETE FROM events WHERE event_id = '${data.event_id}'`)
-        .then(res => {
+        db.query(`
+            DELETE FROM courses WHERE course_id='${data.course_id}';
+        `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
                         code: 200, 
                         status: 'OK',
-                        message: `deleted event ${data.event_id} record from db`
+                        message: `deleted ${data.course_id} record from db`
                     });
                 }
             } else if (res.rowCount == 0) {
@@ -119,7 +117,7 @@ function eventsDelete(data, callback) {
                     callback({
                         code: 400, 
                         status: 'BAD REQUEST',
-                        message: `event ${data.event_id} does not exist`
+                        message: `record ${data.course_id} does not exist`
                     });
                 }
             } else {
@@ -140,10 +138,9 @@ function eventsDelete(data, callback) {
     }
 }
 
-function eventsUpdate(data, callback) {
-    console.log('[events/update] called')
-    console.log('[events/update] data received:',data)
-    const validator = validations.validateRequestData(data,new Events,'events/update')
+function coursesUpdate(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new Courses,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -152,14 +149,11 @@ function eventsUpdate(data, callback) {
                 message: validator.reason
             });
         }
+        return
     } else {
         var update_clauses = []
-        if (data.title)
-            update_clauses.push(`title = '${data.title}'`)
-        if (data.body)
-            update_clauses.push(`body = '${data.body}'`)
-        if (data.event_expiry_timestamp)
-            update_clauses.push(`event_expiry_timestamp = ${data.event_expiry_timestamp}`)
+        if (data.course_name) update_clauses.push(`course_name = '${data.course_name}'`)
+        if (data.departmental != undefined) update_clauses.push(`departmental = ${data.departmental}`)
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({
@@ -171,16 +165,16 @@ function eventsUpdate(data, callback) {
             return
         }
         db.query(`
-            UPDATE events SET
+            UPDATE courses SET
             ${update_clauses.join(',')}
-            WHERE event_id = '${data.event_id}'
+            WHERE course_id = '${data.course_id}';
         `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
                         code: 200, 
                         status: 'OK',
-                        message: `updated event ${data.event_id} record in db`
+                        message: `updated ${data.course_id} record in db`
                     });
                 }
             } else if (res.rowCount == 0) {
@@ -188,7 +182,7 @@ function eventsUpdate(data, callback) {
                     callback({
                         code: 400, 
                         status: 'BAD REQUEST',
-                        message: `event ${data.event_id} does not exist`
+                        message: `record ${data.course_id} does not exist`
                     });
                 }
             } else {
@@ -212,21 +206,21 @@ function eventsUpdate(data, callback) {
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
     
-    if (notification.channel == 'events_insert') {
-        event_emitter.emit('notifyAll', {event: 'events/listener/insert', data: payload})
+    if (notification.channel == 'courses_insert') {
+        event_emitter.emit('notifyAll', {event: 'courses/listener/insert', data: payload})
     }
-    if (notification.channel == 'events_update') {
-        event_emitter.emit('notifyAll', {event: 'events/listener/update', data: payload[0]})
+    if (notification.channel == 'courses_update') {
+        event_emitter.emit('notifyAll', {event: 'courses/listener/update', data: payload[0]})
     }
-    if (notification.channel == 'events_delete') {
-        event_emitter.emit('notifyAll', {event: 'events/listener/delete', data: payload})
+    if (notification.channel == 'courses_delete') {
+        event_emitter.emit('notifyAll', {event: 'courses/listener/delete', data: payload})
     }
 })
 
 module.exports = {
-    eventsCreate,
-    eventsFetch,
-    eventsDelete,
-    eventsUpdate,
-    Events
+    coursesFetch,
+    coursesCreate,
+    coursesDelete,
+    coursesUpdate,
+    Courses
 }
