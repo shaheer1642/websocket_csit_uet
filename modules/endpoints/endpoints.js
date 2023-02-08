@@ -3,6 +3,7 @@ const batches = require('./batches')
 const students = require('./students')
 const teachers = require('./teachers')
 const courses = require('./courses')
+const semesters = require('./semesters')
 const login = require('./login')
 
 class Endpoint {
@@ -106,7 +107,7 @@ const endpoints = {
             students.studentsUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("students/delete", <pre><code>${JSON.stringify({student_id: "string-id"},null,4)}</code></pre>, (res) => console.log(res))`,
+            `socket.emit("students/delete", <pre><code>${JSON.stringify({student_id: "caa1534e-da15-41b6-8110-cc3fcffb14ed"},null,4)}</code></pre>, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
@@ -122,21 +123,21 @@ const endpoints = {
             teachers.teachersFetch
         ),
         create: new Endpoint(
-            `socket.emit("teachers/create", <pre><code>${JSON.stringify({})}</code></pre>, (res) => console.log(res))`,
+            `socket.emit("teachers/create", {}, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             teachers.teachersCreate
         ),
         update: new Endpoint(
-            `socket.emit("teachers/update", <pre><code>${JSON.stringify({})}</code></pre>, (res) => console.log(res))`,
+            `socket.emit("teachers/update", {}, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             teachers.teachersUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("teachers/delete", <pre><code>${JSON.stringify({student_id: "string-id"},null,4)}</code></pre>, (res) => console.log(res))`,
+            `socket.emit("teachers/delete", {}, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
@@ -152,25 +153,55 @@ const endpoints = {
             courses.coursesFetch
         ),
         create: new Endpoint(
-            `socket.emit("courses/create", <pre><code>${JSON.stringify({})}</code></pre>, (res) => console.log(res))`,
+            `socket.emit("courses/create", {}, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             courses.coursesCreate
         ),
         update: new Endpoint(
-            `socket.emit("courses/update", <pre><code>${JSON.stringify({})}</code></pre>, (res) => console.log(res))`,
+            `socket.emit("courses/update", {}, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated cs-103 record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             courses.coursesUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("courses/delete", <pre><code>${JSON.stringify({student_id: "string-id"},null,4)}</code></pre>, (res) => console.log(res))`,
+            `socket.emit("courses/delete", {}, (res) => console.log(res))`,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted cs-103 record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
             courses.coursesDelete
+        )
+    },
+    semesters: {
+        fetch: new Endpoint(
+            `socket.emit("semesters/fetch", {}, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            semesters.semestersFetch
+        ),
+        create: new Endpoint(
+            `socket.emit("semesters/create", {}, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
+            true,
+            ['admin'],
+            semesters.semestersCreate
+        ),
+        update: new Endpoint(
+            `socket.emit("semesters/update", {}, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            semesters.semestersUpdate
+        ),
+        delete: new Endpoint(
+            `socket.emit("semesters/delete", {}, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
+            true,
+            ['admin'],
+            semesters.semestersDelete
         )
     },
     login: {
@@ -224,6 +255,13 @@ const endpoints = {
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new courses.Courses}) : {}
+        ),
+        semesters: new Endpoint(
+            `socket.emit("schema/semesters", {}, (res) => console.log(res))`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            (data,callback) => callback ? callback({code: 200, status: 'OK', data: new semesters.Semesters}) : {}
         ),
     }
 }
@@ -323,6 +361,25 @@ const listener_endpoints = {
                 `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
             )
         }
+    },
+    semesters: {
+        listener: {
+            insert: new ListenerEndpoint(
+                'Triggered after a new record is inserted in the table',
+                `socket.on("semesters/listener/insert", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            ),
+            update: new ListenerEndpoint(
+                'Triggered after a record is updated in the table',
+                `socket.on("semesters/listener/update", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            ),
+            delete: new ListenerEndpoint(
+                'Triggered after a record is deleted from the table',
+                `socket.on("semesters/listener/delete", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            )
+        }
     }
 }
 
@@ -360,6 +417,12 @@ const endpointsClasses = [
         class1: new courses.Courses(),
         class2: endpoints.courses,
         class3: listener_endpoints.courses
+    },
+    {
+        id: 'semesters',
+        class1: new semesters.Semesters(),
+        class2: endpoints.semesters,
+        class3: listener_endpoints.semesters
     }
 ]
 

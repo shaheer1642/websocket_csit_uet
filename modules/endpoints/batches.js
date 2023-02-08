@@ -11,9 +11,9 @@ class Batches {
         serial: new DataTypes(true).autonumber,
         batch_id: new DataTypes(true,['batches/update','batches/delete'],['batches/fetch']).uuid,
         batch_advisor_id: new DataTypes(true,[],['batches/create','batches/update']).uuid,
-        batch_no: new DataTypes(true,['batches/create'],['batches/update']).number,
-        joined_semester: new DataTypes(true,['batches/create'],['batches/update']).string,
-        degree_type: new DataTypes(true,['batches/create'],['batches/update']).string,
+        batch_no: new DataTypes(true,['batches/create'],['batches/update'],false,2022).number,
+        joined_semester: new DataTypes(true,['batches/create'],['batches/update'],false,'spring').string,
+        degree_type: new DataTypes(true,['batches/create'],['batches/update'],false,'msc').string,
         batch_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
 }

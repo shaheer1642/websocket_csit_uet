@@ -31,6 +31,10 @@ db.connect().then(async res => {
         LISTEN courses_insert;
         LISTEN courses_update;
         LISTEN courses_delete;
+
+        LISTEN semesters_insert;
+        LISTEN semesters_update;
+        LISTEN semesters_delete;
     `).catch(console.error)
 }).catch(err => {
     console.log('DB Connection failure.\n' + err)
@@ -50,6 +54,6 @@ setInterval(() => {
     db.query(`SELECT * FROM events`).then(res => {
         console.log('Pinged the DB. Received rows:',res.rowCount)
     }).catch(console.error)
-}, 1800000);
+}, 900000);
 
 module.exports = {db};
