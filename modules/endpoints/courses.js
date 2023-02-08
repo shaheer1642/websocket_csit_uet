@@ -8,7 +8,7 @@ class Courses {
     name = 'Courses';
     description = 'Endpoints for creating courses'
     data_types = {
-        course_id: new DataTypes(true,['courses/create','courses/update','courses/delete'],['courses/fetch']).string,
+        course_id: new DataTypes(true,['courses/update','courses/delete'],['courses/fetch']).string,
         course_name: new DataTypes(true,['courses/create'],['courses/update']).string,
         departmental: new DataTypes(true,['courses/create'],['courses/update']).boolean,
         course_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
@@ -59,9 +59,8 @@ function coursesCreate(data, callback) {
         }
     } else {
         db.query(`
-            INSERT INTO courses (course_id,course_name, departmental) 
+            INSERT INTO courses (course_name, departmental) 
             VALUES (
-                '${data.course_id}',
                 '${data.course_name}',
                 ${data.departmental}
             );
