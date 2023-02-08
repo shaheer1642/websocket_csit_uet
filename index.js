@@ -6,11 +6,8 @@ const { Server } = require("socket.io");
 const io = new Server(server);
 const {db} = require('./modules/db_connection')
 const axios = require('axios')
-const uuid = require('uuid');
 const db_modules = require('./modules/db_modules')
-const events = require('./modules/endpoints/events')
-const login = require('./modules/endpoints/login')
-const {endpoints,listener_endpoints,getEndpoints} = require('./modules/endpoints/endpoints')
+const {endpoints,getEndpoints} = require('./modules/endpoints/endpoints')
 const {event_emitter} = require('./modules/event_emitter')
 
 app.get('/', (req, res) => {
