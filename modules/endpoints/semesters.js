@@ -5,8 +5,8 @@ const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter')
 
 class Semesters {
-    name = 'Semester';
-    description = 'Endpoints for creating semesters'
+    name = 'Semesters';
+    description = 'Endpoints for creating semesters for batches'
     data_types = {
         semester_id: new DataTypes(true,['semesters/update','semesters/delete'],['semesters/fetch']).uuid,
         batch_id: new DataTypes(true,['semesters/create'],['semesters/fetch']).uuid,

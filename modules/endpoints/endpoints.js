@@ -7,8 +7,8 @@ const semesters = require('./semesters')
 const login = require('./login')
 
 class Endpoint {
-    constructor(call_example, response_example, is_authorized, permission_level, listener_function) {
-        this.call_example = call_example;
+    constructor(endpoint, class_object , response_example, is_authorized, permission_level, listener_function) {
+        this.call_example = `socket.emit("${endpoint}", <pre><code>${JSON.stringify(class_object ? Object.keys(class_object.data_types).reduce((o, key) => class_object.data_types[key].required.includes(endpoint) ? ({ ...o, [key]: class_object.data_types[key].example_value}):({...o}), {}) : {},null,4) }</code></pre>, (res) => console.log(res))`;
         this.response_example = response_example;
         this.is_authorized = is_authorized;
         this.permission_level = permission_level;
@@ -26,28 +26,32 @@ class ListenerEndpoint {
 const endpoints = {
     events: {
         fetch: new Endpoint(
-            `socket.emit("events/fetch", {}, (res) => console.log(res))`,
+            "events/fetch",
+            new events.Events(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             events.eventsFetch
         ),
         create: new Endpoint(
-            `socket.emit("events/create", <pre><code>${JSON.stringify({title: "some event title",body: "some event body",expiry_timestamp: 1665774803000},null,4)}</code></pre>, (res) => console.log(res))`,
+            "events/create",
+            new events.Events(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             events.eventsCreate
         ),
         update: new Endpoint(
-            `socket.emit("events/update", <pre><code>${JSON.stringify({event_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42",title: "some new event title",body: "some new event body"},null,4)}</code></pre>, (res) => console.log(res))`,
+            "events/update",
+            new events.Events(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated event caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin'],
             events.eventsUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("events/delete", <pre><code>${JSON.stringify({event_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => console.log(res))`,
+            "events/delete",
+            new events.Events(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted event caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
@@ -56,28 +60,32 @@ const endpoints = {
     },
     batches: {
         fetch: new Endpoint(
-            `socket.emit("batches/fetch", {}, (res) => console.log(res))`,
+            "batches/fetch",
+            new batches.Batches(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             batches.batchesFetch
         ),
         create: new Endpoint(
-            `socket.emit("batches/create", <pre><code>${JSON.stringify({batch_no: 2020,batch_advisor_id: "teacher uuid",joined_semester: "fall",degree_type: "msc"},null,4)}</code></pre>, (res) => console.log(res))`,
+            "batches/create",
+            new batches.Batches(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             batches.batchesCreate
         ),
         update: new Endpoint(
-            `socket.emit("batches/update", <pre><code>${JSON.stringify({batch_no: 2020,batch_advisor_id: "teacher uuid",joined_semester: "fall",degree_type: "msc"},null,4)}</code></pre>, (res) => console.log(res))`,
+            "batches/update",
+            new batches.Batches(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin'],
             batches.batchesUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("batches/delete", <pre><code>${JSON.stringify({batch_id: "6af9c7cc-9a71-4847-8794-fef3a0ca9b42"},null,4)}</code></pre>, (res) => console.log(res))`,
+            "batches/delete",
+            new batches.Batches(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
@@ -86,28 +94,32 @@ const endpoints = {
     },
     students: {
         fetch: new Endpoint(
-            `socket.emit("students/fetch", {}, (res) => console.log(res))`,
+            "students/fetch",
+            new students.Students(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             students.studentsFetch
         ),
         create: new Endpoint(
-            `socket.emit("students/create", <pre><code>${JSON.stringify({})}</code></pre>, (res) => console.log(res))`,
+            "students/create",
+            new students.Students(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             students.studentsCreate
         ),
         update: new Endpoint(
-            `socket.emit("students/update", <pre><code>${JSON.stringify({})}</code></pre>, (res) => console.log(res))`,
+            "students/update",
+            new students.Students(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             students.studentsUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("students/delete", <pre><code>${JSON.stringify({student_id: "caa1534e-da15-41b6-8110-cc3fcffb14ed"},null,4)}</code></pre>, (res) => console.log(res))`,
+            "students/delete",
+            new students.Students(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
@@ -116,28 +128,32 @@ const endpoints = {
     },
     teachers: {
         fetch: new Endpoint(
-            `socket.emit("teachers/fetch", {}, (res) => console.log(res))`,
+            "teachers/fetch",
+            new teachers.Teachers(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             teachers.teachersFetch
         ),
         create: new Endpoint(
-            `socket.emit("teachers/create", {}, (res) => console.log(res))`,
+            "teachers/create",
+            new teachers.Teachers(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             teachers.teachersCreate
         ),
         update: new Endpoint(
-            `socket.emit("teachers/update", {}, (res) => console.log(res))`,
+            "teachers/update",
+            new teachers.Teachers(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             teachers.teachersUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("teachers/delete", {}, (res) => console.log(res))`,
+            "teachers/delete",
+            new teachers.Teachers(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
@@ -146,28 +162,32 @@ const endpoints = {
     },
     courses: {
         fetch: new Endpoint(
-            `socket.emit("courses/fetch", {}, (res) => console.log(res))`,
+            "courses/fetch",
+            new courses.Courses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             courses.coursesFetch
         ),
         create: new Endpoint(
-            `socket.emit("courses/create", {}, (res) => console.log(res))`,
+            "courses/create",
+            new courses.Courses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             courses.coursesCreate
         ),
         update: new Endpoint(
-            `socket.emit("courses/update", {}, (res) => console.log(res))`,
+            "courses/update",
+            new courses.Courses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated cs-103 record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             courses.coursesUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("courses/delete", {}, (res) => console.log(res))`,
+            "courses/delete",
+            new courses.Courses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted cs-103 record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
@@ -176,28 +196,32 @@ const endpoints = {
     },
     semesters: {
         fetch: new Endpoint(
-            `socket.emit("semesters/fetch", {}, (res) => console.log(res))`,
+            "semesters/fetch",
+            new semesters.Semesters(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             semesters.semestersFetch
         ),
         create: new Endpoint(
-            `socket.emit("semesters/create", {}, (res) => console.log(res))`,
+            "semesters/create",
+            new semesters.Semesters(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
             ['admin'],
             semesters.semestersCreate
         ),
         update: new Endpoint(
-            `socket.emit("semesters/update", {}, (res) => console.log(res))`,
+            "semesters/update",
+            new semesters.Semesters(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             semesters.semestersUpdate
         ),
         delete: new Endpoint(
-            `socket.emit("semesters/delete", {}, (res) => console.log(res))`,
+            "semesters/delete",
+            new semesters.Semesters(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
@@ -206,14 +230,16 @@ const endpoints = {
     },
     login: {
         auth: new Endpoint(
-            `socket.emit("login/auth", <pre><code>${JSON.stringify({username: "test",password: "123"},null,4)}</code></pre>, (res) => console.log(res))`,
+            "login/auth",
+            new login.Login,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: '${record_schema}'},null,4)}</code></pre>`,
             false,
             ['ALL'],
             login.loginAuth
         ),
         resetPassword: new Endpoint(
-            `socket.emit("login/resetPassword", <pre><code>${JSON.stringify({username: "test", old_password: "123", new_password: "456"},null,4)}</code></pre>, (res) => console.log(res))`,
+            "login/resetPassword",
+            new login.Login,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'password reset successful'},null,4)}</code></pre>`,
             false,
             ['ALL'],
@@ -222,42 +248,48 @@ const endpoints = {
     },
     schema: {
         events: new Endpoint(
-            `socket.emit("schema/events", {}, (res) => console.log(res))`,
+            "schema/events",
+            null,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new events.Events}) : {}
         ),
         batches: new Endpoint(
-            `socket.emit("schema/batches", {}, (res) => console.log(res))`,
+            "schema/batches",
+            null,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new batches.Batches}) : {}
         ),
         students: new Endpoint(
-            `socket.emit("schema/students", {}, (res) => console.log(res))`,
+            "schema/students",
+            null,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new students.Students}) : {}
         ),
         teachers: new Endpoint(
-            `socket.emit("schema/teachers", {}, (res) => console.log(res))`,
+            "schema/teachers",
+            null,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new teachers.Teachers}) : {}
         ),
         courses: new Endpoint(
-            `socket.emit("schema/courses", {}, (res) => console.log(res))`,
+            "schema/courses",
+            null,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new courses.Courses}) : {}
         ),
         semesters: new Endpoint(
-            `socket.emit("schema/semesters", {}, (res) => console.log(res))`,
+            "schema/semesters",
+            null,
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
             false,
             ['ALL'],
