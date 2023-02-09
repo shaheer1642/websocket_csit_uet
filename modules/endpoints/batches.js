@@ -11,8 +11,9 @@ class Batches {
         serial: new DataTypes(true).autonumber,
         batch_id: new DataTypes(true,['batches/update','batches/delete'],['batches/fetch']).uuid,
         batch_advisor_id: new DataTypes(true,[],['batches/create','batches/update']).uuid,
-        batch_no: new DataTypes(true,['batches/create'],['batches/update'],false,2022).number,
-        joined_semester: new DataTypes(true,['batches/create'],['batches/update'],false,'spring').string,
+        batch_no: new DataTypes(true,['batches/create'],['batches/update'],false,3).number,
+        enrollment_year: new DataTypes(true,['batches/create'],['batches/update'],false,2022).number,
+        enrollment_season: new DataTypes(true,['batches/create'],['batches/update'],false,'spring').string,
         degree_type: new DataTypes(true,['batches/create'],['batches/update'],false,'msc').string,
         batch_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
@@ -65,12 +66,14 @@ function batchesCreate(data, callback) {
     } else {
         db.query(`INSERT INTO batches (
             batch_no,
-            joined_semester,
+            enrollment_year,
+            enrollment_season,
             degree_type
             ${data.batch_advisor_id ? ',batch_advisor_id':''}
         ) VALUES (
-            '${data.batch_no}',
-            '${data.joined_semester}',
+            ${data.batch_no},
+            ${data.enrollment_year},
+            '${data.enrollment_season}',
             '${data.degree_type}'
             ${data.batch_advisor_id ? `,'${data.batch_advisor_id}'`:''}
         )
@@ -167,8 +170,9 @@ function batchesUpdate(data, callback) {
         return
     } else {
         var update_clauses = []
-        if (data.batch_no) update_clauses.push(`batch_no = '${data.batch_no}'`)
-        if (data.joined_semester) update_clauses.push(`joined_semester = '${data.joined_semester}'`)
+        if (data.batch_no) update_clauses.push(`batch_no = ${data.batch_no}`)
+        if (data.enrollment_year) update_clauses.push(`enrollment_year = ${data.enrollment_year}`)
+        if (data.enrollment_season) update_clauses.push(`enrollment_season = '${data.enrollment_season}'`)
         if (data.degree_type) update_clauses.push(`degree_type = '${data.degree_type}'`)
         if (data.batch_advisor_id) update_clauses.push(`batch_advisor_id = '${data.batch_advisor_id}'`)
         if (update_clauses.length == 0) {
