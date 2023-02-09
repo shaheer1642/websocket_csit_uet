@@ -18,7 +18,7 @@ class StudentsCourses {
             ['studentsCourses/create','studentsCourses/updateTeacher'],
             ['studentsCourses/fetch']).uuid,
         semester_id: new DataTypes(true,
-            ['studentsCourses/create'],
+            ['studentsCourses/create','studentsCourses/updateTeacher'],
             ['studentsCourses/fetch']).uuid,
         grade: new DataTypes(true,
             ['studentsCourses/updateGrade'],
@@ -184,14 +184,14 @@ function studentsCoursesUpdateTeacher(data, callback) {
         db.query(`
             UPDATE students_courses SET
             ${update_clauses.join(',')}
-            WHERE course_id = '${data.course_id}';
+            WHERE course_id = '${data.course_id}' AND semester_id = '${data.semester_id}';
         `).then(res => {
             if (res.rowCount > 0) {
                 if (callback) {
                     callback({
                         code: 200, 
                         status: 'OK',
-                        message: `updated ${data.course_id} record in db. ${res.rowCount} rows updated`
+                        message: `updated course=${data.course_id} semester=${data.semester_id} record in db. ${res.rowCount} rows updated`
                     });
                 }
             } else {
@@ -199,7 +199,7 @@ function studentsCoursesUpdateTeacher(data, callback) {
                     callback({
                         code: 400, 
                         status: 'BAD REQUEST',
-                        message: `record ${data.course_id} does not exist`
+                        message: `record course=${data.course_id} semester=${data.semester_id} does not exist`
                     });
                 }
             }

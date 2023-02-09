@@ -249,7 +249,7 @@ const endpoints = {
         updateTeacher: new Endpoint(
             "studentsCourses/updateTeacher",
             new studentsCourses.StudentsCourses(),
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated cs-103 record in db`},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated course=cs-103 semester=caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             studentsCourses.studentsCoursesUpdateTeacher
