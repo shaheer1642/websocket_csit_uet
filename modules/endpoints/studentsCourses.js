@@ -5,33 +5,34 @@ const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter')
 
 class StudentsCourses {
-    name = 'Student Course Registration';
+    name = 'Students Courses';
     description = 'Endpoints for assigning courses to students'
     data_types = {
         course_id: new DataTypes(true,
-            ['students_courses/create','students_courses/updateTeacher','students_courses/updateGrade','students_courses/delete'],
-            ['students_courses/fetch']).string,
+            ['studentsCourses/create','studentsCourses/updateTeacher','studentsCourses/updateGrade','studentsCourses/delete'],
+            ['studentsCourses/fetch'],false,'CS-103').string,
         student_id: new DataTypes(true,
-            ['students_courses/create','students_courses/updateGrade','students_courses/delete'],
-            ['students_courses/fetch']).uuid,
+            ['studentsCourses/create','studentsCourses/updateGrade','studentsCourses/delete'],
+            ['studentsCourses/fetch']).uuid,
         teacher_id: new DataTypes(true,
-            ['students_courses/create','students_courses/updateTeacher'],
-            ['students_courses/fetch']).uuid,
+            ['studentsCourses/create','studentsCourses/updateTeacher'],
+            ['studentsCourses/fetch']).uuid,
         semester_id: new DataTypes(true,
-            ['students_courses/create'],
-            ['students_courses/fetch']).uuid,
+            ['studentsCourses/create'],
+            ['studentsCourses/fetch']).uuid,
         grade: new DataTypes(true,
-            ['students_courses/updateGrade'],
-            ['students_courses/fetch'],false,'B').string,
-        course_completion_timestamp: new DataTypes(true,
-            ['students_courses/updateGrade']).unix_timestamp_milliseconds,
+            ['studentsCourses/updateGrade'],
+            ['studentsCourses/fetch'],false,'B').string,
+        grade_assignment_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
+        grade_assigned_by: new DataTypes(true).uuid,
+        grade_change_logs: new DataTypes(true,[],[],false,'["timestamp user_id grade"]').array,
     }
 }
 
 function studentsCoursesFetch(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
     if (!validator.valid) {
         callback({
             code: 400, 
@@ -41,7 +42,7 @@ function studentsCoursesFetch(data, callback) {
     } else {
         var where_clauses = []
         if (data.course_id) where_clauses.push(`course_id = '${data.course_id}'`)
-        if (data.student_id) where_clauses.push(`student_id = '${data.course_id}'`)
+        if (data.student_id) where_clauses.push(`student_id = '${data.student_id}'`)
         if (data.teacher_id) where_clauses.push(`teacher_id = '${data.teacher_id}'`)
         if (data.semester_id) where_clauses.push(`semester_id = '${data.semester_id}'`)
         if (data.grade) where_clauses.push(`grade = '${data.grade}'`)
@@ -64,7 +65,7 @@ function studentsCoursesFetch(data, callback) {
 
 function studentsCoursesCreate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -108,7 +109,7 @@ function studentsCoursesCreate(data, callback) {
 
 function studentsCoursesDelete(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -157,7 +158,7 @@ function studentsCoursesDelete(data, callback) {
 
 function studentsCoursesUpdateTeacher(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -213,7 +214,7 @@ function studentsCoursesUpdateTeacher(data, callback) {
 
 function studentsCoursesUpdateGrade(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -238,7 +239,10 @@ function studentsCoursesUpdateGrade(data, callback) {
         }
         db.query(`
             UPDATE students_courses SET
-            ${update_clauses.join(',')}
+            grade = '${data.grade}',
+            grade_assignment_timestamp = ${new Date().getTime()},
+            grade_assigned_by = '${data.user_id}',
+            grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
             WHERE course_id = '${data.course_id}' AND student_id = '${data.student_id}';
         `).then(res => {
             if (res.rowCount == 1) {
@@ -279,13 +283,23 @@ db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
     
     if (notification.channel == 'students_courses_insert') {
-        event_emitter.emit('notifyAll', {event: 'students_courses/listener/insert', data: payload})
+        db.query(`SELECT * FROM students_courses WHERE course_id='${payload.course_id}' AND student_id='${payload.student_id}'`)
+        .then(res => {
+            if (res.rowCount == 1) {
+                event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/insert', data: res.rows[0]})
+            }
+        }).catch(console.error)
     }
     if (notification.channel == 'students_courses_update') {
-        event_emitter.emit('notifyAll', {event: 'students_courses/listener/update', data: payload[0]})
+        db.query(`SELECT * FROM students_courses WHERE course_id='${payload.course_id}' AND student_id='${payload.student_id}'`)
+        .then(res => {
+            if (res.rowCount == 1) {
+                event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/update', data: res.rows[0]})
+            }
+        }).catch(console.error)
     }
     if (notification.channel == 'students_courses_delete') {
-        event_emitter.emit('notifyAll', {event: 'students_courses/listener/delete', data: payload})
+        event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/delete', data: payload})
     }
 })
 

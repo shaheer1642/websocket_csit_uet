@@ -3,6 +3,7 @@ const batches = require('./batches')
 const students = require('./students')
 const teachers = require('./teachers')
 const courses = require('./courses')
+const studentsCourses = require('./studentsCourses')
 const semesters = require('./semesters')
 const login = require('./login')
 
@@ -228,6 +229,48 @@ const endpoints = {
             semesters.semestersDelete
         )
     },
+    studentsCourses: {
+        fetch: new Endpoint(
+            "studentsCourses/fetch",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            studentsCourses.studentsCoursesFetch
+        ),
+        create: new Endpoint(
+            "studentsCourses/create",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
+            true,
+            ['admin'],
+            studentsCourses.studentsCoursesCreate
+        ),
+        updateTeacher: new Endpoint(
+            "studentsCourses/updateTeacher",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated cs-103 record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            studentsCourses.studentsCoursesUpdateTeacher
+        ),
+        updateGrade: new Endpoint(
+            "studentsCourses/updateGrade",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated course=cs-103 student=caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga','teacher'],
+            studentsCourses.studentsCoursesUpdateGrade
+        ),
+        delete: new Endpoint(
+            "studentsCourses/delete",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted cs-103 record from db`},null,4)}</code></pre>`,
+            true,
+            ['admin'],
+            studentsCourses.studentsCoursesDelete
+        )
+    },
     login: {
         auth: new Endpoint(
             "login/auth",
@@ -294,6 +337,14 @@ const endpoints = {
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new semesters.Semesters}) : {}
+        ),
+        studentsCourses: new Endpoint(
+            "schema/studentsCourses",
+            null,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            (data,callback) => callback ? callback({code: 200, status: 'OK', data: new studentsCourses.StudentsCourses}) : {}
         ),
     }
 }
@@ -412,6 +463,25 @@ const listener_endpoints = {
                 `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
             )
         }
+    },
+    studentsCourses: {
+        listener: {
+            insert: new ListenerEndpoint(
+                'Triggered after a new record is inserted in the table',
+                `socket.on("studentsCourses/listener/insert", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            ),
+            update: new ListenerEndpoint(
+                'Triggered after a record is updated in the table',
+                `socket.on("studentsCourses/listener/update", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            ),
+            delete: new ListenerEndpoint(
+                'Triggered after a record is deleted from the table',
+                `socket.on("studentsCourses/listener/delete", (data) => print(data))`,
+                `<pre><code>${JSON.stringify({course_id: 'CS-103', student_id: 'caa1534e-da15-41b6-8110-cc3fcffb14ed'},null,4)}</code></pre>`
+            )
+        }
     }
 }
 
@@ -455,6 +525,12 @@ const endpointsClasses = [
         class1: new semesters.Semesters(),
         class2: endpoints.semesters,
         class3: listener_endpoints.semesters
+    },
+    {
+        id: 'studentsCourses',
+        class1: new studentsCourses.StudentsCourses(),
+        class2: endpoints.studentsCourses,
+        class3: listener_endpoints.studentsCourses
     }
 ]
 

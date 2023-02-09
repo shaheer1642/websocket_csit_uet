@@ -41,7 +41,7 @@ io.on('connection', (socket) => {
           authorizeEvent(login_token,subendpoint.permission_level)
           .then(res => {
             if (res.code == 200) {
-              return subendpoint.listener_function({...data, event: event, token: login_token},callback)
+              return subendpoint.listener_function({...data, event: event, token: login_token, user_id: res.user_id},callback)
             } else {
               if (callback) return callback(res)
             }
@@ -78,7 +78,7 @@ function authorizeEvent(login_token,permission_level) {
     .then(res => {
       if (res.rowCount == 1) {
         if (permission_level.includes(res.rows[0].user_type))
-          return resolve({code: 200, status: 'OK'})
+          return resolve({code: 200, status: 'OK', user_id: res.rows[0].user_id})
         else
           return resolve({code: 400, status: 'UNAUTHORIZED', message: 'no permission to access this endpoint'})
       }
