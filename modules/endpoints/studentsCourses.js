@@ -18,7 +18,7 @@ class StudentsCourses {
             ['studentsCourses/create','studentsCourses/updateTeacher'],
             ['studentsCourses/fetch']).uuid,
         semester_id: new DataTypes(true,
-            ['studentsCourses/create','studentsCourses/updateTeacher'],
+            ['studentsCourses/create','studentsCourses/updateTeacher','studentsCourses/fetchSemesterCourses'],
             ['studentsCourses/fetch']).uuid,
         grade: new DataTypes(true,
             ['studentsCourses/updateGrade'],
@@ -26,6 +26,9 @@ class StudentsCourses {
         grade_assignment_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
         grade_assigned_by: new DataTypes(true).uuid,
         grade_change_logs: new DataTypes(true,[],[],false,'["timestamp user_id grade"]').array,
+        batch_id: new DataTypes(false,
+            ['studentsCourses/fetchBatchCourses'],
+            []).uuid,
     }
 }
 
@@ -50,6 +53,60 @@ function studentsCoursesFetch(data, callback) {
             SELECT * FROM students_courses
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
+        `).then(res => {
+            callback({
+                code: 200, 
+                status: 'OK',
+                data: res.rows
+            })
+        }).catch(err => {
+            console.log(err)
+            callback(validations.validateDBSelectQueryError(err));
+        })
+    }
+}
+
+function studentsCoursesFetchBatchCourses(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    if (!callback) return
+    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
+    if (!validator.valid) {
+        callback({
+            code: 400, 
+            status: 'BAD REQUEST',
+            message: validator.reason
+        });
+    } else {
+        db.query(`
+            SELECT DISTINCT(course_id) FROM students_courses
+            WHERE student_id IN (SELECT student_id FROM batches WHERE batch_id='${data.batch_id}');
+        `).then(res => {
+            callback({
+                code: 200, 
+                status: 'OK',
+                data: res.rows
+            })
+        }).catch(err => {
+            console.log(err)
+            callback(validations.validateDBSelectQueryError(err));
+        })
+    }
+}
+
+function studentsCoursesFetchSemesterCourses(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    if (!callback) return
+    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
+    if (!validator.valid) {
+        callback({
+            code: 400, 
+            status: 'BAD REQUEST',
+            message: validator.reason
+        });
+    } else {
+        db.query(`
+            SELECT DISTINCT(course_id) FROM students_courses
+            WHERE semester_id = '${data.semester_id}';
         `).then(res => {
             callback({
                 code: 200, 
@@ -305,6 +362,8 @@ db.on('notification', (notification) => {
 
 module.exports = {
     studentsCoursesFetch,
+    studentsCoursesFetchBatchCourses,
+    studentsCoursesFetchSemesterCourses,
     studentsCoursesCreate,
     studentsCoursesDelete,
     studentsCoursesUpdateTeacher,

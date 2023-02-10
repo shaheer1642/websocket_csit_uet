@@ -181,7 +181,7 @@ const endpoints = {
         update: new Endpoint(
             "courses/update",
             new courses.Courses(),
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated cs-103 record in db`},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated CS-103 record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             courses.coursesUpdate
@@ -189,7 +189,7 @@ const endpoints = {
         delete: new Endpoint(
             "courses/delete",
             new courses.Courses(),
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted cs-103 record from db`},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted CS-103 record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
             courses.coursesDelete
@@ -238,6 +238,22 @@ const endpoints = {
             ['ALL'],
             studentsCourses.studentsCoursesFetch
         ),
+        fetchBatchCourses: new Endpoint(
+            "studentsCourses/fetchBatchCourses",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: [{course_id: 'CS-103'}]},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            studentsCourses.studentsCoursesFetchBatchCourses
+        ),
+        fetchSemesterCourses: new Endpoint(
+            "studentsCourses/fetchSemesterCourses",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: [{course_id: 'CS-103'}]},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            studentsCourses.studentsCoursesFetchSemesterCourses
+        ),
         create: new Endpoint(
             "studentsCourses/create",
             new studentsCourses.StudentsCourses(),
@@ -249,7 +265,7 @@ const endpoints = {
         updateTeacher: new Endpoint(
             "studentsCourses/updateTeacher",
             new studentsCourses.StudentsCourses(),
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated course=cs-103 semester=caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated course=CS-103 semester=caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
             studentsCourses.studentsCoursesUpdateTeacher
@@ -257,7 +273,7 @@ const endpoints = {
         updateGrade: new Endpoint(
             "studentsCourses/updateGrade",
             new studentsCourses.StudentsCourses(),
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated course=cs-103 student=caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated course=CS-103 student=caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga','teacher'],
             studentsCourses.studentsCoursesUpdateGrade
@@ -265,7 +281,7 @@ const endpoints = {
         delete: new Endpoint(
             "studentsCourses/delete",
             new studentsCourses.StudentsCourses(),
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted cs-103 record from db`},null,4)}</code></pre>`,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted CS-103 record from db`},null,4)}</code></pre>`,
             true,
             ['admin'],
             studentsCourses.studentsCoursesDelete
