@@ -8,18 +8,15 @@ class StudentsCourses {
     name = 'Students Courses';
     description = 'Endpoints for assigning courses to students'
     data_types = {
-        course_id: new DataTypes(true,
-            ['studentsCourses/create','studentsCourses/updateTeacher','studentsCourses/updateGrade','studentsCourses/delete'],
-            ['studentsCourses/fetch'],false,'CS-103').string,
+        sem_course_id: new DataTypes(true,
+            ['studentsCourses/updateGrade','studentsCourses/assignStudents',],
+            ['studentsCourses/fetch']).uuid,
         student_id: new DataTypes(true,
-            ['studentsCourses/create','studentsCourses/updateGrade','studentsCourses/delete'],
+            ['studentsCourses/updateGrade'],
             ['studentsCourses/fetch']).uuid,
-        teacher_id: new DataTypes(true,
-            ['studentsCourses/create','studentsCourses/updateTeacher'],
-            ['studentsCourses/fetch']).uuid,
-        semester_id: new DataTypes(true,
-            ['studentsCourses/create','studentsCourses/updateTeacher','studentsCourses/fetchSemesterCourses'],
-            ['studentsCourses/fetch']).uuid,
+        student_ids: new DataTypes(false,
+            ['studentsCourses/assignStudents'],
+            [],false,'["caa1534e-da15-41b6-8110-cc3fcffb14ed"]').array,
         grade: new DataTypes(true,
             ['studentsCourses/updateGrade'],
             ['studentsCourses/fetch'],false,'B').string,
@@ -44,10 +41,8 @@ function studentsCoursesFetch(data, callback) {
         });
     } else {
         var where_clauses = []
-        if (data.course_id) where_clauses.push(`course_id = '${data.course_id}'`)
+        if (data.sem_course_id) where_clauses.push(`sem_course_id = '${data.sem_course_id}'`)
         if (data.student_id) where_clauses.push(`student_id = '${data.student_id}'`)
-        if (data.teacher_id) where_clauses.push(`teacher_id = '${data.teacher_id}'`)
-        if (data.semester_id) where_clauses.push(`semester_id = '${data.semester_id}'`)
         if (data.grade) where_clauses.push(`grade = '${data.grade}'`)
         db.query(`
             SELECT * FROM students_courses
@@ -66,61 +61,7 @@ function studentsCoursesFetch(data, callback) {
     }
 }
 
-function studentsCoursesFetchBatchCourses(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    if (!callback) return
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
-    if (!validator.valid) {
-        callback({
-            code: 400, 
-            status: 'BAD REQUEST',
-            message: validator.reason
-        });
-    } else {
-        db.query(`
-            SELECT DISTINCT(course_id) FROM students_courses
-            WHERE student_id IN (SELECT student_id FROM batches WHERE batch_id='${data.batch_id}');
-        `).then(res => {
-            callback({
-                code: 200, 
-                status: 'OK',
-                data: res.rows
-            })
-        }).catch(err => {
-            console.log(err)
-            callback(validations.validateDBSelectQueryError(err));
-        })
-    }
-}
-
-function studentsCoursesFetchSemesterCourses(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    if (!callback) return
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
-    if (!validator.valid) {
-        callback({
-            code: 400, 
-            status: 'BAD REQUEST',
-            message: validator.reason
-        });
-    } else {
-        db.query(`
-            SELECT DISTINCT(course_id) FROM students_courses
-            WHERE semester_id = '${data.semester_id}';
-        `).then(res => {
-            callback({
-                code: 200, 
-                status: 'OK',
-                data: res.rows
-            })
-        }).catch(err => {
-            console.log(err)
-            callback(validations.validateDBSelectQueryError(err));
-        })
-    }
-}
-
-function studentsCoursesCreate(data, callback) {
+function studentsCoursesAssignStudents(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
     if (!validator.valid) {
@@ -132,139 +73,51 @@ function studentsCoursesCreate(data, callback) {
             });
         }
     } else {
+        const sem_course_id = data.sem_course_id
         db.query(`
-            INSERT INTO students_courses (course_id, student_id, teacher_id, semester_id) 
-            VALUES (
-                '${data.course_id}',
-                '${data.student_id}',
-                '${data.teacher_id}',
-                '${data.semester_id}'
-            );
+            SELECT * from students_courses WHERE sem_course_id = '${sem_course_id}'
         `).then(res => {
-            if (!callback) return
-            if (res.rowCount == 1) {
-                callback({
-                    code: 200, 
-                    status: 'OK',
-                    message: 'added record to db'
-                });
-            } else {
-                callback({
-                    code: 500, 
-                    status: 'INTERNAL ERROR',
-                    message: 'unexpected DB response'
-                });
-            }
-        }).catch(err => {
-            console.log(err)
-            if (callback) {
-                callback(validations.validateDBInsertQueryError(err));
-            }
-        })
-    }
-}
-
-function studentsCoursesDelete(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-    } else {
-        db.query(`
-            DELETE FROM students_courses WHERE course_id='${data.course_id}' AND student_id='${data.student_id}';
-        `).then(res => {
-            if (res.rowCount == 1) {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: `deleted course=${data.course_id} student=${data.student_id} record from db`
-                    });
-                }
-            } else if (res.rowCount == 0) {
-                if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `record course=${data.course_id} student=${data.student_id} does not exist`
-                    });
-                }
-            } else {
-                if (callback) {
-                    callback({
-                        code: 500, 
-                        status: 'INTERNAL ERROR',
-                        message: `${res.rowCount} rows deleted`
-                    });
-                }
-            }
-        }).catch(err => {
-            console.log(err)
-            if (callback) {
-                callback(validations.validateDBDeleteQueryError(err));
-            }
-        })
-    }
-}
-
-function studentsCoursesUpdateTeacher(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-        return
-    } else {
-        var update_clauses = []
-        if (data.teacher_id) update_clauses.push(`teacher_id = '${data.teacher_id}'`)
-        if (update_clauses.length == 0) {
-            if (callback) {
-                callback({
+            if (res.rowCount == 0) {
+                return callback? callback({
                     code: 400, 
-                    status: 'BAD REQUEST',
-                    message: `No valid parameters found in requested data.`,
-                });
-            }
-            return
-        }
-        db.query(`
-            UPDATE students_courses SET
-            ${update_clauses.join(',')}
-            WHERE course_id = '${data.course_id}' AND semester_id = '${data.semester_id}';
-        `).then(res => {
-            if (res.rowCount > 0) {
-                if (callback) {
-                    callback({
+                    status: 'OK',
+                    message: `sem_course_id = ${data.sem_course_id} does not exist`
+                }) : null
+            } else {
+                const db_students_ids = res.rows.map(row => row.student_id)
+                const received_students_ids = data.student_ids
+                const insert_queries = []
+                const delete_queries = []
+                received_students_ids.forEach(student_id => {
+                    if (!db_students_ids.includes(student_id)) {
+                        insert_queries.push(`INSERT INTO students_courses (sem_course_id, student_id) VALUES ('${sem_course_id}','${student_id}');`)
+                    }
+                })
+                db_students_ids.forEach(student_id => {
+                    if (!received_students_ids.includes(student_id)) {
+                        delete_queries.push(`DELETE FROM students_courses WHERE sem_course_id='${sem_course_id}' AND student_id='${student_id}';`)
+                    }
+                })
+                db.query(`
+                    BEGIN;
+                    ${insert_queries.join('\n')}
+                    ${delete_queries.join('\n')}
+                    COMMIT;
+                `).then(res => {
+                    console.log(res)
+                    callback? callback({
                         code: 200, 
                         status: 'OK',
-                        message: `updated course=${data.course_id} semester=${data.semester_id} record in db. ${res.rowCount} rows updated`
-                    });
-                }
-            } else {
-                if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `record course=${data.course_id} semester=${data.semester_id} does not exist`
-                    });
-                }
+                        message: 'updated records in db'
+                    }):null
+                }).catch(err => {
+                    console.log(err)
+                    callback? callback(validations.validateDBInsertQueryError(err)) : null
+                })
             }
         }).catch(err => {
             console.log(err)
-            if (callback) {
-                callback(validations.validateDBUpdateQueryError(err));
-            }
+            callback(validations.validateDBSelectQueryError(err));
         })
     }
 }
@@ -300,14 +153,14 @@ function studentsCoursesUpdateGrade(data, callback) {
             grade_assignment_timestamp = ${new Date().getTime()},
             grade_assigned_by = '${data.user_id}',
             grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
-            WHERE course_id = '${data.course_id}' AND student_id = '${data.student_id}';
+            WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${data.student_id}';
         `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
                         code: 200, 
                         status: 'OK',
-                        message: `updated course=${data.course_id} student=${data.student_id} record in db`
+                        message: `updated sem_course=${data.sem_course_id} student=${data.student_id} record in db`
                     });
                 }
             } else if (res.rowCount == 0) {
@@ -315,7 +168,7 @@ function studentsCoursesUpdateGrade(data, callback) {
                     callback({
                         code: 400, 
                         status: 'BAD REQUEST',
-                        message: `record course=${data.course_id} student=${data.student_id} does not exist`
+                        message: `record sem_course=${data.sem_course_id} student=${data.student_id} does not exist`
                     });
                 }
             } else {
@@ -339,34 +192,23 @@ function studentsCoursesUpdateGrade(data, callback) {
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
     
-    if (notification.channel == 'students_courses_insert') {
-        db.query(`SELECT * FROM students_courses WHERE course_id='${payload.course_id}' AND student_id='${payload.student_id}'`)
+    if (['students_courses_insert','students_courses_update'].includes(notification.channel)) {
+        db.query(`SELECT * FROM students_courses WHERE sem_course_id='${payload.sem_course_id}' AND student_id='${payload.student_id}'`)
         .then(res => {
             if (res.rowCount == 1) {
-                event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/insert', data: res.rows[0]})
+                event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/changed', data: res.rows[0]})
             }
         }).catch(console.error)
     }
-    if (notification.channel == 'students_courses_update') {
-        db.query(`SELECT * FROM students_courses WHERE course_id='${payload.course_id}' AND student_id='${payload.student_id}'`)
-        .then(res => {
-            if (res.rowCount == 1) {
-                event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/update', data: res.rows[0]})
-            }
-        }).catch(console.error)
-    }
-    if (notification.channel == 'students_courses_delete') {
-        event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/delete', data: payload})
+    
+    if (['students_courses_delete'].includes(notification.channel)) {
+        event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/changed', data: payload[0] || payload})
     }
 })
 
 module.exports = {
     studentsCoursesFetch,
-    studentsCoursesFetchBatchCourses,
-    studentsCoursesFetchSemesterCourses,
-    studentsCoursesCreate,
-    studentsCoursesDelete,
-    studentsCoursesUpdateTeacher,
+    studentsCoursesAssignStudents,
     studentsCoursesUpdateGrade,
     StudentsCourses
 }

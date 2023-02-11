@@ -36,6 +36,10 @@ db.connect().then(async res => {
         LISTEN semesters_update;
         LISTEN semesters_delete;
 
+        LISTEN semesters_courses_insert;
+        LISTEN semesters_courses_update;
+        LISTEN semesters_courses_delete;
+
         LISTEN students_courses_insert;
         LISTEN students_courses_update;
         LISTEN students_courses_delete;
