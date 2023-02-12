@@ -44,6 +44,14 @@ const endpoints = {
             ['ALL'],
             autocomplete.autocompleteCourses
         ),
+        batchStudents: new Endpoint(
+            "autocomplete/batchStudents",
+            new autocomplete.Autocomplete(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ''},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            autocomplete.autocompleteBatchStudents
+        ),
     },
     events: {
         fetch: new Endpoint(

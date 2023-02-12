@@ -63,8 +63,38 @@ function autocompleteCourses(data, callback) {
     }
 }
 
+function autocompleteBatchStudents(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    if (!callback) return
+    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    if (!validator.valid) {
+        callback({
+            code: 400, 
+            status: 'BAD REQUEST',
+            message: validator.reason
+        });
+    } else {
+        db.query(`
+            SELECT * FROM students_batch SB
+            JOIN students S ON S.student_id = SB.student_id
+            WHERE batch_id = '${data.batch_id}'
+            ORDER BY S.student_name;
+        `).then(res => {
+            callback({
+                code: 200, 
+                status: 'OK',
+                data: res.rows.map(row => ({id: row.student_id, label: `${row.student_name} (${row.reg_no || row.cnic})`}))
+            })
+        }).catch(err => {
+            console.log(err)
+            callback(validations.validateDBSelectQueryError(err));
+        })
+    }
+}
+
 module.exports = {
     autocompleteTeachers,
     autocompleteCourses,
+    autocompleteBatchStudents,
     Autocomplete
 }

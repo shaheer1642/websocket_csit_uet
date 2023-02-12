@@ -77,44 +77,43 @@ function studentsCoursesAssignStudents(data, callback) {
         db.query(`
             SELECT * from students_courses WHERE sem_course_id = '${sem_course_id}'
         `).then(res => {
-            if (res.rowCount == 0) {
+            const db_students_ids = res.rows.map(row => row.student_id)
+            const received_students_ids = data.student_ids
+            const insert_queries = []
+            const delete_queries = []
+            received_students_ids.forEach(student_id => {
+                if (!db_students_ids.includes(student_id)) {
+                    insert_queries.push(`INSERT INTO students_courses (sem_course_id, student_id) VALUES ('${sem_course_id}','${student_id}');`)
+                }
+            })
+            db_students_ids.forEach(student_id => {
+                if (!received_students_ids.includes(student_id)) {
+                    delete_queries.push(`DELETE FROM students_courses WHERE sem_course_id='${sem_course_id}' AND student_id='${student_id}';`)
+                }
+            })
+            if (insert_queries.length == 0 && delete_queries.length == 0) {
                 return callback? callback({
                     code: 400, 
-                    status: 'OK',
-                    message: `sem_course_id = ${data.sem_course_id} does not exist`
-                }) : null
-            } else {
-                const db_students_ids = res.rows.map(row => row.student_id)
-                const received_students_ids = data.student_ids
-                const insert_queries = []
-                const delete_queries = []
-                received_students_ids.forEach(student_id => {
-                    if (!db_students_ids.includes(student_id)) {
-                        insert_queries.push(`INSERT INTO students_courses (sem_course_id, student_id) VALUES ('${sem_course_id}','${student_id}');`)
-                    }
-                })
-                db_students_ids.forEach(student_id => {
-                    if (!received_students_ids.includes(student_id)) {
-                        delete_queries.push(`DELETE FROM students_courses WHERE sem_course_id='${sem_course_id}' AND student_id='${student_id}';`)
-                    }
-                })
-                db.query(`
-                    BEGIN;
-                    ${insert_queries.join('\n')}
-                    ${delete_queries.join('\n')}
-                    COMMIT;
-                `).then(res => {
-                    console.log(res)
-                    callback? callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: 'updated records in db'
-                    }):null
-                }).catch(err => {
-                    console.log(err)
-                    callback? callback(validations.validateDBInsertQueryError(err)) : null
-                })
+                    status: 'BAD REQUEST',
+                    message: 'No changes were made'
+                }):null
             }
+            db.query(`
+                BEGIN;
+                ${insert_queries.join('\n')}
+                ${delete_queries.join('\n')}
+                COMMIT;
+            `).then(res => {
+                console.log(res)
+                callback? callback({
+                    code: 200, 
+                    status: 'OK',
+                    message: 'updated records in db'
+                }):null
+            }).catch(err => {
+                console.log(err)
+                callback? callback(validations.validateDBInsertQueryError(err)) : null
+            })
         }).catch(err => {
             console.log(err)
             callback(validations.validateDBSelectQueryError(err));
