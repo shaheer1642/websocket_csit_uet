@@ -43,6 +43,13 @@ class DataTypes {
             type: 'array',
             example_value: example_value || '["value1","value2"]'
         }
+        this.json = {
+            attribute: attribute,
+            required: required_for_endpoints || [],
+            optional: optional_for_endpoints || [],
+            type: 'json',
+            example_value: example_value || '{"key":"value"}'
+        }
         this.unix_timestamp_milliseconds = {
             attribute: attribute,
             required: required_for_endpoints || [],

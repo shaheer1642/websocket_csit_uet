@@ -8,10 +8,11 @@ class SemestersCourses {
     name = 'Semesters Courses';
     description = 'Endpoints for creating semester courses'
     data_types = {
-        sem_course_id: new DataTypes(true,['semestersCourses/updateTeacher','semestersCourses/delete'],['semestersCourses/fetch']).uuid,
+        sem_course_id: new DataTypes(true,['semestersCourses/updateTeacher','semestersCourses/updateGradeDistribution','semestersCourses/delete'],['semestersCourses/fetch']).uuid,
         course_id: new DataTypes(true,['semestersCourses/create'],['semestersCourses/fetch'],false,'CS-103').string,
         teacher_id: new DataTypes(true,['semestersCourses/create','semestersCourses/updateTeacher'],['semestersCourses/fetch']).uuid,
         semester_id: new DataTypes(true,['semestersCourses/create'],['semestersCourses/fetch']).uuid,
+        grade_distribution: new DataTypes(true,['semestersCourses/updateGradeDistribution'],[], false, '{"finals": 50, "mids": 30, "sessional": 20, "assignments_distribution": [5,5,5], "quizzes_distribution": [5,5,5], "mini_project_distribution": 0}').json,
     }
 }
 
@@ -36,6 +37,7 @@ function semestersCoursesFetch(data, callback) {
             JOIN courses C ON C.course_id = SC.course_id
             JOIN teachers T ON T.teacher_id = SC.teacher_id
             JOIN semesters S ON S.semester_id = SC.semester_id
+            JOIN batches B ON B.batch_id = S.batch_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
@@ -194,6 +196,87 @@ function semestersCoursesUpdateTeacher(data, callback) {
     }
 }
 
+function validateGradeDistribution(grade_distribution) {
+    const attributes_list = ['finals','mids','sessional','attendance','total_assignments','total_quizzes','mini_project']
+    if (attributes_list.some(attribute => !Object.keys(grade_distribution).includes(attribute))) {
+        return {
+            valid: false,
+            reason: `Invalid parameter type for attribute grade_distribution`
+        };
+    }
+    if (Number(grade_distribution.finals + grade_distribution.mids + grade_distribution.sessional + grade_distribution.attendance) != 100) {
+        return {
+            valid: false,
+            reason: `Total distribution must not be less or higher than 100%`
+        };
+    }
+    return {
+        valid: true,
+    }
+}
+
+function semestersCoursesUpdateGradeDistribution(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    if (!validator.valid) {
+        if (callback) {
+            callback({
+                code: 400, 
+                status: 'BAD REQUEST',
+                message: validator.reason
+            });
+        }
+        return
+    } else {
+        const grade_distribution = data.grade_distribution
+        const validation = validateGradeDistribution(grade_distribution)
+        if (!validation.valid) {
+            console.log(validation)
+            return callback({
+                code: 400, 
+                status: 'BAD REQUEST',
+                message: validation.reason
+            });
+        }
+        db.query(`
+            UPDATE semesters_courses 
+            SET grade_distribution = '${JSON.stringify(grade_distribution)}'
+            WHERE sem_course_id = '${data.sem_course_id}';
+        `).then(res => {
+            if (res.rowCount == 1) {
+                if (callback) {
+                    callback({
+                        code: 200, 
+                        status: 'OK',
+                        message: `updated ${data.sem_course_id} record in db`
+                    });
+                }
+            } else if (res.rowCount == 0) {
+                if (callback) {
+                    callback({
+                        code: 400, 
+                        status: 'BAD REQUEST',
+                        message: `record ${data.sem_course_id} does not exist`
+                    });
+                }
+            } else {
+                if (callback) {
+                    callback({
+                        code: 500, 
+                        status: 'INTERNAL ERROR',
+                        message: `${res.rowCount} rows updated`
+                    });
+                }
+            }
+        }).catch(err => {
+            console.log(err)
+            if (callback) {
+                callback(validations.validateDBUpdateQueryError(err));
+            }
+        })
+    }
+}
+
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
 
@@ -207,5 +290,6 @@ module.exports = {
     semestersCoursesCreate,
     semestersCoursesDelete,
     semestersCoursesUpdateTeacher,
+    semestersCoursesUpdateGradeDistribution,
     SemestersCourses
 }

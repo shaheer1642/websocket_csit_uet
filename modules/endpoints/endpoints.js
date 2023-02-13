@@ -282,6 +282,14 @@ const endpoints = {
             ['admin','pga'],
             semestersCourses.semestersCoursesUpdateTeacher
         ),
+        updateGradeDistribution: new Endpoint(
+            "semestersCourses/updateGradeDistribution",
+            new semestersCourses.SemestersCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
+            true,
+            ['teacher'],
+            semestersCourses.semestersCoursesUpdateGradeDistribution
+        ),
         delete: new Endpoint(
             "semestersCourses/delete",
             new semestersCourses.SemestersCourses(),

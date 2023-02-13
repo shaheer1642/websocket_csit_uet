@@ -45,7 +45,8 @@ function studentsCoursesFetch(data, callback) {
         if (data.student_id) where_clauses.push(`student_id = '${data.student_id}'`)
         if (data.grade) where_clauses.push(`grade = '${data.grade}'`)
         db.query(`
-            SELECT * FROM students_courses
+            SELECT * FROM students_courses SC
+            JOIN students S ON S.student_id = SC.student_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
