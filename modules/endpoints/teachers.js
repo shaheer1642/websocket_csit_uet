@@ -10,7 +10,6 @@ class Teachers {
     data_types = {
         teacher_id: new DataTypes(true,['teachers/update','teachers/delete'],['teachers/fetch']).uuid,
         cnic: new DataTypes(true,[],['teachers/create','teachers/update'],false,'1730155555555').string,
-        reg_no: new DataTypes(true,[],['teachers/create','teachers/update'],false,'19pwbcs0000').string,
         teacher_name: new DataTypes(true,['teachers/create'],['teachers/update']).string,
         teacher_gender: new DataTypes(true,['teachers/create'],['teachers/update'],false,'male').string,
         teacher_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
