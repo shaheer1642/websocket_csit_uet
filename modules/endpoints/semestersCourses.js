@@ -3,6 +3,7 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter')
+const {studentsCoursesUpdateMarkings} = require('./studentsCourses')
 
 class SemestersCourses {
     name = 'Semesters Courses';
@@ -245,11 +246,26 @@ function semestersCoursesUpdateGradeDistribution(data, callback) {
         `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: `updated ${data.sem_course_id} record in db`
-                    });
+                    // re-evaluate markings
+                    db.query(`
+                        SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}'
+                    `).then(res => {
+                        const markings = res.rows.map(row => Object.keys(row.marking).length > 0 ? row.marking : null).filter(o => o != null)
+                        if (markings.length == 0) {
+                            return callback ? callback({
+                                code: 200, 
+                                status: 'OK',
+                                message: `updated ${data.sem_course_id} record in db`
+                            }) : null;
+                        }
+                        studentsCoursesUpdateMarkings({sem_course_id: data.sem_course_id, markings: markings, event: 'studentsCourses/updateMarkings'}, (res) => {
+                            return callback ? callback({
+                                code: 200, 
+                                status: 'OK',
+                                message: `updated ${data.sem_course_id} record in db`
+                            }) : null;
+                        })
+                    })
                 }
             } else if (res.rowCount == 0) {
                 if (callback) {

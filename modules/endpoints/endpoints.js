@@ -324,6 +324,14 @@ const endpoints = {
             ['admin','pga','teacher'],
             studentsCourses.studentsCoursesUpdateGrade
         ),
+        updateMarkings: new Endpoint(
+            "studentsCourses/updateMarkings",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated records in db`},null,4)}</code></pre>`,
+            true,
+            ['teacher'],
+            studentsCourses.studentsCoursesUpdateMarkings
+        ),
     },
     login: {
         auth: new Endpoint(
