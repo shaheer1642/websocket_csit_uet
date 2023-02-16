@@ -15,21 +15,19 @@ class Login {
         new_password: new DataTypes(false,['login/resetPassword']).string,
         permission_level: new DataTypes(true).number,
         user_type: new DataTypes(true).string,
-        login_token: new DataTypes(true,['login/auth']).uuid,
+        login_token: new DataTypes(true).uuid,
     }
 }
 
 function loginAuth(data, callback) {
     console.log(`[${data.event}] called, data received: `, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Login,data.event)
-    if (!validator.valid) {
-        callback({
+    if (!data.login_token) {
+        return callback({
             code: 400, 
-            status: 'BAD REQUEST',
-            message: validator.reason
+            status: 'NO LOGIN TOKEN',
+            message: 'No login token provided'
         });
-        return
     }
     db.query(`SELECT * FROM users WHERE login_token='${data.login_token}';`)
     .then(res => {
@@ -42,6 +40,15 @@ function loginAuth(data, callback) {
                 data: userObj
             });
         } else {
+            const validator = validations.validateRequestData(data,new Login,data.event)
+            if (!validator.valid) {
+                callback({
+                    code: 400, 
+                    status: 'BAD REQUEST',
+                    message: validator.reason
+                });
+                return
+            }
             db.query(`SELECT * FROM users`)
             .then(res => {
                 const users = res.rows
