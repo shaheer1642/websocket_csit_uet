@@ -10,12 +10,53 @@ const db_modules = require('./modules/db_modules')
 const {endpoints,getEndpoints} = require('./modules/endpoints/endpoints')
 const {event_emitter} = require('./modules/event_emitter')
 
+// parse requests of content-type - application/json
+app.use(express.json());
+// parse requests of content-type - application/x-www-form-urlencoded
+app.use(express.urlencoded({extended: true}));
+
 app.get('/', (req, res) => {
   res.send('<center><h1>Websocket for MIS developed for CSIT Dept. of UET as the Final Year Project</h1></center>');
 });
 
 app.get('/endpoints', (req, res) => {
   res.send(getEndpoints());
+});
+
+/* Assign API Endpoints */
+for (const key in endpoints) {
+  const ev1 = key
+  const endpoint = endpoints[key]
+  for (const key in endpoint) {
+    const subendpoint = endpoint[key]
+    const event = `/api/${ev1}/${key}`
+    console.log('[Registering api endpoint]',event)
+    app.post(event, (req, res) => {
+      console.log(req.body)
+      const login_token = req.headers?.authorization
+      if (subendpoint.is_authorized) {
+        if (login_token) {
+          authorizeEvent(login_token,subendpoint.permission_level)
+          .then(db_res => {
+            if (db_res.code == 200) {
+              return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), token: login_token, user_id: res.user_id}, (data) => res.send(data))
+            } else {
+              return res.send(db_res)
+            }
+          }).catch(err => {
+            return res.send(db_res)
+          })
+        } else {
+          return res.send({code: 400, message: 'No authorization token provided.'})
+        }
+      } else {
+        return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), token: login_token}, (data) => res.send(data))
+      }
+    })
+  }
+}
+
+app.get('/api/', (req, res) => {
 });
 
 const clients = {}

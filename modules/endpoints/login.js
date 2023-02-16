@@ -15,14 +15,23 @@ class Login {
         new_password: new DataTypes(false,['login/resetPassword']).string,
         permission_level: new DataTypes(true).number,
         user_type: new DataTypes(true).string,
-        login_token: new DataTypes(true).uuid,
+        login_token: new DataTypes(true,['login/auth']).uuid,
     }
 }
 
 function loginAuth(data, callback) {
     console.log(`[${data.event}] called, data received: `, data)
     if (!callback) return
-    db.query(`SELECT * FROM users WHERE login_token='${data.token}';`)
+    const validator = validations.validateRequestData(data,new Login,data.event)
+    if (!validator.valid) {
+        callback({
+            code: 400, 
+            status: 'BAD REQUEST',
+            message: validator.reason
+        });
+        return
+    }
+    db.query(`SELECT * FROM users WHERE login_token='${data.login_token}';`)
     .then(res => {
         if (res.rowCount == 1) {
             const userObj = res.rows[0]
@@ -33,15 +42,6 @@ function loginAuth(data, callback) {
                 data: userObj
             });
         } else {
-            const validator = validations.validateRequestData(data,new Login,data.event)
-            if (!validator.valid) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: validator.reason
-                });
-                return
-            }
             db.query(`SELECT * FROM users`)
             .then(res => {
                 const users = res.rows
@@ -59,7 +59,7 @@ function loginAuth(data, callback) {
                         });
                     }
                     db.query(`
-                        UPDATE users SET login_token = '${data.token}' WHERE user_id = '${user.user_id}';
+                        UPDATE users SET login_token = '${data.login_token}' WHERE user_id = '${user.user_id}';
                         SELECT * FROM users WHERE user_id = '${user.user_id}';
                     `)
                     .then(res => {
@@ -96,7 +96,7 @@ function loginAuth(data, callback) {
                 callback(validations.validateDBInsertQueryError(err));
             })
         }
-    }).catch(console.error)
+    }).catch((err) => callback(validations.validateDBSelectQueryError(err)))
 }
 
 function resetPassword(data, callback) {
@@ -130,13 +130,12 @@ function resetPassword(data, callback) {
                 return callback({
                     code: 403, 
                     status: 'BAD REQUEST',
-                    message: 'old and new password cannot match'
+                    message: 'old and new password cannot be the same'
                 });
             }
             db.query(`
                 UPDATE users SET password = '${data.new_password}' WHERE user_id = '${user.user_id}';
-            `)
-            .then(res => {
+            `).then(res => {
                 if (res.rowCount == 1) {
                     return callback({
                         code: 200, 
