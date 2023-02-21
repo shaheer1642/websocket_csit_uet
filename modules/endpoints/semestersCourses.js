@@ -4,6 +4,7 @@ const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter')
 const {studentsCoursesUpdateMarkings} = require('./studentsCourses')
+const { checkKeysExists } = require('../functions')
 
 class SemestersCourses {
     name = 'Semesters Courses';
@@ -198,14 +199,63 @@ function semestersCoursesUpdateTeacher(data, callback) {
 }
 
 function validateGradeDistribution(grade_distribution) {
-    const attributes_list = ['finals','mids','sessional','attendance','total_assignments','total_quizzes','mini_project']
-    if (attributes_list.some(attribute => !Object.keys(grade_distribution).includes(attribute))) {
+    const template =  {
+        final_term: {
+            weightage: 50,
+            total_marks: 50
+        },
+        mid_term: {
+            weightage: 25,
+            total_marks: 25
+        },
+        sessional: {
+            weightage: 25,
+            division: {
+                attendance: {
+                    include: true,
+                    total_marks: 10
+                },
+                assignments: {
+                    include: true,
+                    no_of_assignments: 3,
+                    total_marks_per_assignment: 5
+                },
+                quizzes: {
+                    include: true,
+                    no_of_quizzes: 3,
+                    total_marks_per_quiz: 5
+                },
+                class_participation: {
+                    include: false,
+                    total_marks: 10
+                },
+                presentation: {
+                    include: false,
+                    total_marks: 10
+                },
+                semester_project: {
+                    include: false,
+                    total_marks: 10
+                },
+                research_paper: {
+                    include: false,
+                    total_marks: 10
+                },
+                case_study: {
+                    include: false,
+                    total_marks: 10
+                },
+            }
+        }
+    }
+    
+    if (!checkKeysExists(grade_distribution,template)) {
         return {
             valid: false,
             reason: `Invalid parameter type for attribute grade_distribution`
         };
     }
-    if (Number(grade_distribution.finals + grade_distribution.mids + grade_distribution.sessional + grade_distribution.attendance) != 100) {
+    if (Number(grade_distribution.final_term.weightage + grade_distribution.mid_term.weightage + grade_distribution.sessional.weightage) != 100) {
         return {
             valid: false,
             reason: `Total distribution must not be less or higher than 100%`

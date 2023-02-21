@@ -194,17 +194,29 @@ function studentsCoursesUpdateGrade(data, callback) {
 function markingEvalutation(grade_distribution, marking) {
     console.log(grade_distribution)
     const absolute_evaluation = {}
-    absolute_evaluation.finals = {
-        total: (marking.finals.total) * (grade_distribution.finals / 100),
-        obtained: (marking.finals.obtained) * (grade_distribution.finals / 100)
+    absolute_evaluation.final_term = {
+        total: (grade_distribution.final_term.total_marks) * (grade_distribution.final_term.weightage / 100),
+        obtained: (marking.final_term) * (grade_distribution.final_term.weightage / 100)
     }
-    absolute_evaluation.mids = {
-        total: (marking.mids.total) * (grade_distribution.mids / 100),
-        obtained: (marking.mids.obtained) * (grade_distribution.mids / 100)
+    absolute_evaluation.mid_term = {
+        total: (grade_distribution.mid_term.total_marks) * (grade_distribution.mid_term.weightage / 100),
+        obtained: (marking.mid_term) * (grade_distribution.mid_term.weightage / 100)
     }
     absolute_evaluation.sessional = {
-        total: ((Object.keys(marking).reduce((sum,key) => (key.match('assignment') || key.match('quiz')) ? sum += marking[key].total : sum += 0, 0)) + (grade_distribution.mini_project ? marking.mini_project.total : 0)) * (grade_distribution.sessional / 100),
-        obtained: ((Object.keys(marking).reduce((sum,key) => (key.match('assignment') || key.match('quiz')) ? sum += marking[key].obtained : sum += 0, 0)) + (grade_distribution.mini_project ? marking.mini_project.obtained : 0)) * (grade_distribution.sessional / 100),
+        total: (Object.keys(grade_distribution.sessional.division).filter(key => grade_distribution.sessional.division[key].include)
+            .reduce((sum,key) => key.match('assignments') ? 
+                sum += grade_distribution.sessional.division.assignments.no_of_assignments * grade_distribution.sessional.division.assignments.total_marks_per_assignment
+                : key.match('quizzes') ? 
+                sum += grade_distribution.sessional.division.quizzes.no_of_quizzes * grade_distribution.sessional.division.quizzes.total_marks_per_quiz
+                : sum += grade_distribution.sessional.division[key].total_marks
+            , 0)) * (grade_distribution.sessional.weightage / 100),
+        obtained: (Object.keys(grade_distribution.sessional.division).filter(key => grade_distribution.sessional.division[key].include)
+            .reduce((sum,key) => key.match('assignments') ? 
+                sum += Object.keys(marking).reduce((sum,key2) => key2.match('assignment') ? sum += marking[key2] : sum += 0, 0)
+                : key.match('quizzes') ? 
+                sum += Object.keys(marking).reduce((sum,key2) => key2.match('quiz') ? sum += marking[key2] : sum += 0, 0)
+                : sum += marking[key] || 0
+            , 0)) * (grade_distribution.sessional.weightage / 100),
     }
     const absolute_total_marks = (Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].total, 0)).toFixed(1)
     const absolute_obtained_marks = (Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].obtained, 0)).toFixed(1)
@@ -218,7 +230,7 @@ function markingEvalutation(grade_distribution, marking) {
             grade: calculateGrade(absolute_percentage)
         }
     }
-    console.log(result)
+    console.log(JSON.stringify(result))
     return result
 
     function calculateGrade(percentage) {

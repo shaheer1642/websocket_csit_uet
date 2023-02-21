@@ -104,4 +104,17 @@ function convertUpper(str) {
     return str.replace(/_/g, " ").replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())
 }
 
-module.exports = {dynamicSort,dynamicSortDesc,msToTime,msToFullTime,getRandomColor,embedScore,convertUpper};
+function checkKeysExists(obj, ref_obj) {
+    if (!obj) return false
+    if (Object.keys(ref_obj).some(key => !Object.keys(obj).includes(key))) return false
+    var valid = true
+    Object.keys(ref_obj).map(key => {
+        if (!valid) return
+        if (typeof ref_obj[key] == 'object') {
+            valid = checkKeysExists(obj[key], ref_obj[key])
+        }
+    })
+    return valid
+}
+
+module.exports = {dynamicSort,dynamicSortDesc,msToTime,msToFullTime,getRandomColor,embedScore,convertUpper, checkKeysExists};
