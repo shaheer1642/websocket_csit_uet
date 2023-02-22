@@ -219,9 +219,9 @@ function markingEvalutation(grade_distribution, marking) {
                 : sum += marking[key] || 0
             , 0)) * (grade_distribution.sessional.weightage / 100),
     }
-    const absolute_total_marks = (Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].total, 0)).toFixed(1)
-    const absolute_obtained_marks = (Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].obtained, 0)).toFixed(1)
-    const absolute_percentage = ((absolute_obtained_marks / absolute_total_marks) * 100).toFixed(1)
+    const absolute_total_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].total, 0)).toFixed(1))
+    const absolute_obtained_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].obtained, 0)).toFixed(1))
+    const absolute_percentage = Number(((absolute_obtained_marks / absolute_total_marks) * 100).toFixed(1))
     const result = {
         absolute: {
             evaluation: absolute_evaluation,
@@ -335,14 +335,17 @@ function studentsCoursesUpdateAttendances(data, callback) {
             if (res.rowCount == 1) {
                 const grade_distribution = res.rows[0].grade_distribution
                 const update_queries = []
+                console.log(JSON.stringify(grade_distribution))
                 data.attendances.forEach(attendance => {
-                    const percentage = (((Object.keys(attendance).filter(key => key.match('week'))
-                                        .reduce((sum,key) => (attendance[key] == 'P' || attendance[key] == 'L') ? sum += 1 : sum += 0, 0)) / 16) * 100).toFixed(1)
+                    const percentage = Number((((Object.keys(attendance).filter(key => key.match('week'))
+                                        .reduce((sum,key) => (attendance[key] == 'P' || attendance[key] == 'L') ? sum += 1 : sum += 0, 0)) / 
+                                        (Object.keys(attendance).filter(key => key.match('week'))
+                                        .reduce((sum,key) => (attendance[key] == '') ? sum += 0 : sum += 1, 0))) * 100).toFixed(1))
                     attendance = {
                         ...attendance,
                         percentage: percentage
                     }
-                    update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${(percentage/100*(grade_distribution.sessional.division.attendance.total_marks)).toFixed(1)}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${attendance.student_id}';`)
+                    update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${Number((percentage/100*(grade_distribution.sessional.division.attendance.total_marks)).toFixed(1))}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${attendance.student_id}';`)
                 })
                 if (update_queries.length == 0) {
                     return callback? callback({

@@ -3,7 +3,7 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter')
-const {studentsCoursesUpdateMarkings} = require('./studentsCourses')
+const {studentsCoursesUpdateMarkings, studentsCoursesUpdateAttendances} = require('./studentsCourses')
 const { checkKeysExists } = require('../functions')
 
 class SemestersCourses {
@@ -300,20 +300,20 @@ function semestersCoursesUpdateGradeDistribution(data, callback) {
                     db.query(`
                         SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}'
                     `).then(res => {
-                        const markings = res.rows.map(row => Object.keys(row.marking).length > 0 ? row.marking : null).filter(o => o != null)
-                        if (markings.length == 0) {
-                            return callback ? callback({
-                                code: 200, 
-                                status: 'OK',
-                                message: `updated ${data.sem_course_id} record in db`
-                            }) : null;
-                        }
-                        studentsCoursesUpdateMarkings({sem_course_id: data.sem_course_id, markings: markings, event: 'studentsCourses/updateMarkings'}, (res) => {
-                            return callback ? callback({
-                                code: 200, 
-                                status: 'OK',
-                                message: `updated ${data.sem_course_id} record in db`
-                            }) : null;
+                        const attendances = res.rows.map(row => Object.keys(row.attendance).length > 0 ? row.attendance : null).filter(o => o != null)
+                        studentsCoursesUpdateAttendances({sem_course_id: data.sem_course_id, attendances: attendances, event: 'studentsCourses/updateAttendances'}, (res) => {
+                            db.query(`
+                                SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}'
+                            `).then(res => {
+                                const markings = res.rows.map(row => Object.keys(row.marking).length > 0 ? row.marking : null).filter(o => o != null)
+                                studentsCoursesUpdateMarkings({sem_course_id: data.sem_course_id, markings: markings, event: 'studentsCourses/updateMarkings'}, (res) => {
+                                    return callback ? callback({
+                                        code: 200, 
+                                        status: 'OK',
+                                        message: `updated ${data.sem_course_id} record in db`
+                                    }) : null;
+                                })
+                            })
                         })
                     })
                 }
