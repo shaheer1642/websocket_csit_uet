@@ -28,6 +28,7 @@ class StudentsCourses {
             []).uuid,
         marking: new DataTypes(true).json,
         markings: new DataTypes(true,['studentsCourses/updateMarkings']).array,
+        attendance: new DataTypes(true).json,
         attendances: new DataTypes(true,['studentsCourses/updateAttendances']).array,
     }
 }
