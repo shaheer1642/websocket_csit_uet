@@ -9,7 +9,7 @@ class StudentsCourses {
     description = 'Endpoints for assigning courses to students'
     data_types = {
         sem_course_id: new DataTypes(true,
-            ['studentsCourses/updateGrade','studentsCourses/assignStudents','studentsCourses/updateMarking'],
+            ['studentsCourses/updateGrade','studentsCourses/assignStudents','studentsCourses/updateMarkings','studentsCourses/updateAttendances'],
             ['studentsCourses/fetch']).uuid,
         student_id: new DataTypes(true,
             ['studentsCourses/updateGrade'],
@@ -28,6 +28,7 @@ class StudentsCourses {
             []).uuid,
         marking: new DataTypes(true).json,
         markings: new DataTypes(true,['studentsCourses/updateMarkings']).array,
+        attendances: new DataTypes(true,['studentsCourses/updateAttendances']).array,
     }
 }
 
@@ -192,7 +193,6 @@ function studentsCoursesUpdateGrade(data, callback) {
 }
 
 function markingEvalutation(grade_distribution, marking) {
-    console.log(grade_distribution)
     const absolute_evaluation = {}
     absolute_evaluation.final_term = {
         total: (grade_distribution.final_term.total_marks) * (grade_distribution.final_term.weightage / 100),
@@ -258,8 +258,66 @@ function markingEvalutation(grade_distribution, marking) {
     }
 }
 
-
 function studentsCoursesUpdateMarkings(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
+    if (!validator.valid) {
+        if (callback) {
+            callback({
+                code: 400, 
+                status: 'BAD REQUEST',
+                message: validator.reason
+            });
+        }
+    } else {
+        db.query(`SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}';`).then(res => {
+            if (res.rowCount == 1) {
+                const semester_course = res.rows[0];
+                const grade_distribution = semester_course.grade_distribution
+                const update_queries = []
+                data.markings.forEach(marking => {
+                    marking = {
+                        ...marking,
+                        result: markingEvalutation(grade_distribution, marking)
+                    }
+                    update_queries.push(`UPDATE students_courses SET marking = '${JSON.stringify(marking)}' WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${marking.student_id}';`)
+                })
+                if (update_queries.length == 0) {
+                    return callback? callback({
+                        code: 400, 
+                        status: 'BAD REQUEST',
+                        message: 'No changes were made'
+                    }) : null
+                }
+                db.query(`
+                    BEGIN;
+                    ${update_queries.join('\n')}
+                    COMMIT;
+                `).then(res => {
+                    callback? callback({
+                        code: 200, 
+                        status: 'OK',
+                        message: 'updated records in db'
+                    }): null
+                }).catch(err => {
+                    console.log(err)
+                    callback(validations.validateDBUpdateQueryError(err));
+                })
+            } else {
+                return callback? callback({
+                    code: 500, 
+                    status: 'INTERNAL ERROR',
+                    message: `Could not find course = ${data.sem_course_id}`
+                }) : null
+            }
+        }).catch(err => {
+            console.log(err)
+            callback(validations.validateDBSelectQueryError(err));
+        })
+    }
+}
+
+function studentsCoursesUpdateAttendances(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
     if (!validator.valid) {
@@ -276,12 +334,14 @@ function studentsCoursesUpdateMarkings(data, callback) {
             if (res.rowCount == 1) {
                 const grade_distribution = res.rows[0].grade_distribution
                 const update_queries = []
-                data.markings.forEach(marking => {
-                    marking = {
-                        ...marking,
-                        result: markingEvalutation(grade_distribution, marking)
+                data.attendances.forEach(attendance => {
+                    const percentage = (((Object.keys(attendance).filter(key => key.match('week'))
+                                        .reduce((sum,key) => (attendance[key] == 'P' || attendance[key] == 'L') ? sum += 1 : sum += 0, 0)) / 16) * 100).toFixed(1)
+                    attendance = {
+                        ...attendance,
+                        percentage: percentage
                     }
-                    update_queries.push(`UPDATE students_courses SET marking = '${JSON.stringify(marking)}' WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${marking.student_id}';`)
+                    update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${(percentage/100*(grade_distribution.sessional.division.attendance.total_marks)).toFixed(1)}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${attendance.student_id}';`)
                 })
                 if (update_queries.length == 0) {
                     return callback? callback({
@@ -340,5 +400,6 @@ module.exports = {
     studentsCoursesAssignStudents,
     studentsCoursesUpdateGrade,
     studentsCoursesUpdateMarkings,
+    studentsCoursesUpdateAttendances,
     StudentsCourses
 }

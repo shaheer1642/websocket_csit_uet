@@ -332,6 +332,14 @@ const endpoints = {
             ['teacher'],
             studentsCourses.studentsCoursesUpdateMarkings
         ),
+        updateAttendances: new Endpoint(
+            "studentsCourses/updateAttendances",
+            new studentsCourses.StudentsCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated records in db`},null,4)}</code></pre>`,
+            true,
+            ['teacher'],
+            studentsCourses.studentsCoursesUpdateAttendances
+        ),
     },
     login: {
         auth: new Endpoint(

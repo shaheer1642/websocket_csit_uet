@@ -30,7 +30,7 @@ for (const key in endpoints) {
   for (const key in endpoint) {
     const subendpoint = endpoint[key]
     const event = `/api/${ev1}/${key}`
-    console.log('[Registering api endpoint]',event)
+    // console.log('[Registering api endpoint]',event)
     app.post(event, (req, res) => {
       console.log(req.body)
       const login_token = req.headers?.authorization
