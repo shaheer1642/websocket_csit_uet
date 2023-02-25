@@ -200,6 +200,10 @@ function semestersCoursesUpdateTeacher(data, callback) {
 
 function validateGradeDistribution(grade_distribution) {
     const template =  {
+        marking: {
+            type: 'relative',
+            average_top: 10
+        },
         final_term: {
             weightage: 50,
             total_marks: 50

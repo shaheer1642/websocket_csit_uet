@@ -193,46 +193,72 @@ function studentsCoursesUpdateGrade(data, callback) {
     }
 }
 
-function markingEvalutation(grade_distribution, marking) {
-    const absolute_evaluation = {}
-    absolute_evaluation.final_term = {
-        total: (grade_distribution.final_term.total_marks) * (grade_distribution.final_term.weightage / 100),
-        obtained: (marking.final_term) * (grade_distribution.final_term.weightage / 100)
-    }
-    absolute_evaluation.mid_term = {
-        total: (grade_distribution.mid_term.total_marks) * (grade_distribution.mid_term.weightage / 100),
-        obtained: (marking.mid_term) * (grade_distribution.mid_term.weightage / 100)
-    }
-    absolute_evaluation.sessional = {
-        total: (Object.keys(grade_distribution.sessional.division).filter(key => grade_distribution.sessional.division[key].include)
-            .reduce((sum,key) => key.match('assignments') ? 
-                sum += grade_distribution.sessional.division.assignments.no_of_assignments * grade_distribution.sessional.division.assignments.total_marks_per_assignment
-                : key.match('quizzes') ? 
-                sum += grade_distribution.sessional.division.quizzes.no_of_quizzes * grade_distribution.sessional.division.quizzes.total_marks_per_quiz
-                : sum += grade_distribution.sessional.division[key].total_marks
-            , 0)) * (grade_distribution.sessional.weightage / 100),
-        obtained: (Object.keys(grade_distribution.sessional.division).filter(key => grade_distribution.sessional.division[key].include)
-            .reduce((sum,key) => key.match('assignments') ? 
-                sum += Object.keys(marking).reduce((sum,key2) => key2.match('assignment') ? sum += marking[key2] : sum += 0, 0)
-                : key.match('quizzes') ? 
-                sum += Object.keys(marking).reduce((sum,key2) => key2.match('quiz') ? sum += marking[key2] : sum += 0, 0)
-                : sum += marking[key] || 0
-            , 0)) * (grade_distribution.sessional.weightage / 100),
-    }
-    const absolute_total_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].total, 0)).toFixed(1))
-    const absolute_obtained_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].obtained, 0)).toFixed(1))
-    const absolute_percentage = Number(((absolute_obtained_marks / absolute_total_marks) * 100).toFixed(1))
-    const result = {
-        absolute: {
-            evaluation: absolute_evaluation,
-            total_marks: absolute_total_marks,
-            obtained_marks: absolute_obtained_marks,
-            percentage: absolute_percentage,
-            grade: calculateGrade(absolute_percentage)
+function markingEvalutation(grade_distribution, markings) {
+    // absolute evaluation
+    markings.forEach((marking,index) => {
+        const absolute_evaluation = {}
+        absolute_evaluation.final_term = {
+            total: (grade_distribution.final_term.total_marks) * (grade_distribution.final_term.weightage / 100),
+            obtained: (marking.final_term) * (grade_distribution.final_term.weightage / 100)
         }
-    }
-    console.log(JSON.stringify(result))
-    return result
+        absolute_evaluation.mid_term = {
+            total: (grade_distribution.mid_term.total_marks) * (grade_distribution.mid_term.weightage / 100),
+            obtained: (marking.mid_term) * (grade_distribution.mid_term.weightage / 100)
+        }
+        absolute_evaluation.sessional = {
+            total: (Object.keys(grade_distribution.sessional.division).filter(key => grade_distribution.sessional.division[key].include)
+                .reduce((sum,key) => key.match('assignments') ? 
+                    sum += grade_distribution.sessional.division.assignments.no_of_assignments * grade_distribution.sessional.division.assignments.total_marks_per_assignment
+                    : key.match('quizzes') ? 
+                    sum += grade_distribution.sessional.division.quizzes.no_of_quizzes * grade_distribution.sessional.division.quizzes.total_marks_per_quiz
+                    : sum += grade_distribution.sessional.division[key].total_marks
+                , 0)) * (grade_distribution.sessional.weightage / 100),
+            obtained: (Object.keys(grade_distribution.sessional.division).filter(key => grade_distribution.sessional.division[key].include)
+                .reduce((sum,key) => key.match('assignments') ? 
+                    sum += Object.keys(marking).reduce((sum,key2) => key2.match('assignment') ? sum += marking[key2] : sum += 0, 0)
+                    : key.match('quizzes') ? 
+                    sum += Object.keys(marking).reduce((sum,key2) => key2.match('quiz') ? sum += marking[key2] : sum += 0, 0)
+                    : sum += marking[key] || 0
+                , 0)) * (grade_distribution.sessional.weightage / 100),
+        }
+        const absolute_total_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].total, 0)).toFixed(1))
+        const absolute_obtained_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].obtained, 0)).toFixed(1))
+        const absolute_percentage = Number(((absolute_obtained_marks / absolute_total_marks) * 100).toFixed(1))
+        const result = {
+            absolute: {
+                evaluation: absolute_evaluation,
+                total_marks: absolute_total_marks,
+                obtained_marks: absolute_obtained_marks,
+                percentage: absolute_percentage,
+                grade: calculateGrade(absolute_percentage)
+            }
+        }
+        markings[index].result = result
+    })
+    // relative evaluation
+    markings = markings.sort((a, b) => a.result.absolute.percentage > b.result.absolute.percentage ? -1 : 1)
+    const top_students_length = Math.ceil(markings.length * grade_distribution.marking.average_top / 100)
+    const highest_marks = Number(((markings
+                            .filter((o,index) => index < top_students_length)
+                            .reduce((sum,marking) => sum += marking.result.absolute.obtained_marks, 0)) / top_students_length).toFixed(1))
+    markings.forEach((marking,index) => {
+        const relative_total_marks = highest_marks
+        const relative_obtained_marks = marking.result.absolute.obtained_marks > highest_marks ? highest_marks : marking.result.absolute.obtained_marks
+        const relative_percentage = Number(((relative_obtained_marks / relative_total_marks) * 100).toFixed(1))
+        const result = {
+            relative: {
+                total_marks: relative_total_marks,
+                obtained_marks: relative_obtained_marks,
+                percentage: relative_percentage,
+                grade: calculateGrade(relative_percentage)
+            }
+        }
+        markings[index].result = {
+            absolute: marking.result.absolute,
+            relative: result.relative
+        }
+    })
+    return markings
 
     function calculateGrade(percentage) {
         if (percentage >= 95)
@@ -271,18 +297,27 @@ function studentsCoursesUpdateMarkings(data, callback) {
             });
         }
     } else {
-        db.query(`SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}';`).then(res => {
-            if (res.rowCount == 1) {
-                const semester_course = res.rows[0];
+        db.query(`
+            SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}';
+            SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}';
+        `).then(res => {
+            if (res[0].rowCount == 1) {
+                const semester_course = res[0].rows[0];
+                const course_students = res[1].rows;
+                if (course_students.some(student => !data.markings.map(e => e.student_id).includes(student.student_id))) {
+                    return callback({
+                        code: 400, 
+                        status: 'BAD REQUEST',
+                        message: 'Missing data for a student'
+                    })
+                }
                 const grade_distribution = semester_course.grade_distribution
                 const update_queries = []
-                data.markings.forEach(marking => {
-                    marking = {
-                        ...marking,
-                        result: markingEvalutation(grade_distribution, marking)
-                    }
+
+                markingEvalutation(grade_distribution, data.markings).forEach(marking => {
                     update_queries.push(`UPDATE students_courses SET marking = '${JSON.stringify(marking)}' WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${marking.student_id}';`)
                 })
+
                 if (update_queries.length == 0) {
                     return callback? callback({
                         code: 400, 
