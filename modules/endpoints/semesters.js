@@ -29,9 +29,9 @@ function semestersFetch(data, callback) {
     } else {
         var where_clauses = []
         if (data.semester_id)
-            where_clauses.push(`semester_id = '${data.semester_id}'`)
+            where_clauses.push(`S.semester_id = '${data.semester_id}'`)
         db.query(`
-            SELECT * FROM semesters
+            SELECT S.*,(SELECT count(course_id) AS offered_courses FROM semesters_courses SC WHERE SC.semester_id = S.semester_id) FROM semesters S
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
