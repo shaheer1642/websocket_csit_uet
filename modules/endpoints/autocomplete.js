@@ -77,7 +77,7 @@ function autocompleteBatchStudents(data, callback) {
         db.query(`
             SELECT * FROM students_batch SB
             JOIN students S ON S.student_id = SB.student_id
-            WHERE batch_id = '${data.batch_id}'
+            ${data.batch_id ? `WHERE batch_id = '${data.batch_id}'`:''}
             ORDER BY S.student_name;
         `).then(res => {
             callback({

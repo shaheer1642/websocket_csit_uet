@@ -39,7 +39,6 @@ function semestersCoursesFetch(data, callback) {
             JOIN courses C ON C.course_id = SC.course_id
             JOIN teachers T ON T.teacher_id = SC.teacher_id
             JOIN semesters S ON S.semester_id = SC.semester_id
-            JOIN batches B ON B.batch_id = S.batch_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {

@@ -9,8 +9,6 @@ class Semesters {
     description = 'Endpoints for creating semesters for batches'
     data_types = {
         semester_id: new DataTypes(true,['semesters/update','semesters/delete'],['semesters/fetch']).uuid,
-        batch_id: new DataTypes(true,['semesters/create'],['semesters/fetch']).uuid,
-        semester_no: new DataTypes(true,['semesters/create'],['semesters/update'],false,2).number,
         semester_year: new DataTypes(true,['semesters/create'],['semesters/update'],false,2020).number,
         semester_season: new DataTypes(true,['semesters/create'],['semesters/update'],false,'fall').string,
         semester_start_timestamp: new DataTypes(true,['semesters/create'],['semesters/update']).unix_timestamp_milliseconds,
@@ -32,8 +30,6 @@ function semestersFetch(data, callback) {
         var where_clauses = []
         if (data.semester_id)
             where_clauses.push(`semester_id = '${data.semester_id}'`)
-        if (data.batch_id)
-            where_clauses.push(`batch_id = '${data.batch_id}'`)
         db.query(`
             SELECT * FROM semesters
             ${where_clauses.length > 0 ? 'WHERE':''}
@@ -64,10 +60,8 @@ function semestersCreate(data, callback) {
         }
     } else {
         db.query(`
-            INSERT INTO semesters (batch_id, semester_no, semester_year, semester_season, semester_start_timestamp, semester_end_timestamp) 
+            INSERT INTO semesters (semester_year, semester_season, semester_start_timestamp, semester_end_timestamp) 
             VALUES (
-                '${data.batch_id}',
-                ${data.semester_no},
                 ${data.semester_year},
                 '${data.semester_season}',
                 ${data.semester_start_timestamp},
@@ -160,7 +154,6 @@ function semestersUpdate(data, callback) {
         return
     } else {
         var update_clauses = []
-        if (data.semester_no) update_clauses.push(`semester_no = ${data.semester_no}`)
         if (data.semester_year) update_clauses.push(`semester_year = ${data.semester_year}`)
         if (data.semester_season) update_clauses.push(`semester_season = '${data.semester_season}'`)
         if (data.semester_start_timestamp) update_clauses.push(`semester_start_timestamp = ${data.semester_start_timestamp}`)
