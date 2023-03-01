@@ -102,7 +102,7 @@ function studentsCreate(data, callback) {
                     ${data.reg_no ? `'${data.reg_no}'`:null},
                     '${data.student_name}',
                     ${data.student_father_name ? `'${data.student_father_name}'`:null},
-                    '${data.student_gender}',
+                    '${data.student_gender.toLowerCase()}',
                     ${data.student_address ? `'${data.student_address}'`:null}
                 )
             )
