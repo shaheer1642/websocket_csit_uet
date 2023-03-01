@@ -32,9 +32,9 @@ function batchesFetch(data, callback) {
         }
     } else {
         db.query(`
-            SELECT * FROM batches 
-            ${data.batch_id ? ` WHERE batch_id = '${data.batch_id}'`:''}
-            ORDER BY batch_creation_timestamp ASC
+            SELECT B.*,(SELECT count(student_id) AS registered_students FROM students_batch SB WHERE SB.batch_id = B.batch_id) FROM batches B
+            ${data.batch_id ? ` WHERE B.batch_id = '${data.batch_id}'`:''}
+            ORDER BY B.batch_creation_timestamp DESC
         `).then(res => {
             if (callback) {
                 callback({
