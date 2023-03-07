@@ -115,6 +115,7 @@ function studentsCoursesAssignStudents(data, callback) {
             }).catch(err => {
                 console.log(err)
                 callback? callback(validations.validateDBInsertQueryError(err)) : null
+                db.query(`ROLLBACK`);
             })
         }).catch(err => {
             console.log(err)
@@ -335,6 +336,7 @@ function studentsCoursesUpdateMarkings(data, callback) {
                 }).catch(err => {
                     console.log(err)
                     callback(validations.validateDBUpdateQueryError(err));
+                    db.query(`ROLLBACK`);
                 })
             } else {
                 return callback? callback({
