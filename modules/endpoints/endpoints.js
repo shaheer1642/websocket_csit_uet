@@ -5,6 +5,7 @@ const teachers = require('./teachers')
 const courses = require('./courses')
 const semestersCourses = require('./semestersCourses')
 const studentsCourses = require('./studentsCourses')
+const studentsThesis = require('./studentsThesis')
 const semesters = require('./semesters')
 const login = require('./login')
 const autocomplete = require('./autocomplete')
@@ -341,6 +342,24 @@ const endpoints = {
             studentsCourses.studentsCoursesUpdateAttendances
         ),
     },
+    studentsThesis: {
+        fetch: new Endpoint(
+            "studentsThesis/fetch",
+            new studentsThesis.StudentsThesis(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            studentsThesis.studentsThesisFetch
+        ),
+        create: new Endpoint(
+            "studentsThesis/create",
+            new studentsThesis.StudentsThesis(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `added record to db`},null,4)}</code></pre>`,
+            true,
+            ['pga'],
+            studentsThesis.studentsThesisCreate
+        ),
+    },
     login: {
         auth: new Endpoint(
             "login/auth",
@@ -423,6 +442,14 @@ const endpoints = {
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new studentsCourses.StudentsCourses}) : {}
+        ),
+        studentsThesis: new Endpoint(
+            "schema/studentsThesis",
+            null,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            (data,callback) => callback ? callback({code: 200, status: 'OK', data: new studentsThesis.StudentsThesis}) : {}
         ),
     }
 }
@@ -559,6 +586,15 @@ const listener_endpoints = {
                 `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
             )
         }
+    },
+    studentsThesis: {
+        listener: {
+            changed: new ListenerEndpoint(
+                'Triggered after a new record is inserted, updated, or deleted in the table',
+                `socket.on("studentsThesis/listener/changed", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            )
+        }
     }
 }
 
@@ -619,6 +655,12 @@ const endpointsClasses = [
         class1: new studentsCourses.StudentsCourses(),
         class2: endpoints.studentsCourses,
         class3: listener_endpoints.studentsCourses
+    },
+    {
+        id: 'studentsThesis',
+        class1: new studentsThesis.StudentsThesis(),
+        class2: endpoints.studentsThesis,
+        class3: listener_endpoints.studentsThesis
     }
 ]
 

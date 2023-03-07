@@ -77,13 +77,14 @@ function autocompleteBatchStudents(data, callback) {
         db.query(`
             SELECT * FROM students_batch SB
             JOIN students S ON S.student_id = SB.student_id
-            ${data.batch_id ? `WHERE batch_id = '${data.batch_id}'`:''}
+            JOIN batches B ON B.batch_id = SB.batch_id
+            ${data.batch_id ? `WHERE SB.batch_id = '${data.batch_id}'`:''}
             ORDER BY S.student_name;
         `).then(res => {
             callback({
                 code: 200, 
                 status: 'OK',
-                data: res.rows.map(row => ({id: row.student_id, label: `${row.student_name} (${row.reg_no || row.cnic})`}))
+                data: res.rows.map(row => ({id: row.student_batch_id, label: `${row.student_name} (${row.reg_no || row.cnic}) - ${row.degree_type}`}))
             })
         }).catch(err => {
             console.log(err)

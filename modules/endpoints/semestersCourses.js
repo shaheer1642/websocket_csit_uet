@@ -35,7 +35,7 @@ function semestersCoursesFetch(data, callback) {
         if (data.teacher_id) where_clauses.push(`SC.teacher_id = '${data.teacher_id}'`)
         if (data.semester_id) where_clauses.push(`SC.semester_id = '${data.semester_id}'`)
         db.query(`
-            SELECT *, (SELECT COUNT(student_id) AS registered_students FROM students_courses WHERE sem_course_id = SC.sem_course_id) FROM semesters_courses SC
+            SELECT *, (SELECT COUNT(student_batch_id) AS registered_students FROM students_courses WHERE sem_course_id = SC.sem_course_id) FROM semesters_courses SC
             JOIN courses C ON C.course_id = SC.course_id
             JOIN teachers T ON T.teacher_id = SC.teacher_id
             JOIN semesters S ON S.semester_id = SC.semester_id

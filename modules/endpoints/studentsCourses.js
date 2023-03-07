@@ -11,10 +11,10 @@ class StudentsCourses {
         sem_course_id: new DataTypes(true,
             ['studentsCourses/updateGrade','studentsCourses/assignStudents','studentsCourses/updateMarkings','studentsCourses/updateAttendances'],
             ['studentsCourses/fetch']).uuid,
-        student_id: new DataTypes(true,
+        student_batch_id: new DataTypes(true,
             ['studentsCourses/updateGrade'],
             ['studentsCourses/fetch']).uuid,
-        student_ids: new DataTypes(false,
+        student_batch_ids: new DataTypes(false,
             ['studentsCourses/assignStudents'],
             [],false,'["caa1534e-da15-41b6-8110-cc3fcffb14ed"]').array,
         grade: new DataTypes(true,
@@ -23,9 +23,6 @@ class StudentsCourses {
         grade_assignment_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
         grade_assigned_by: new DataTypes(true).uuid,
         grade_change_logs: new DataTypes(true,[],[],false,'["timestamp user_id grade"]').array,
-        batch_id: new DataTypes(false,
-            ['studentsCourses/fetchBatchCourses'],
-            []).uuid,
         marking: new DataTypes(true).json,
         markings: new DataTypes(true,['studentsCourses/updateMarkings']).array,
         attendance: new DataTypes(true).json,
@@ -46,11 +43,11 @@ function studentsCoursesFetch(data, callback) {
     } else {
         var where_clauses = []
         if (data.sem_course_id) where_clauses.push(`sem_course_id = '${data.sem_course_id}'`)
-        if (data.student_id) where_clauses.push(`student_id = '${data.student_id}'`)
+        if (data.student_batch_id) where_clauses.push(`student_batch_id = '${data.student_batch_id}'`)
         if (data.grade) where_clauses.push(`grade = '${data.grade}'`)
         db.query(`
             SELECT * FROM students_courses SC
-            JOIN students S ON S.student_id = SC.student_id
+            JOIN students S ON S.student_id = (select student_id from students_batch where student_batch_id = SC.student_batch_id)
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
@@ -82,18 +79,18 @@ function studentsCoursesAssignStudents(data, callback) {
         db.query(`
             SELECT * from students_courses WHERE sem_course_id = '${sem_course_id}'
         `).then(res => {
-            const db_students_ids = res.rows.map(row => row.student_id)
-            const received_students_ids = data.student_ids
+            const db_students_batch_ids = res.rows.map(row => row.student_batch_id)
+            const received_students_batch_ids = data.student_batch_ids
             const insert_queries = []
             const delete_queries = []
-            received_students_ids.forEach(student_id => {
-                if (!db_students_ids.includes(student_id)) {
-                    insert_queries.push(`INSERT INTO students_courses (sem_course_id, student_id) VALUES ('${sem_course_id}','${student_id}');`)
+            received_students_batch_ids.forEach(student_batch_id => {
+                if (!db_students_batch_ids.includes(student_batch_id)) {
+                    insert_queries.push(`INSERT INTO students_courses (sem_course_id, student_batch_id) VALUES ('${sem_course_id}','${student_batch_id}');`)
                 }
             })
-            db_students_ids.forEach(student_id => {
-                if (!received_students_ids.includes(student_id)) {
-                    delete_queries.push(`DELETE FROM students_courses WHERE sem_course_id='${sem_course_id}' AND student_id='${student_id}';`)
+            db_students_batch_ids.forEach(student_batch_id => {
+                if (!received_students_batch_ids.includes(student_batch_id)) {
+                    delete_queries.push(`DELETE FROM students_courses WHERE sem_course_id='${sem_course_id}' AND student_batch_id='${student_batch_id}';`)
                 }
             })
             if (insert_queries.length == 0 && delete_queries.length == 0) {
@@ -157,14 +154,14 @@ function studentsCoursesUpdateGrade(data, callback) {
             grade_assignment_timestamp = ${new Date().getTime()},
             grade_assigned_by = '${data.user_id}',
             grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
-            WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${data.student_id}';
+            WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${data.student_batch_id}';
         `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
                         code: 200, 
                         status: 'OK',
-                        message: `updated sem_course=${data.sem_course_id} student=${data.student_id} record in db`
+                        message: `updated sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} record in db`
                     });
                 }
             } else if (res.rowCount == 0) {
@@ -172,7 +169,7 @@ function studentsCoursesUpdateGrade(data, callback) {
                     callback({
                         code: 400, 
                         status: 'BAD REQUEST',
-                        message: `record sem_course=${data.sem_course_id} student=${data.student_id} does not exist`
+                        message: `record sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} does not exist`
                     });
                 }
             } else {
@@ -304,7 +301,7 @@ function studentsCoursesUpdateMarkings(data, callback) {
             if (res[0].rowCount == 1) {
                 const semester_course = res[0].rows[0];
                 const course_students = res[1].rows;
-                if (course_students.some(student => !data.markings.map(e => e.student_id).includes(student.student_id))) {
+                if (course_students.some(student => !data.markings.map(e => e.student_batch_id).includes(student.student_batch_id))) {
                     return callback({
                         code: 400, 
                         status: 'BAD REQUEST',
@@ -315,7 +312,7 @@ function studentsCoursesUpdateMarkings(data, callback) {
                 const update_queries = []
 
                 markingEvalutation(grade_distribution, data.markings).forEach(marking => {
-                    update_queries.push(`UPDATE students_courses SET marking = '${JSON.stringify(marking)}' WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${marking.student_id}';`)
+                    update_queries.push(`UPDATE students_courses SET marking = '${JSON.stringify(marking)}' WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${marking.student_batch_id}';`)
                 })
 
                 if (update_queries.length == 0) {
@@ -375,12 +372,12 @@ function studentsCoursesUpdateAttendances(data, callback) {
                     const percentage = Number((((Object.keys(attendance).filter(key => key.match('week'))
                                         .reduce((sum,key) => (attendance[key] == 'P' || attendance[key] == 'L') ? sum += 1 : sum += 0, 0)) / 
                                         (Object.keys(attendance).filter(key => key.match('week'))
-                                        .reduce((sum,key) => (attendance[key] == '') ? sum += 0 : sum += 1, 0))) * 100).toFixed(1))
+                                        .reduce((sum,key) => (attendance[key] == '') ? sum += 0 : sum += 1, 0))) * 100).toFixed(1)) || 0
                     attendance = {
                         ...attendance,
                         percentage: percentage
                     }
-                    update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${Number((percentage/100*(grade_distribution.sessional.division.attendance.total_marks)).toFixed(1))}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_id = '${attendance.student_id}';`)
+                    update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${Number((percentage/100*(grade_distribution.sessional.division.attendance.total_marks)).toFixed(1))}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${attendance.student_batch_id}';`)
                 })
                 if (update_queries.length == 0) {
                     return callback? callback({
@@ -402,6 +399,7 @@ function studentsCoursesUpdateAttendances(data, callback) {
                 }).catch(err => {
                     console.log(err)
                     callback(validations.validateDBUpdateQueryError(err));
+                    db.query(`ROLLBACK`);
                 })
             } else {
                 return callback? callback({
@@ -421,7 +419,7 @@ db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
     
     if (['students_courses_insert','students_courses_update'].includes(notification.channel)) {
-        db.query(`SELECT * FROM students_courses WHERE sem_course_id='${payload.sem_course_id}' AND student_id='${payload.student_id}'`)
+        db.query(`SELECT * FROM students_courses WHERE sem_course_id='${payload.sem_course_id}' AND student_batch_id='${payload.student_batch_id}'`)
         .then(res => {
             if (res.rowCount == 1) {
                 event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/changed', data: res.rows[0]})
