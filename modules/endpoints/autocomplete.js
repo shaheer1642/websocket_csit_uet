@@ -74,11 +74,18 @@ function autocompleteBatchStudents(data, callback) {
             message: validator.reason
         });
     } else {
+        const where_clauses = []
+        if (data.batch_id) where_clauses.push(`SB.batch_id = '${data.batch_id}'`)
+        if (data.constraints) {
+            if (data.constraints.includes('exclude_thesis_students')) 
+                where_clauses.push('SB.student_batch_id NOT IN (select student_batch_id from students_thesis)')
+        }
         db.query(`
             SELECT * FROM students_batch SB
             JOIN students S ON S.student_id = SB.student_id
             JOIN batches B ON B.batch_id = SB.batch_id
-            ${data.batch_id ? `WHERE SB.batch_id = '${data.batch_id}'`:''}
+            ${where_clauses.length > 0 ? `WHERE `:''}
+            ${where_clauses.join(' AND ')}
             ORDER BY S.student_name;
         `).then(res => {
             callback({

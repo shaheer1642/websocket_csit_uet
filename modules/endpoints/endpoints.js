@@ -359,6 +359,22 @@ const endpoints = {
             ['pga'],
             studentsThesis.studentsThesisCreate
         ),
+        update: new Endpoint(
+            "studentsThesis/update",
+            new studentsThesis.StudentsThesis(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['pga'],
+            studentsThesis.studentsThesisUpdate
+        ),
+        delete: new Endpoint(
+            "studentsThesis/delete",
+            new studentsThesis.StudentsThesis(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted record from db`},null,4)}</code></pre>`,
+            true,
+            ['pga'],
+            studentsThesis.studentsThesisDelete
+        ),
     },
     login: {
         auth: new Endpoint(
