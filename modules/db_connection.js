@@ -72,4 +72,6 @@ setInterval(() => {
     }).catch(console.error)
 }, 900000);
 
+db.setMaxListeners(15)
+
 module.exports = {db};

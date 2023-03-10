@@ -4,7 +4,7 @@
   "description": "Websocket source code for MIS developed for CSIT Dept. of UET as the Final Year Project",
   "main": "index.js",
   "scripts": {
-    "start": "node -r dotenv/config index.js",
+    "start": "node --trace-warnings -r dotenv/config index.js",
     "dev": "nodemon -r dotenv/config index.js"
   },
   "author": "shaheer1642",

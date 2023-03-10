@@ -1,4 +1,6 @@
 const AWS = require('aws-sdk');
+const uuid = require('uuid');
+const path = require('path');
 
 // Enter copied or downloaded access id and secret here
 const ID = process.env.AWS_ACCESS_KEY_ID;
@@ -13,12 +15,12 @@ const s3 = new AWS.S3({
     secretAccessKey: SECRET
 });
 
-async function uploadFile(fileName,fileContent) {
+async function uploadFile(fileName,fileContent,dont_customize_name) {
   return new Promise((resolve,reject) => {
     // setting up s3 upload parameters
     const params = {
         Bucket: BUCKET_NAME,
-        Key: fileName, // file name you want to save as
+        Key: dont_customize_name ? fileName : `${path.parse(fileName).name}-${uuid.v4()}${path.parse(fileName).ext}`,
         Body: fileContent
     };
   
@@ -27,7 +29,7 @@ async function uploadFile(fileName,fileContent) {
         if (err) {
           return reject(err)
         } else {
-          return resolve(data.location)
+          return resolve(data.Location)
         }
     });
   })

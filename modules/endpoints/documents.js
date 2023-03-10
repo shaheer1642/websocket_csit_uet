@@ -6,7 +6,7 @@ const {event_emitter} = require('../event_emitter');
 const { uploadFile } = require('../aws/aws');
 
 class Documents {
-    name = 'Semesters';
+    name = 'Documents';
     description = 'Endpoints for fetching/creating/deleting documents'
     data_types = {
         document: new DataTypes(false,['documents/create'],[],false,'file-buffer-string').string,
@@ -20,7 +20,7 @@ class Documents {
 function documentsFetch(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Semesters,data.event)
+    const validator = validations.validateRequestData(data,new Documents,data.event)
     if (!validator.valid) {
         callback({
             code: 400, 
@@ -35,6 +35,7 @@ function documentsFetch(data, callback) {
             SELECT * from documents
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
+            ORDER BY document_creation_timestamp DESC
         `).then(res => {
             callback({
                 code: 200, 
@@ -50,7 +51,7 @@ function documentsFetch(data, callback) {
 
 function documentsCreate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Semesters,data.event)
+    const validator = validations.validateRequestData(data,new Documents,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
@@ -89,13 +90,20 @@ function documentsCreate(data, callback) {
                     callback(validations.validateDBInsertQueryError(err));
                 }
             })
+        }).catch((err) => {
+            console.log(err)
+            callback({
+                code: 200, 
+                status: 'OK',
+                message: `error uploading file: ${JSON.stringify(err)}`,
+            });
         })
     }
 }
 
 function documentsDelete(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Semesters,data.event)
+    const validator = validations.validateRequestData(data,new Documents,data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
