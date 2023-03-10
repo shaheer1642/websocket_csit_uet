@@ -9,6 +9,7 @@ const studentsThesis = require('./studentsThesis')
 const semesters = require('./semesters')
 const login = require('./login')
 const autocomplete = require('./autocomplete')
+const documents = require('./documents')
 
 class Endpoint {
     constructor(endpoint, class_object , response_example, is_authorized, permission_level, listener_function) {
@@ -53,6 +54,32 @@ const endpoints = {
             ['ALL'],
             autocomplete.autocompleteBatchStudents
         ),
+    },
+    documents: {
+        fetch: new Endpoint(
+            "documents/fetch",
+            new documents.Documents(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            documents.documentsFetch
+        ),
+        create: new Endpoint(
+            "documents/create",
+            new documents.Documents(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'added record to db', data: '${record_schema}'},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            documents.documentsCreate
+        ),
+        delete: new Endpoint(
+            "documents/delete",
+            new documents.Documents(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted document caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            documents.documentsDelete
+        )
     },
     events: {
         fetch: new Endpoint(
@@ -611,6 +638,15 @@ const listener_endpoints = {
                 `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
             )
         }
+    },
+    documents: {
+        listener: {
+            changed: new ListenerEndpoint(
+                'Triggered after a new record is inserted, updated, or deleted in the table',
+                `socket.on("documents/listener/changed", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            )
+        }
     }
 }
 
@@ -677,6 +713,12 @@ const endpointsClasses = [
         class1: new studentsThesis.StudentsThesis(),
         class2: endpoints.studentsThesis,
         class3: listener_endpoints.studentsThesis
+    },
+    {
+        id: 'documents',
+        class1: new documents.Documents(),
+        class2: endpoints.documents,
+        class3: listener_endpoints.documents
     }
 ]
 

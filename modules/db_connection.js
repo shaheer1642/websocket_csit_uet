@@ -47,6 +47,10 @@ db.connect().then(async res => {
         LISTEN students_thesis_insert;
         LISTEN students_thesis_update;
         LISTEN students_thesis_delete;
+
+        LISTEN documents_insert;
+        LISTEN documents_update;
+        LISTEN documents_delete;
     `).catch(console.error)
 }).catch(err => {
     console.log('DB Connection failure.\n' + err)
