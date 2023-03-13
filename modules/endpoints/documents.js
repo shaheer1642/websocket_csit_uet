@@ -67,7 +67,8 @@ function documentsCreate(data, callback) {
                 VALUES (
                     '${data.document_name}',
                     '${fileUrl}'
-                );
+                )
+                returning *;
             `).then(res => {
                 if (!callback) return
                 if (res.rowCount == 1) {
@@ -93,7 +94,7 @@ function documentsCreate(data, callback) {
         }).catch((err) => {
             console.log(err)
             callback({
-                code: 200, 
+                code: 500, 
                 status: 'OK',
                 message: `error uploading file: ${JSON.stringify(err)}`,
             });
@@ -150,6 +151,34 @@ function documentsDelete(data, callback) {
     }
 }
 
+async function uploadDocumentsFromArray(documents) {
+    return new Promise((resolve,reject) => {
+        const document_ids = []
+        const promises = []
+        documents.map(doc => {
+            if (doc.document_id) return document_ids.push({document_id: doc.document_id})
+            else {
+                promises.push(
+                    new Promise((resolve,reject) => {
+                        documentsCreate({document: doc.document, document_name: doc.document_name}, (res) => {
+                            console.log('uploadDocumentsFromArray',res)
+                            if (res.code == 200) {
+                                document_ids.push({document_id: res.data.document_id})
+                                resolve(true)
+                            } else {
+                                resolve(false)
+                            }
+                        })
+                    })
+                )
+            }
+        })
+        Promise.all(promises).then(res => {
+            resolve(document_ids)
+        }).catch(console.error)
+    })
+}
+
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
 
@@ -162,5 +191,6 @@ module.exports = {
     documentsFetch,
     documentsCreate,
     documentsDelete,
-    Documents
+    Documents,
+    uploadDocumentsFromArray
 }

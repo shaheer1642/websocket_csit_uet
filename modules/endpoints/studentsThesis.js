@@ -2,7 +2,8 @@ const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
+const {event_emitter} = require('../event_emitter');
+const { documentsCreate, uploadDocumentsFromArray } = require('./documents');
 
 class StudentsThesis {
     name = 'Students Thesis';
@@ -14,13 +15,14 @@ class StudentsThesis {
         grade: new DataTypes(true,['studentsThesis/updateGrade'],['studentsThesis/fetch'],false,'B').string,
         supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/update']).uuid,
         co_supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/update']).uuid,
-        document_urls: new DataTypes(true,[],[]).json,
         internal_examiner: new DataTypes(true,[],['studentsThesis/update']).string,
         external_examiner: new DataTypes(true,[],['studentsThesis/update']).string,
         boasar_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         committee_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         defense_day_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         undertaking_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
+        proposal_completed: new DataTypes(true,[],['studentsThesis/update']).boolean,
+        proposal_documents: new DataTypes(true,[],['studentsThesis/update']).array,
     }
 }
 
@@ -102,7 +104,7 @@ function studentsThesisCreate(data, callback) {
     }
 }
 
-function studentsThesisUpdate(data, callback) {
+async function studentsThesisUpdate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     const validator = validations.validateRequestData(data,new StudentsThesis,data.event)
     if (!validator.valid) {
@@ -125,6 +127,12 @@ function studentsThesisUpdate(data, callback) {
         if (data.boasar_notification_timestamp) update_clauses.push(`boasar_notification_timestamp = ${data.boasar_notification_timestamp}`)
         if (data.committee_notification_timestamp) update_clauses.push(`committee_notification_timestamp = ${data.committee_notification_timestamp}`)
         if (data.defense_day_timestamp) update_clauses.push(`defense_day_timestamp = ${data.defense_day_timestamp}`)
+        if (data.proposal_completed != undefined) update_clauses.push(`proposal_completed = ${data.proposal_completed}`)
+        if (data.proposal_documents) {
+            const document_ids = await uploadDocumentsFromArray(data.proposal_documents)
+            console.log(document_ids)
+            update_clauses.push(`proposal_documents = '${JSON.stringify(document_ids)}'`)
+        }
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({
