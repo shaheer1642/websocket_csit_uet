@@ -21,6 +21,7 @@ class Students {
         username: new DataTypes(true).string,
         password: new DataTypes(true).string,
         user_type: new DataTypes(true).string,
+        student_batch_id: new DataTypes(true).uuid,
         batch_id: new DataTypes(true,['students/create','students/update'],['students/fetch']).uuid,
         batch_no: new DataTypes(true).string,
         joined_semester: new DataTypes(true).string,

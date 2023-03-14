@@ -10,6 +10,7 @@ const semesters = require('./semesters')
 const login = require('./login')
 const autocomplete = require('./autocomplete')
 const documents = require('./documents')
+const instructions = require('./instructions')
 
 class Endpoint {
     constructor(endpoint, class_object , response_example, is_authorized, permission_level, listener_function) {
@@ -80,6 +81,24 @@ const endpoints = {
             ['admin','pga'],
             documents.documentsDelete
         )
+    },
+    instructions: {
+        fetch: new Endpoint(
+            "instructions/fetch",
+            new instructions.Instructions(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            instructions.instructionsFetch
+        ),
+        update: new Endpoint(
+            "instructions/update",
+            new instructions.Instructions(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            instructions.instructionsUpdate
+        ),
     },
     events: {
         fetch: new Endpoint(
@@ -719,6 +738,11 @@ const endpointsClasses = [
         class1: new documents.Documents(),
         class2: endpoints.documents,
         class3: listener_endpoints.documents
+    },
+    {
+        id: 'instructions',
+        class1: new instructions.Instructions(),
+        class2: endpoints.instructions,
     }
 ]
 
