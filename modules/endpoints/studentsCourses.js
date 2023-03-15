@@ -48,6 +48,7 @@ function studentsCoursesFetch(data, callback) {
         db.query(`
             SELECT * FROM students_courses SC
             JOIN students S ON S.student_id = (select student_id from students_batch where student_batch_id = SC.student_batch_id)
+            JOIN courses C ON C.course_id = (select course_id from semesters_courses WHERE sem_course_id = SC.sem_course_id)
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
