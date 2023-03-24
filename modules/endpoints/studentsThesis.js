@@ -15,14 +15,18 @@ class StudentsThesis {
         grade: new DataTypes(true,['studentsThesis/updateGrade'],['studentsThesis/fetch'],false,'B').string,
         supervisor_id: new DataTypes(true,['studentsThesis/create'],['studentsThesis/update']).uuid,
         co_supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/update']).uuid,
+        undertaking_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
         internal_examiner: new DataTypes(true,[],['studentsThesis/update']).string,
         external_examiner: new DataTypes(true,[],['studentsThesis/update']).string,
         boasar_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         committee_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         defense_day_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
-        undertaking_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
-        proposal_completed: new DataTypes(true,[],['studentsThesis/update']).boolean,
+        // proposal_completed: new DataTypes(true,[],['studentsThesis/update']).boolean,
         proposal_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        thesis_defense_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        thesis_submission_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        post_defense_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        post_thesis_documents: new DataTypes(true,[],['studentsThesis/update']).array,
     }
 }
 
@@ -171,11 +175,31 @@ async function studentsThesisUpdate(data, callback) {
             if (data.boasar_notification_timestamp) update_clauses.push(`boasar_notification_timestamp = ${data.boasar_notification_timestamp}`)
             if (data.committee_notification_timestamp) update_clauses.push(`committee_notification_timestamp = ${data.committee_notification_timestamp}`)
             if (data.defense_day_timestamp) update_clauses.push(`defense_day_timestamp = ${data.defense_day_timestamp}`)
-            if (data.proposal_completed != undefined) update_clauses.push(`proposal_completed = ${data.proposal_completed}`)
+            // if (data.proposal_completed != undefined) update_clauses.push(`proposal_completed = ${data.proposal_completed}`)
             if (data.proposal_documents) {
                 const document_ids = await uploadDocumentsFromArray(data.proposal_documents)
                 console.log(document_ids)
                 update_clauses.push(`proposal_documents = '${JSON.stringify(document_ids)}'`)
+            }
+            if (data.thesis_defense_documents) {
+                const document_ids = await uploadDocumentsFromArray(data.thesis_defense_documents)
+                console.log(document_ids)
+                update_clauses.push(`thesis_defense_documents = '${JSON.stringify(document_ids)}'`)
+            }
+            if (data.thesis_submission_documents) {
+                const document_ids = await uploadDocumentsFromArray(data.thesis_submission_documents)
+                console.log(document_ids)
+                update_clauses.push(`thesis_submission_documents = '${JSON.stringify(document_ids)}'`)
+            }
+            if (data.post_defense_documents) {
+                const document_ids = await uploadDocumentsFromArray(data.post_defense_documents)
+                console.log(document_ids)
+                update_clauses.push(`post_defense_documents = '${JSON.stringify(document_ids)}'`)
+            }
+            if (data.post_thesis_documents) {
+                const document_ids = await uploadDocumentsFromArray(data.post_thesis_documents)
+                console.log(document_ids)
+                update_clauses.push(`post_thesis_documents = '${JSON.stringify(document_ids)}'`)
             }
             if (update_clauses.length == 0) {
                 if (callback) {

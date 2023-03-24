@@ -13,8 +13,9 @@ class Students {
         cnic: new DataTypes(true,[],['students/create','students/update'],false,'1730155555555').string,
         reg_no: new DataTypes(true,[],['students/create','students/update'],false,'19pwbcs0000').string,
         student_name: new DataTypes(true,['students/create'],['students/update']).string,
-        student_father_name: new DataTypes(true,[],['students/update','students/create']).string,
+        student_father_name: new DataTypes(true,['students/create'],['students/update']).string,
         student_gender: new DataTypes(true,['students/create'],['students/update'],false,'male').string,
+        student_email: new DataTypes(true,['students/create'],['students/update',],false,'abc@email.com').string,
         student_address: new DataTypes(true,[],['students/update','students/create'],false,'street#5, abc road, abc area, xyz city').string,
         student_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
         user_id: new DataTypes(true).uuid,
@@ -96,14 +97,15 @@ function studentsCreate(data, callback) {
                 ) 
                 RETURNING user_id 
             ), query_two AS (
-                INSERT INTO students (student_id, cnic, reg_no, student_name, student_father_name, student_gender, student_address) 
+                INSERT INTO students (student_id, cnic, reg_no, student_name, student_father_name, student_gender, student_email, student_address) 
                 VALUES (
                     ( select user_id from query_one ),
                     ${data.cnic ? `'${data.cnic}'`:null},
                     ${data.reg_no ? `'${data.reg_no}'`:null},
                     '${data.student_name}',
-                    ${data.student_father_name ? `'${data.student_father_name}'`:null},
+                    '${data.student_father_name}',
                     '${data.student_gender.toLowerCase()}',
+                    '${data.student_email}',
                     ${data.student_address ? `'${data.student_address}'`:null}
                 )
             )
@@ -205,6 +207,7 @@ function studentsUpdate(data, callback) {
         if (data.student_father_name) update_clauses.push(`student_father_name = '${data.student_father_name}'`)
         if (data.student_address) update_clauses.push(`student_address = '${data.student_address}'`)
         if (data.student_gender) update_clauses.push(`student_gender = '${data.student_gender}'`)
+        if (data.student_email) update_clauses.push(`student_email = '${data.student_email}'`)
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({
