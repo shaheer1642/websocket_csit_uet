@@ -5,11 +5,13 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 const {db} = require('./modules/db_connection')
-const axios = require('axios')
-const db_modules = require('./modules/db_modules')
+// const axios = require('axios')
+// const db_modules = require('./modules/db_modules')
 const {endpoints,getEndpoints} = require('./modules/endpoints/endpoints')
 const {event_emitter} = require('./modules/event_emitter')
+const cors = require('cors')
 
+app.use(cors())
 // parse requests of content-type - application/json
 app.use(express.json());
 // parse requests of content-type - application/x-www-form-urlencoded
@@ -57,6 +59,10 @@ for (const key in endpoints) {
 }
 
 app.get('/api/', (req, res) => {
+  return res.statusCode(400).send({
+    code: 400,
+    message: 'Invalid endpoint',
+  })
 });
 
 const clients = {}
