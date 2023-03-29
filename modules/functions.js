@@ -117,4 +117,8 @@ function checkKeysExists(obj, ref_obj) {
     return valid
 }
 
-module.exports = {dynamicSort,dynamicSortDesc,msToTime,msToFullTime,getRandomColor,embedScore,convertUpper, checkKeysExists};
+function escapeDBCharacters(str) {
+    return str.replace(/'/g,`''`).replace(/\"/g,`\\"`).replace(/\r\n/g,`\\n`).replace(/\n/g,`\\r\\n`)
+}
+
+module.exports = {dynamicSort,dynamicSortDesc,msToTime,msToFullTime,getRandomColor,embedScore,convertUpper, checkKeysExists, escapeDBCharacters};

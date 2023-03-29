@@ -19,11 +19,12 @@ class StudentsThesis {
         internal_examiner: new DataTypes(true,[],['studentsThesis/update']).string,
         external_examiner: new DataTypes(true,[],['studentsThesis/update']).string,
         boasar_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
+        proposal_submission_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         committee_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         defense_day_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         // proposal_completed: new DataTypes(true,[],['studentsThesis/update']).boolean,
         proposal_documents: new DataTypes(true,[],['studentsThesis/update']).array,
-        thesis_defense_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        pre_defense_documents: new DataTypes(true,[],['studentsThesis/update']).array,
         thesis_submission_documents: new DataTypes(true,[],['studentsThesis/update']).array,
         post_defense_documents: new DataTypes(true,[],['studentsThesis/update']).array,
         post_thesis_documents: new DataTypes(true,[],['studentsThesis/update']).array,
@@ -173,6 +174,7 @@ async function studentsThesisUpdate(data, callback) {
             if (data.internal_examiner) update_clauses.push(`internal_examiner = '${data.internal_examiner}'`)
             if (data.external_examiner) update_clauses.push(`external_examiner = '${data.external_examiner}'`)
             if (data.boasar_notification_timestamp) update_clauses.push(`boasar_notification_timestamp = ${data.boasar_notification_timestamp}`)
+            if (data.proposal_submission_timestamp) update_clauses.push(`proposal_submission_timestamp = ${data.proposal_submission_timestamp}`)
             if (data.committee_notification_timestamp) update_clauses.push(`committee_notification_timestamp = ${data.committee_notification_timestamp}`)
             if (data.defense_day_timestamp) update_clauses.push(`defense_day_timestamp = ${data.defense_day_timestamp}`)
             // if (data.proposal_completed != undefined) update_clauses.push(`proposal_completed = ${data.proposal_completed}`)
@@ -181,10 +183,10 @@ async function studentsThesisUpdate(data, callback) {
                 console.log(document_ids)
                 update_clauses.push(`proposal_documents = '${JSON.stringify(document_ids)}'`)
             }
-            if (data.thesis_defense_documents) {
-                const document_ids = await uploadDocumentsFromArray(data.thesis_defense_documents)
+            if (data.pre_defense_documents) {
+                const document_ids = await uploadDocumentsFromArray(data.pre_defense_documents)
                 console.log(document_ids)
-                update_clauses.push(`thesis_defense_documents = '${JSON.stringify(document_ids)}'`)
+                update_clauses.push(`pre_defense_documents = '${JSON.stringify(document_ids)}'`)
             }
             if (data.thesis_submission_documents) {
                 const document_ids = await uploadDocumentsFromArray(data.thesis_submission_documents)

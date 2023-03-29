@@ -2,14 +2,17 @@ const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
+const {event_emitter} = require('../event_emitter');
+const { escapeDBCharacters } = require('../functions');
 
 class Instructions {
     name = 'Instructions';
     description = 'Endpoints for fetching/updating instructions'
     data_types = {
         instruction_id: new DataTypes(true,['instructions/update'],['instructions/fetch'],false,3).number,
-        detail: new DataTypes(true,['instructions/update'],[]).json,
+        instruction_detail_key: new DataTypes(true,['instructions/update'],[]).string,
+        instruction: new DataTypes(true,['instructions/update'],[],true).string,
+        detail: new DataTypes(true,[],[]).json,
     }
 }
 
@@ -56,18 +59,9 @@ function instructionsUpdate(data, callback) {
         }
         return
     } else {
-        var update_clauses = []
-        if (data.detail) update_clauses.push(`detail = '${JSON.stringify(data.detail).replace(/'/g,`''`)}'`)
-        if (update_clauses.length == 0) {
-            return callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: `No valid parameters found in requested data.`,
-            });
-        }
         db.query(`
             UPDATE instructions SET
-            ${update_clauses.join(',')}
+            detail = jsonb_set(detail, '{${data.instruction_detail_key}}', '"${escapeDBCharacters(data.instruction)}"', true)
             WHERE instruction_id = ${data.instruction_id};
         `).then(res => {
             if (res.rowCount == 1) {
