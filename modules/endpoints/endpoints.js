@@ -11,6 +11,8 @@ const login = require('./login')
 const autocomplete = require('./autocomplete')
 const documents = require('./documents')
 const instructions = require('./instructions')
+const applications = require('./applications')
+const applicationsTemplates = require('./applicationsTemplates')
 
 class Endpoint {
     constructor(endpoint, class_object , response_example, is_authorized, permission_level, listener_function) {
@@ -422,6 +424,66 @@ const endpoints = {
             studentsThesis.studentsThesisDelete
         ),
     },
+    applications: {
+        fetch: new Endpoint(
+            "applications/fetch",
+            new applications.Applications(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            applications.applicationsFetch
+        ),
+        create: new Endpoint(
+            "applications/create",
+            new applications.Applications(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `added record to db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga','teacher','student'],
+            applications.applicationsCreate
+        ),
+        updateStatus: new Endpoint(
+            "applications/updateStatus",
+            new applications.Applications(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga','teacher','student'],
+            applications.applicationsUpdateStatus
+        ),
+        forward: new Endpoint(
+            "applications/forward",
+            new applications.Applications(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga','teacher','student'],
+            applications.applicationsForward
+        ),
+    },
+    applicationsTemplates: {
+        fetch: new Endpoint(
+            "applicationsTemplates/fetch",
+            new applicationsTemplates.ApplicationsTemplates(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            applicationsTemplates.applicationsTemplatesFetch
+        ),
+        create: new Endpoint(
+            "applicationsTemplates/create",
+            new applicationsTemplates.ApplicationsTemplates(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `added record to db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            applicationsTemplates.applicationsTemplatesCreate
+        ),
+        delete: new Endpoint(
+            "applicationsTemplates/delete",
+            new applicationsTemplates.ApplicationsTemplates(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted record from db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            applicationsTemplates.applicationsTemplatesDelete
+        ),
+    },
     login: {
         auth: new Endpoint(
             "login/auth",
@@ -512,6 +574,22 @@ const endpoints = {
             false,
             ['ALL'],
             (data,callback) => callback ? callback({code: 200, status: 'OK', data: new studentsThesis.StudentsThesis}) : {}
+        ),
+        applications: new Endpoint(
+            "schema/applications",
+            null,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            (data,callback) => callback ? callback({code: 200, status: 'OK', data: new applications.Applications()}) : {}
+        ),
+        applicationsTemplates: new Endpoint(
+            "schema/applicationsTemplates",
+            null,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${schema_obj}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            (data,callback) => callback ? callback({code: 200, status: 'OK', data: new applicationsTemplates.ApplicationsTemplates()}) : {}
         ),
     }
 }
@@ -666,7 +744,26 @@ const listener_endpoints = {
                 `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
             )
         }
-    }
+    },
+    applications: {
+        listener: {
+            insert: new ListenerEndpoint(
+                'Triggered after a new record is inserted in the table',
+                `socket.on("applications/listener/insert", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            ),
+            update: new ListenerEndpoint(
+                'Triggered after a record is updated in the table',
+                `socket.on("applications/listener/update", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            ),
+            delete: new ListenerEndpoint(
+                'Triggered after a record is deleted from the table',
+                `socket.on("applications/listener/delete", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            )
+        }
+    },
 }
 
 const endpointsClasses = [
@@ -743,6 +840,16 @@ const endpointsClasses = [
         id: 'instructions',
         class1: new instructions.Instructions(),
         class2: endpoints.instructions,
+    },
+    {
+        id: 'applications',
+        class1: new applications.Applications(),
+        class2: endpoints.applications,
+    },
+    {
+        id: 'applicationsTemplates',
+        class1: new applicationsTemplates.ApplicationsTemplates(),
+        class2: endpoints.applicationsTemplates,
     }
 ]
 
