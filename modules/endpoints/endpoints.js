@@ -41,6 +41,14 @@ const endpoints = {
             ['ALL'],
             autocomplete.autocompleteTeachers
         ),
+        faculty: new Endpoint(
+            "autocomplete/faculty",
+            new autocomplete.Autocomplete(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ''},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            autocomplete.autocompleteFaculty
+        ),
         courses: new Endpoint(
             "autocomplete/courses",
             new autocomplete.Autocomplete(),
@@ -475,6 +483,14 @@ const endpoints = {
             ['admin','pga'],
             applicationsTemplates.applicationsTemplatesCreate
         ),
+        update: new Endpoint(
+            "applicationsTemplates/update",
+            new applicationsTemplates.ApplicationsTemplates(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            applicationsTemplates.applicationsTemplatesUpdate
+        ),
         delete: new Endpoint(
             "applicationsTemplates/delete",
             new applicationsTemplates.ApplicationsTemplates(),
@@ -764,6 +780,15 @@ const listener_endpoints = {
             )
         }
     },
+    applicationsTemplates: {
+        listener: {
+            changed: new ListenerEndpoint(
+                'Triggered after a new record is inserted, updated, or deleted in the table',
+                `socket.on("applicationsTemplates/listener/changed", (data) => print(data))`,
+                `<pre><code>${JSON.stringify("${record_schema}",null,4)}</code></pre>`
+            )
+        }
+    },
 }
 
 const endpointsClasses = [
@@ -845,11 +870,13 @@ const endpointsClasses = [
         id: 'applications',
         class1: new applications.Applications(),
         class2: endpoints.applications,
+        class3: listener_endpoints.applications
     },
     {
         id: 'applicationsTemplates',
         class1: new applicationsTemplates.ApplicationsTemplates(),
         class2: endpoints.applicationsTemplates,
+        class3: listener_endpoints.applicationsTemplates
     }
 ]
 

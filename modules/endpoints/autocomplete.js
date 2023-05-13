@@ -37,6 +37,33 @@ function autocompleteTeachers(data, callback) {
     }
 }
 
+function autocompleteFaculty(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    if (!callback) return
+    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    if (!validator.valid) {
+        callback({
+            code: 400, 
+            status: 'BAD REQUEST',
+            message: validator.reason
+        });
+    } else {
+        db.query(`
+            SELECT * FROM users WHERE username = 'admin' OR username = 'pga';
+            SELECT * FROM teachers;
+        `).then(res => {
+            callback({
+                code: 200, 
+                status: 'OK',
+                data: [...res[0].rows.map(row => ({id: row.user_id, label: row.username})), ...res[1].rows.map(row => ({id: row.teacher_id, label: row.teacher_name}))]
+            })
+        }).catch(err => {
+            console.log(err)
+            callback(validations.validateDBSelectQueryError(err));
+        })
+    }
+}
+
 function autocompleteCourses(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     if (!callback) return
@@ -101,6 +128,7 @@ function autocompleteBatchStudents(data, callback) {
 }
 
 module.exports = {
+    autocompleteFaculty,
     autocompleteTeachers,
     autocompleteCourses,
     autocompleteBatchStudents,
