@@ -1,4 +1,6 @@
 const uuid = require('uuid');
+const { template_applications_detail_structure_object } = require('./object_templates');
+const { checkKeysExists } = require('./functions');
 
 function validateKeyValue(key,value,type) {
     if (type == 'unix_timestamp_milliseconds') {
@@ -141,10 +143,23 @@ function validateDBUpdateQueryError(err) {
     }
 }
 
+function validateApplicationTemplateDetailStructure(detail_structure, options = {field_value_not_empty: false}) {
+    if (Object.values(detail_structure).length == 0) return {valid: false, message: 'Detail structure cannot be empty'};
+
+    if (detail_structure.some(o => !checkKeysExists(o,template_applications_detail_structure_object))) return {valid: false, message: 'Detail structure object mismatch'};
+    if (detail_structure.some(o => o.field_name == '')) return {valid: false, message: 'Detail structure field_name cannot be empty'};
+    if (detail_structure.some(o => o.field_type == '')) return {valid: false, message: 'Detail structure field_type cannot be empty'};
+    if (detail_structure.some(o => options?.field_value_not_empty && o.field_value == '')) return {valid: false, message: 'Detail structure field_value cannot be empty'};
+    if (detail_structure.some(o => o.disabled == true && !o.field_value)) return {valid: false, message: 'Detail structure field_value cannot be empty if disabled'};
+    
+    return {valid: true};
+}
+
 module.exports = {
     validateRequestData,
     validateDBInsertQueryError,
     validateDBSelectQueryError,
     validateDBDeleteQueryError,
     validateDBUpdateQueryError,
+    validateApplicationTemplateDetailStructure
 }

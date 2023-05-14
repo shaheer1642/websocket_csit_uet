@@ -39,20 +39,12 @@ function applicationsTemplatesFetch(data, callback) {
     })
 }
 
-function validateDetailStructure(detail_structure) {
-    if (Object.values(detail_structure).length == 0) return {valid: false, message: 'Detail structure cannot be empty'};
-    [{"required": true, "field_name": "", "field_type": "", "multi_line": false, "placeholder": ""}]
-    if (detail_structure.some(o => o.field_name == '')) return {valid: false, message: 'Detail structure field_name cannot be empty'};
-    if (detail_structure.some(o => o.field_type == '')) return {valid: false, message: 'Detail structure field_type cannot be empty'};
-    return {valid: true};
-}
-
 function applicationsTemplatesCreate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
 
     const validator = validations.validateRequestData(data,new ApplicationsTemplates,data.event)
     if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
-    const detailStructureValidator = validateDetailStructure(data.detail_structure)
+    const detailStructureValidator = validations.validateApplicationTemplateDetailStructure(data.detail_structure)
     if (!detailStructureValidator.valid) return callback({code: 400, status: 'BAD REQUEST', message: detailStructureValidator.message});
     
     db.query(`INSERT INTO applications_templates (
@@ -80,7 +72,7 @@ function applicationsTemplatesUpdate(data, callback) {
     const validator = validations.validateRequestData(data,new ApplicationsTemplates,data.event)
     if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
     if (data.detail_structure) {
-        const detailStructureValidator = validateDetailStructure(data.detail_structure)
+        const detailStructureValidator = validations.validateApplicationTemplateDetailStructure(data.detail_structure)
         if (!detailStructureValidator.valid) return callback({code: 400, status: 'BAD REQUEST', message: detailStructureValidator.message});
     }
 

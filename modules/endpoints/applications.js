@@ -3,7 +3,7 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
-const { template_applications_detail, template_applications_forwarded_to } = require('../object_templates');
+const { template_applications_forwarded_to } = require('../object_templates');
 const { checkKeysExists } = require('../functions');
 
 class Applications {
@@ -11,12 +11,13 @@ class Applications {
     description = 'Endpoints for creating/forwarding applications'
     data_types = {
         application_id: new DataTypes(true,['applications/forward','applications/updateStatus'],['applications/fetch']).uuid,
+        application_title: new DataTypes(true,['applications/create'],[]).string,
         submitted_by: new DataTypes(true,['applications/create'],['applications/fetch']).uuid,
         submitted_to: new DataTypes(true,['applications/create'],['applications/fetch']).uuid,
         forwarded_to: new DataTypes(true,['applications/forward'],['applications/create']).json,
         forwarded_to_user_id: new DataTypes(false,[],['applications/fetch']).uuid,
         status: new DataTypes(true,[],['applications/updateStatus']).string,
-        detail: new DataTypes(true,['applications/create'],[]).json,
+        detail_structure: new DataTypes(true,['applications/create'],[]).json,
         application_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
 }
@@ -50,16 +51,21 @@ function applicationsCreate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
 
     const validator = validations.validateRequestData(data,new Applications,data.event)
+    console.log(validator)
     if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
-    
+    const detailStructureValidator = validations.validateApplicationTemplateDetailStructure(data.detail_structure, {field_value_not_empty: true})
+    if (!detailStructureValidator.valid) return callback({code: 400, status: 'BAD REQUEST', message: detailStructureValidator.message});
+
     db.query(`INSERT INTO applications (
+        application_title,
         submitted_by,
         submitted_to,
-        detail
+        detail_structure
     ) VALUES (
+        '${data.application_title}',
         '${data.submitted_by}',
         '${data.submitted_to}',
-        '${JSON.stringify(data.detail)}'
+        '${JSON.stringify(data.detail_structure)}'
     )`).then(res => {
         if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: 'added record to db'});
         else return callback({code: 500, status: 'INTERNAL ERROR', message: 'database could not add record'});

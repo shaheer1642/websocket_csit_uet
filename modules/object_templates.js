@@ -5,4 +5,13 @@ module.exports = {
         "status": "completed || under_review || rejected" ,
         "forwarder_remarks": "string"
     },
+    template_applications_detail_structure_object: {
+        "field_name": "", 
+        "field_type": "", 
+        "field_value": "", 
+        "placeholder": "",
+        "disabled": false, 
+        "required": true, 
+        "multi_line": false,
+    },
 }

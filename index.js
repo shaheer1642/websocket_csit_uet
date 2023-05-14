@@ -88,7 +88,12 @@ io.on('connection', (socket) => {
           authorizeEvent(login_token,subendpoint.permission_level)
           .then(res => {
             if (res.code == 200) {
-              return subendpoint.listener_function({...data, event: event, login_token: login_token, user_id: res.user_id}, callback ? callback : () => {})
+              try {
+                return subendpoint.listener_function({...data, event: event, login_token: login_token, user_id: res.user_id}, callback ? callback : () => {})
+              } catch (e) {
+                console.log(e)
+                callback ? callback({code: 500, message: e.stack || e}) : () => {}
+              }
             } else {
               if (callback) return callback(res)
             }
@@ -96,7 +101,12 @@ io.on('connection', (socket) => {
             if (callback) return callback(err)
           })
         } else {
-          return subendpoint.listener_function({...data, event: event, login_token: login_token}, callback ? callback : () => {})
+          try {
+            return subendpoint.listener_function({...data, event: event, login_token: login_token}, callback ? callback : () => {})
+          } catch (e) {
+            console.log(e)
+            callback ? callback({code: 500, message: e.stack || e}) : () => {}
+          }
         }
       })
     }
