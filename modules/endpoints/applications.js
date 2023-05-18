@@ -30,9 +30,7 @@ function applicationsFetch(data, callback) {
 
     var where_clauses = []
     if (data.application_id) where_clauses.push(`application_id = '${data.application_id}'`)
-    if (data.submitted_by) where_clauses.push(`submitted_by = '${data.submitted_by}'`)
-    if (data.submitted_to) where_clauses.push(`submitted_to = '${data.submitted_to}'`)
-    if (data.forwarded_to_user_id) where_clauses.push(`forwarded_to @> '[{"user_id": "${forwarded_to_user_id}"}]'`)
+    if (data.user_id) where_clauses.push(`(submitted_by = '${data.user_id}' OR submitted_to = '${data.user_id}' OR forwarded_to @> '[{"receiver_id": "${data.user_id}"}]')`)
 
     db.query(`
         SELECT * from applications
@@ -104,8 +102,9 @@ function applicationsForward(data, callback) {
 
     const validator = validations.validateRequestData(data,new Applications,data.event)
     if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
-    if (!checkKeysExists(data.forwarded_to,template_applications_forwarded_to)) return callback({code: 400, status: 'BAD REQUEST', message: 'object mismatch'});
-
+    const forwardedToValidator = validations.validateApplicationForwardedTo(data.forwarded_to)
+    if (!forwardedToValidator.valid) return callback({code: 400, status: 'BAD REQUEST', message: forwardedToValidator.message});
+    
     db.query(`
         SELECT * FROM applications WHERE application_id = '${data.application_id}';
     `).then(res => {

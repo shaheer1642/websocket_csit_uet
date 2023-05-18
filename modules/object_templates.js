@@ -1,9 +1,11 @@
 
 module.exports = {
-    template_applications_forwarded_to: {
-        "user_id" : "user_id",
-        "status": "completed || under_review || rejected" ,
-        "forwarder_remarks": "string"
+    template_applications_forwarded_to:  {
+        "sender_id": "user_id",
+        "receiver_id": "user_id",
+        "sender_remarks": "string",
+        "status": "completed || under_review || rejected",
+        "forward_timestamp": "timestamp"
     },
     template_applications_detail_structure_object: {
         "field_name": "", 

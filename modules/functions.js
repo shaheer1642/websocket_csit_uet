@@ -104,14 +104,14 @@ function convertUpper(str) {
     return str.replace(/_/g, " ").replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())
 }
 
-function checkKeysExists(obj, ref_obj) {
+function checkKeysExists(obj, ref_obj, ignore_keys) {
     if (!obj) return false
-    if (Object.keys(ref_obj).some(key => !Object.keys(obj).includes(key))) return false
+    if (Object.keys(ref_obj).some(key => !Object.keys(obj).includes(key) && !ignore_keys.includes(key))) return false
     var valid = true
     Object.keys(ref_obj).map(key => {
         if (!valid) return
         if (typeof ref_obj[key] == 'object') {
-            valid = checkKeysExists(obj[key], ref_obj[key])
+            valid = checkKeysExists(obj[key], ref_obj[key], ignore_keys)
         }
     })
     return valid

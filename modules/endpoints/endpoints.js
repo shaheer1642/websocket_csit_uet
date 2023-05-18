@@ -437,7 +437,7 @@ const endpoints = {
             "applications/fetch",
             new applications.Applications(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
-            false,
+            true,
             ['ALL'],
             applications.applicationsFetch
         ),

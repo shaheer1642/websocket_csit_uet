@@ -1,5 +1,5 @@
 const uuid = require('uuid');
-const { template_applications_detail_structure_object } = require('./object_templates');
+const { template_applications_detail_structure_object, template_applications_forwarded_to } = require('./object_templates');
 const { checkKeysExists } = require('./functions');
 
 function validateKeyValue(key,value,type) {
@@ -155,11 +155,22 @@ function validateApplicationTemplateDetailStructure(detail_structure, options = 
     return {valid: true};
 }
 
+function validateApplicationForwardedTo(forwarded_to) {
+    if (!checkKeysExists(forwarded_to,template_applications_forwarded_to,['status','forward_timestamp'])) return {valid: false, message: 'object mismatch'};
+
+    if (!forwarded_to.sender_id) return {valid: false, message: 'Forwarded to sender_id cannot be empty'}
+    if (!forwarded_to.receiver_id) return {valid: false, message: 'Forwarded to receiver_id cannot be empty'}
+    if (!forwarded_to.sender_remarks) return {valid: false, message: 'Forwarded to sender_remarks cannot be empty'}
+
+    return {valid: true};
+}
+
 module.exports = {
     validateRequestData,
     validateDBInsertQueryError,
     validateDBSelectQueryError,
     validateDBDeleteQueryError,
     validateDBUpdateQueryError,
-    validateApplicationTemplateDetailStructure
+    validateApplicationTemplateDetailStructure,
+    validateApplicationForwardedTo
 }
