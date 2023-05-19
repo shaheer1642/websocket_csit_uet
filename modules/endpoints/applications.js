@@ -18,6 +18,7 @@ class Applications {
         forwarded_to_user_id: new DataTypes(false,[],['applications/fetch']).uuid,
         status: new DataTypes(true,[],['applications/updateStatus']).string,
         detail_structure: new DataTypes(true,['applications/create'],[]).json,
+        remarks: new DataTypes(true,['applications/updateStatus'],[]).string,
         application_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
 }
@@ -79,22 +80,62 @@ function applicationsUpdateStatus(data, callback) {
     const validator = validations.validateRequestData(data,new Applications,data.event)
     if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
 
-    var update_clauses = []
-    if (data.status) update_clauses.push(`status = '${data.status}'`)
-    if (update_clauses.length == 0) return callback({code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.`});
-
     db.query(`
-        UPDATE applications SET
-        ${update_clauses.join(',')}
-        WHERE application_id = '${data.application_id}';
+        SELECT * FROM applications WHERE application_id = '${data.application_id}';
     `).then(res => {
-        if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: `updated ${data.application_id} record in db`});
-        else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
-        else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
+        if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
+
+        const application = res.rows[0]
+
+        if (application.submitted_to == data.user_id) {
+            db.query(`
+                UPDATE applications SET
+                status = '${data.status}',
+                remarks = '${data.remarks}',
+                application_completion_timestamp = ${new Date().getTime()}
+                WHERE application_id = '${data.application_id}';
+            `).then(res => {
+                if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: `updated ${data.application_id} record in db`});
+                else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
+                else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
+            }).catch(err => {
+                console.log(err)
+                return callback(validations.validateDBUpdateQueryError(err));
+            })
+        } else {
+            const prev_forwarder = application.forwarded_to.pop()
+            console.log(prev_forwarder)
+            if (prev_forwarder) {
+                if (prev_forwarder.receiver_id == data.user_id && prev_forwarder.status == 'under_review') {
+                    prev_forwarder.status = data.status
+                    prev_forwarder.receiver_remarks = data.remarks
+                    prev_forwarder.completion_timestamp = new Date().getTime()
+                    application.forwarded_to.push(prev_forwarder)
+                } else {
+                    return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+                }
+            } else {
+                return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+            }
+    
+            db.query(`
+                UPDATE applications SET
+                forwarded_to = '${JSON.stringify(application.forwarded_to)}'
+                WHERE application_id = '${data.application_id}';
+            `).then(res => {
+                if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: `updated ${data.application_id} record in db`});
+                else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
+                else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
+            }).catch(err => {
+                console.log(err)
+                return callback(validations.validateDBUpdateQueryError(err));
+            })
+        }
     }).catch(err => {
         console.log(err)
-        return callback(validations.validateDBUpdateQueryError(err));
+        return callback(validations.validateDBSelectQueryError(err));
     })
+
 }
 
 function applicationsForward(data, callback) {
@@ -114,11 +155,20 @@ function applicationsForward(data, callback) {
 
         const prev_forwarder = application.forwarded_to.pop()
         if (prev_forwarder) {
-            prev_forwarder.status = data.forwarded_to.status
-            application.push(prev_forwarder)
+            if (prev_forwarder.receiver_id == data.forwarded_to.sender_id && prev_forwarder.status == 'under_review') {
+                prev_forwarder.status = 'completed'
+                prev_forwarder.completion_timestamp = new Date().getTime()
+                application.forwarded_to.push(prev_forwarder)
+            } else {
+                return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+            }
+        } else {
+            if (application.submitted_to != data.forwarded_to.sender_id) {
+                return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+            }
         }
 
-        application.push({
+        application.forwarded_to.push({
             ...data.forwarded_to,
             status: 'under_review',
             forward_timestamp: new Date().getTime(),
@@ -126,7 +176,7 @@ function applicationsForward(data, callback) {
 
         db.query(`
             UPDATE applications SET
-            forwarded_to = '${JSON.stringify(application)}'
+            forwarded_to = '${JSON.stringify(application.forwarded_to)}'
             WHERE application_id = '${data.application_id}';
         `).then(res => {
             if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: `updated ${data.application_id} record in db`});
@@ -140,8 +190,6 @@ function applicationsForward(data, callback) {
         console.log(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
-
-
 }
 
 db.on('notification', (notification) => {

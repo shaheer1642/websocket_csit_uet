@@ -454,7 +454,7 @@ const endpoints = {
             new applications.Applications(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
             true,
-            ['admin','pga','teacher','student'],
+            ['admin','pga','teacher'],
             applications.applicationsUpdateStatus
         ),
         forward: new Endpoint(
@@ -462,7 +462,7 @@ const endpoints = {
             new applications.Applications(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
             true,
-            ['admin','pga','teacher','student'],
+            ['admin','pga','teacher'],
             applications.applicationsForward
         ),
     },

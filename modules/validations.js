@@ -130,11 +130,10 @@ function validateDBDeleteQueryError(err) {
 function validateDBUpdateQueryError(err) {
     var code = 500
     var status = 'INTERNAL ERROR'
-    var message = err
+    var message = err.detail || JSON.stringify(err)
     if (err.code == '23505') {
         code = 400,
-        status = 'BAD REQUEST',
-        message =  err.detail
+        status = 'BAD REQUEST'
     }
     return {
         code: code, 
@@ -156,7 +155,7 @@ function validateApplicationTemplateDetailStructure(detail_structure, options = 
 }
 
 function validateApplicationForwardedTo(forwarded_to) {
-    if (!checkKeysExists(forwarded_to,template_applications_forwarded_to,['status','forward_timestamp'])) return {valid: false, message: 'object mismatch'};
+    if (!checkKeysExists(forwarded_to,template_applications_forwarded_to,['status','forward_timestamp','receiver_remarks','completion_timestamp'])) return {valid: false, message: 'object mismatch'};
 
     if (!forwarded_to.sender_id) return {valid: false, message: 'Forwarded to sender_id cannot be empty'}
     if (!forwarded_to.receiver_id) return {valid: false, message: 'Forwarded to receiver_id cannot be empty'}
