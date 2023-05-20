@@ -1,5 +1,6 @@
 const events = require('./events')
 const batches = require('./batches')
+const users = require('./users')
 const students = require('./students')
 const teachers = require('./teachers')
 const courses = require('./courses')
@@ -33,6 +34,14 @@ class ListenerEndpoint {
 
 const endpoints = {
     autocomplete: {
+        users: new Endpoint(
+            "autocomplete/users",
+            new autocomplete.Autocomplete(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ''},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            autocomplete.autocompleteUsers
+        ),
         teachers: new Endpoint(
             "autocomplete/teachers",
             new autocomplete.Autocomplete(),
@@ -177,6 +186,16 @@ const endpoints = {
             ['admin'],
             batches.batchesDelete
         )
+    },
+    users: {
+        fetch: new Endpoint(
+            "users/fetch",
+            new users.Users(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            users.usersFetch
+        ),
     },
     students: {
         fetch: new Endpoint(
@@ -812,6 +831,11 @@ const endpointsClasses = [
         id: 'batches',
         class1: new batches.Batches(),
         class2: endpoints.batches,
+    },
+    {
+        id: 'users',
+        class1: new users.Users(),
+        class2: endpoints.users,
     },
     {
         id: 'students',

@@ -54,7 +54,7 @@ function validateRequestData(data,object,event) {
         required_length = field.required.length
         optional_length = field.optional.length
         if (field.required.includes(event)) {
-            if (data[key] != undefined) {
+            if (data[key] != undefined && data[key] != '') {
                 required_keys++;
                 if (validateKeyValue(key, data[key], field.type).valid) continue
                 else return {

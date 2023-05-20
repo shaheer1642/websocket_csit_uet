@@ -12,13 +12,13 @@ class Applications {
     data_types = {
         application_id: new DataTypes(true,['applications/forward','applications/updateStatus'],['applications/fetch']).uuid,
         application_title: new DataTypes(true,['applications/create'],[]).string,
-        submitted_by: new DataTypes(true,['applications/create'],['applications/fetch']).uuid,
+        submitted_by: new DataTypes(true,[],['applications/fetch']).uuid,
         submitted_to: new DataTypes(true,['applications/create'],['applications/fetch']).uuid,
-        forwarded_to: new DataTypes(true,['applications/forward'],['applications/create']).json,
-        forwarded_to_user_id: new DataTypes(false,[],['applications/fetch']).uuid,
+        forwarded_to: new DataTypes(true,[],[]).array,
+        forward_to: new DataTypes(false,['applications/forward'],[]).uuid,
         status: new DataTypes(true,[],['applications/updateStatus']).string,
         detail_structure: new DataTypes(true,['applications/create'],[]).json,
-        remarks: new DataTypes(true,['applications/updateStatus'],[]).string,
+        remarks: new DataTypes(true,['applications/updateStatus','applications/forward'],[]).string,
         application_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
 }
@@ -31,7 +31,7 @@ function applicationsFetch(data, callback) {
 
     var where_clauses = []
     if (data.application_id) where_clauses.push(`application_id = '${data.application_id}'`)
-    if (data.user_id) where_clauses.push(`(submitted_by = '${data.user_id}' OR submitted_to = '${data.user_id}' OR forwarded_to @> '[{"receiver_id": "${data.user_id}"}]')`)
+    where_clauses.push(`(submitted_by = '${data.user_id}' OR submitted_to = '${data.user_id}' OR forwarded_to @> '[{"receiver_id": "${data.user_id}"}]')`)
 
     db.query(`
         SELECT * from applications
@@ -55,17 +55,19 @@ function applicationsCreate(data, callback) {
     const detailStructureValidator = validations.validateApplicationTemplateDetailStructure(data.detail_structure, {field_value_not_empty: true})
     if (!detailStructureValidator.valid) return callback({code: 400, status: 'BAD REQUEST', message: detailStructureValidator.message});
 
-    db.query(`INSERT INTO applications (
-        application_title,
-        submitted_by,
-        submitted_to,
-        detail_structure
-    ) VALUES (
-        '${data.application_title}',
-        '${data.submitted_by}',
-        '${data.submitted_to}',
-        '${JSON.stringify(data.detail_structure)}'
-    )`).then(res => {
+    db.query(`
+        INSERT INTO applications (
+            application_title,
+            submitted_by,
+            submitted_to,
+            detail_structure
+        ) VALUES (
+            '${data.application_title}',
+            '${data.user_id}',
+            '${data.submitted_to}',
+            '${JSON.stringify(data.detail_structure)}'
+        )`
+    ).then(res => {
         if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: 'added record to db'});
         else return callback({code: 500, status: 'INTERNAL ERROR', message: 'database could not add record'});
     }).catch(err => {
@@ -143,8 +145,6 @@ function applicationsForward(data, callback) {
 
     const validator = validations.validateRequestData(data,new Applications,data.event)
     if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
-    const forwardedToValidator = validations.validateApplicationForwardedTo(data.forwarded_to)
-    if (!forwardedToValidator.valid) return callback({code: 400, status: 'BAD REQUEST', message: forwardedToValidator.message});
     
     db.query(`
         SELECT * FROM applications WHERE application_id = '${data.application_id}';
@@ -155,21 +155,26 @@ function applicationsForward(data, callback) {
 
         const prev_forwarder = application.forwarded_to.pop()
         if (prev_forwarder) {
-            if (prev_forwarder.receiver_id == data.forwarded_to.sender_id && prev_forwarder.status == 'under_review') {
-                prev_forwarder.status = 'completed'
+            if (prev_forwarder.receiver_id == data.user_id && prev_forwarder.status == 'under_review') {
+                prev_forwarder.status = 'approved'
                 prev_forwarder.completion_timestamp = new Date().getTime()
                 application.forwarded_to.push(prev_forwarder)
             } else {
-                return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+                if (application.submitted_to != data.user_id) {
+                    return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+                }
+                application.forwarded_to.push(prev_forwarder)
             }
         } else {
-            if (application.submitted_to != data.forwarded_to.sender_id) {
+            if (application.submitted_to != data.user_id) {
                 return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
             }
         }
 
         application.forwarded_to.push({
-            ...data.forwarded_to,
+            sender_id: data.user_id,
+            receiver_id: data.forward_to,
+            sender_remarks: data.remarks,
             status: 'under_review',
             forward_timestamp: new Date().getTime(),
         })

@@ -8,7 +8,44 @@ class Autocomplete {
     name = 'Autocomplete';
     description = 'Endpoints for fetching data such as for select menus. The parameters and the data are very dynamic, and will change from time to time. Best to consult the back-end developer for any ambiguity or try testing by calling the endpoint'
     data_types = {
+        exclude_user_types: new DataTypes(false,[],['autocomplete/users'],false,JSON.stringify(['admin','teacher'])).array,
+        exclude_user_ids: new DataTypes(false,[],['autocomplete/users'],false,JSON.stringify(['e670c3ea-f740-11ed-a9d6-0242ac110032','7bce48da-f5c1-11ed-b0ba-0242ac110032'])).array,
     }
+}
+
+function autocompleteUsers(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    if (!callback) return
+    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`
+        SELECT * FROM users WHERE user_type NOT IN ('student','teacher');
+        SELECT * FROM users JOIN students on students.student_id = users.user_id;
+        SELECT * FROM users JOIN teachers on teachers.teacher_id = users.user_id;
+    `).then(res => {
+        var users_list = []
+
+        res[0].rows.concat(res[1].rows.concat(res[2].rows)).forEach(user => {
+            users_list.push({
+                user_id: user.user_id,
+                name:  user.student_name || user.teacher_name || user.user_type,
+                user_type: user.user_type
+            })
+        })
+
+        if (data.exclude_user_types)  users_list = users_list.filter(user => !data.exclude_user_types.includes(user.user_type))
+        if (data.exclude_user_ids) users_list = users_list.filter(user => !data.exclude_user_ids.includes(user.user_id))
+
+        return callback({ 
+            code: 200, 
+            status: 'OK', 
+            data: users_list.map(user => ({id: user.user_id, label: user.name})) 
+        })
+    }).catch(err => {
+        console.log(err)
+        callback(validations.validateDBSelectQueryError(err));
+    })
 }
 
 function autocompleteTeachers(data, callback) {
@@ -128,6 +165,7 @@ function autocompleteBatchStudents(data, callback) {
 }
 
 module.exports = {
+    autocompleteUsers,
     autocompleteFaculty,
     autocompleteTeachers,
     autocompleteCourses,
