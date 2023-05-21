@@ -38,8 +38,28 @@ function applicationsFetch(data, callback) {
         ${where_clauses.length > 0 ? 'WHERE':''}
         ${where_clauses.join(' AND ')}
         ORDER BY application_creation_timestamp DESC;
+        SELECT * FROM teachers t JOIN users u on u.user_id = t.teacher_id WHERE t.teacher_id IN (SELECT submitted_by FROM applications);
+        SELECT * FROM students s JOIN users u on u.user_id = s.student_id JOIN students_batch sb on sb.student_id = s.student_id JOIN batches b on b.batch_id = sb.batch_id WHERE s.student_id IN (SELECT submitted_by FROM applications);
+        SELECT * FROM users u WHERE u.user_type NOT IN ('student','teacher');
     `).then(res => {
-        return callback({code: 200, status: 'OK', data: res.rows})
+        const applications = res[0].rows
+        const users_list = []
+        res[1].rows.concat(res[2].rows.concat(res[3].rows)).map(user => {
+            users_list.push(
+                user.user_type != 'student' && user.user_type != 'teacher' ? {
+                    name: user.user_type,
+                    user_id: user.user_id
+                } : user.user_type == 'student' ? 
+                    Object.fromEntries(Object.entries(user).filter(([key]) => key == 'user_id' || key == 'student_name' ||  key == 'student_father_name' ||  key == 'student_gender' ||  key == 'reg_no' || key == 'batch_no' || key == 'degree_type'))
+                : user.user_type == 'teacher' ? 
+                    Object.fromEntries(Object.entries(user).filter(([key]) => key == 'user_id' || key == 'teacher_name' ||  key == 'teacher_gender' ||  key == 'reg_no')) : {}
+            )
+        })
+        console.log(users_list)
+        applications.map((application,index) => {
+            applications[index].applicant_detail = users_list.filter(user => user.user_id == application.submitted_by)
+        })
+        return callback({code: 200, status: 'OK', data: applications})
     }).catch(err => {
         console.log(err)
         return callback(validations.validateDBSelectQueryError(err));

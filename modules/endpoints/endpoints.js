@@ -490,7 +490,7 @@ const endpoints = {
             "applicationsTemplates/fetch",
             new applicationsTemplates.ApplicationsTemplates(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
-            false,
+            true,
             ['ALL'],
             applicationsTemplates.applicationsTemplatesFetch
         ),
