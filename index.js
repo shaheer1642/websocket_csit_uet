@@ -43,10 +43,10 @@ for (const key in endpoints) {
             if (db_res.code == 200) {
               return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token, user_id: db_res.user_id}, (data) => res.send(data))
             } else {
-              return res.send(db_res)
+              return res.send(db_res) 
             }
           }).catch(err => {
-            return res.send(db_res)
+            return res.send(err)
           })
         } else {
           return res.send({code: 400, message: 'No authorization token provided.'})
