@@ -41,7 +41,7 @@ for (const key in endpoints) {
           authorizeEvent(login_token,subendpoint.permission_level)
           .then(db_res => {
             if (db_res.code == 200) {
-              return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token, user_id: res.user_id}, (data) => res.send(data))
+              return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token, user_id: db_res.user_id}, (data) => res.send(data))
             } else {
               return res.send(db_res)
             }
