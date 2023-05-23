@@ -223,11 +223,15 @@ function markingEvalutation(grade_distribution, markings) {
         const absolute_total_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].total, 0)).toFixed(1))
         const absolute_obtained_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].obtained, 0)).toFixed(1))
         const absolute_percentage = Number(((absolute_obtained_marks / absolute_total_marks) * 100).toFixed(1))
+        const absolute_normalized_total_marks = 50
+        const absolute_normalized_obtained_marks = Number((50 * (absolute_percentage / 100)).toFixed(1))
         const result = {
             absolute: {
                 evaluation: absolute_evaluation,
                 total_marks: absolute_total_marks,
                 obtained_marks: absolute_obtained_marks,
+                normalized_total_marks: absolute_normalized_total_marks,
+                normalized_obtained_marks: absolute_normalized_obtained_marks,
                 percentage: absolute_percentage,
                 grade: calculateGrade(absolute_percentage)
             }
@@ -244,10 +248,14 @@ function markingEvalutation(grade_distribution, markings) {
         const relative_total_marks = highest_marks
         const relative_obtained_marks = marking.result.absolute.obtained_marks > highest_marks ? highest_marks : marking.result.absolute.obtained_marks
         const relative_percentage = Number(((relative_obtained_marks / relative_total_marks) * 100).toFixed(1))
+        const relative_normalized_total_marks = 50
+        const relative_normalized_obtained_marks = Number((50 * (relative_percentage / 100)).toFixed(1))
         const result = {
             relative: {
                 total_marks: relative_total_marks,
                 obtained_marks: relative_obtained_marks,
+                normalized_total_marks: relative_normalized_total_marks,
+                normalized_obtained_marks: relative_normalized_obtained_marks,
                 percentage: relative_percentage,
                 grade: calculateGrade(relative_percentage)
             }
@@ -353,6 +361,15 @@ function studentsCoursesUpdateMarkings(data, callback) {
     }
 }
 
+function calculateAttendancePercentage(attendance) {
+    return Number((((Object.keys(attendance).filter(key => key.startsWith('week'))
+            .reduce((arr,k) => [...arr, ...attendance[k].classes],[])
+            .reduce((sum, weekClass) => weekClass.cancelled ? sum += 0 : (weekClass.attendance == 'P' || weekClass.attendance == 'L') ? sum += 1 : sum += 0, 0)) /
+            (Object.keys(attendance).filter(key => key.match('week'))
+                .reduce((arr,k) => [...arr, ...attendance[k].classes],[])
+                .reduce((sum, weekClass) => (weekClass.attendance == '' || weekClass.cancelled) ? sum += 0 : sum += 1, 0))) * 100).toFixed(1)) || 0;
+}
+
 function studentsCoursesUpdateAttendances(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
@@ -372,10 +389,7 @@ function studentsCoursesUpdateAttendances(data, callback) {
                 const update_queries = []
                 console.log(JSON.stringify(grade_distribution))
                 data.attendances.forEach(attendance => {
-                    const percentage = Number((((Object.keys(attendance).filter(key => key.match('week'))
-                                        .reduce((sum,key) => (attendance[key] == 'P' || attendance[key] == 'L') ? sum += 1 : sum += 0, 0)) / 
-                                        (Object.keys(attendance).filter(key => key.match('week'))
-                                        .reduce((sum,key) => (attendance[key] == '') ? sum += 0 : sum += 1, 0))) * 100).toFixed(1)) || 0
+                    const percentage = calculateAttendancePercentage(attendance)
                     attendance = {
                         ...attendance,
                         percentage: percentage
