@@ -14,6 +14,7 @@ const documents = require('./documents')
 const instructions = require('./instructions')
 const applications = require('./applications')
 const applicationsTemplates = require('./applicationsTemplates')
+const forms = require('./forms')
 
 class Endpoint {
     constructor(endpoint, class_object , response_example, is_authorized, permission_level, listener_function) {
@@ -117,6 +118,16 @@ const endpoints = {
             true,
             ['admin','pga'],
             instructions.instructionsUpdate
+        ),
+    },
+    forms: {
+        resultFormG2A: new Endpoint(
+            "forms/resultFormG2A",
+            new forms.Forms(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: `<html></html>`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga','teacher'],
+            forms.resultFormG2A
         ),
     },
     events: {
@@ -884,6 +895,11 @@ const endpointsClasses = [
         class1: new documents.Documents(),
         class2: endpoints.documents,
         class3: listener_endpoints.documents
+    },
+    {
+        id: 'forms',
+        class1: new forms.Forms(),
+        class2: endpoints.forms
     },
     {
         id: 'instructions',
