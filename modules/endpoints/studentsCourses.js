@@ -2,7 +2,8 @@ const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
+const {event_emitter} = require('../event_emitter');
+const { markingEvalutation, calculateAttendancePercentage } = require('../grading_functions');
 
 class StudentsCourses {
     name = 'Students Courses';
@@ -51,6 +52,7 @@ function studentsCoursesFetch(data, callback) {
             JOIN courses C ON C.course_id = (select course_id from semesters_courses WHERE sem_course_id = SC.sem_course_id)
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
+            ORDER BY enrollment_timestamp ASC
         `).then(res => {
             callback({
                 code: 200, 
@@ -192,106 +194,6 @@ function studentsCoursesUpdateGrade(data, callback) {
     }
 }
 
-function markingEvalutation(grade_distribution, markings) {
-    // absolute evaluation
-    markings.forEach((marking,index) => {
-        const absolute_evaluation = {}
-        absolute_evaluation.final_term = {
-            total: grade_distribution.final_term.weightage,
-            obtained: marking.final_term / grade_distribution.final_term.total_marks * grade_distribution.final_term.weightage
-        }
-        absolute_evaluation.mid_term = {
-            total: grade_distribution.mid_term.weightage,
-            obtained: marking.mid_term / grade_distribution.mid_term.total_marks * grade_distribution.mid_term.weightage
-        }
-        absolute_evaluation.sessional = {
-            total: grade_distribution.sessional.weightage,
-            obtained: (Object.keys(grade_distribution.sessional.division).filter(key => grade_distribution.sessional.division[key].include)
-                .reduce((sum,key) => key.match('assignments') ? 
-                    sum += Object.keys(marking).reduce((sum,key2) => key2.match('assignment') ? sum += marking[key2] : sum += 0, 0)
-                    : key.match('quizzes') ? 
-                    sum += Object.keys(marking).reduce((sum,key2) => key2.match('quiz') ? sum += marking[key2] : sum += 0, 0)
-                    : sum += marking[key] || 0
-                , 0)) / (Object.keys(grade_distribution.sessional.division).filter(key => grade_distribution.sessional.division[key].include)
-                .reduce((sum,key) => key.match('assignments') ? 
-                    sum += grade_distribution.sessional.division.assignments.no_of_assignments * grade_distribution.sessional.division.assignments.total_marks_per_assignment
-                    : key.match('quizzes') ? 
-                    sum += grade_distribution.sessional.division.quizzes.no_of_quizzes * grade_distribution.sessional.division.quizzes.total_marks_per_quiz
-                    : sum += grade_distribution.sessional.division[key].total_marks
-                , 0)) * grade_distribution.sessional.weightage,
-        }
-        const absolute_total_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].total, 0)).toFixed(1))
-        const absolute_obtained_marks = Number((Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].obtained, 0)).toFixed(1))
-        const absolute_percentage = Number(((absolute_obtained_marks / absolute_total_marks) * 100).toFixed(1))
-        const absolute_normalized_total_marks = 50
-        const absolute_normalized_obtained_marks = Number((50 * (absolute_percentage / 100)).toFixed(1))
-        const result = {
-            absolute: {
-                evaluation: absolute_evaluation,
-                total_marks: absolute_total_marks,
-                obtained_marks: absolute_obtained_marks,
-                normalized_total_marks: absolute_normalized_total_marks,
-                normalized_obtained_marks: absolute_normalized_obtained_marks,
-                percentage: absolute_percentage,
-                grade: calculateGrade(absolute_percentage)
-            }
-        }
-        markings[index].result = result
-    })
-    // relative evaluation
-    markings = markings.sort((a, b) => a.result.absolute.percentage > b.result.absolute.percentage ? -1 : 1)
-    const top_students_length = Math.ceil(markings.length * grade_distribution.marking.average_top / 100)
-    const highest_marks = Number(((markings
-                            .filter((o,index) => index < top_students_length)
-                            .reduce((sum,marking) => sum += marking.result.absolute.obtained_marks, 0)) / top_students_length).toFixed(1))
-    markings.forEach((marking,index) => {
-        const relative_total_marks = highest_marks
-        const relative_obtained_marks = marking.result.absolute.obtained_marks > highest_marks ? highest_marks : marking.result.absolute.obtained_marks
-        const relative_percentage = Number(((relative_obtained_marks / relative_total_marks) * 100).toFixed(1))
-        const relative_normalized_total_marks = 50
-        const relative_normalized_obtained_marks = Number((50 * (relative_percentage / 100)).toFixed(1))
-        const result = {
-            relative: {
-                total_marks: relative_total_marks,
-                obtained_marks: relative_obtained_marks,
-                normalized_total_marks: relative_normalized_total_marks,
-                normalized_obtained_marks: relative_normalized_obtained_marks,
-                percentage: relative_percentage,
-                grade: calculateGrade(relative_percentage)
-            }
-        }
-        markings[index].result = {
-            absolute: marking.result.absolute,
-            relative: result.relative
-        }
-    })
-    return markings
-
-    function calculateGrade(percentage) {
-        if (percentage >= 95)
-            return 'A'
-        else if (percentage >= 90)
-            return 'A-'
-        else if (percentage >= 85)
-            return 'B+'
-        else if (percentage >= 80)
-            return 'B'
-        else if (percentage >= 75)
-            return 'B-'
-        else if (percentage >= 70)
-            return 'C+'
-        else if (percentage >= 65)
-            return 'C'
-        else if (percentage >= 60)
-            return 'C-'
-        else if (percentage >= 55)
-            return 'D+'
-        else if (percentage >= 50)
-            return 'D'
-        else return 'F'
-    }
-}
-
 function studentsCoursesUpdateMarkings(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
@@ -359,15 +261,6 @@ function studentsCoursesUpdateMarkings(data, callback) {
             callback(validations.validateDBSelectQueryError(err));
         })
     }
-}
-
-function calculateAttendancePercentage(attendance) {
-    return Number((((Object.keys(attendance).filter(key => key.startsWith('week'))
-            .reduce((arr,k) => [...arr, ...attendance[k].classes],[])
-            .reduce((sum, weekClass) => weekClass.cancelled ? sum += 0 : (weekClass.attendance == 'P' || weekClass.attendance == 'L') ? sum += 1 : sum += 0, 0)) /
-            (Object.keys(attendance).filter(key => key.match('week'))
-                .reduce((arr,k) => [...arr, ...attendance[k].classes],[])
-                .reduce((sum, weekClass) => (weekClass.attendance == '' || weekClass.cancelled) ? sum += 0 : sum += 1, 0))) * 100).toFixed(1)) || 0;
 }
 
 function studentsCoursesUpdateAttendances(data, callback) {

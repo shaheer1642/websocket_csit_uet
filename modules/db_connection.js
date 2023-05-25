@@ -9,6 +9,7 @@ const db = new DB.Client({
 })
 
 db.connect().then(async res => {
+    db.emit('connected')
     console.log('DB Connection established.')
 
     db.query(`
