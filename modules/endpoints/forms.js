@@ -44,7 +44,7 @@ function resultFormG2A(data, callback) {
                 credit_hours: data.credit_hours,
                 course_title: data.course_name,
                 instructor_name: data.teacher_name,
-                date: new Date().toLocaleDateString(),
+                date: new Date().toLocaleDateString('en-UK', {year: 'numeric', month: '2-digit', day: '2-digit'}),
                 signature: '&nbsp;'.repeat(10)
             }
             return callback({
@@ -70,9 +70,17 @@ function resultFormG2A(data, callback) {
             margin-right: auto;
             width: 50%;
           }
+
+        @media print{
+            .noprint{
+                display:none;
+            }
+            @page { margin: 0; }
+            body { margin: 1.6cm; }
+        }
     </style>
     <body>
-        <button type="button" onClick="print()">Print Form</button>
+        <button class="noprint" type="button" onClick="print()">Print Form</button>
         <img class="imageCenter" width="100" height="100" src="https://upload.wikimedia.org/wikipedia/en/9/95/University_of_Engineering_and_Technology_Peshawar_logo.svg"/>
         <p align="right"><u>FORM G-2A</u></p>
         <h4 align="center"><u>RESULT SHEET</u></h4>
@@ -171,7 +179,7 @@ function resultFormG2B(data, callback) {
                 credit_hours: data.credit_hours,
                 course_title: data.course_name,
                 instructor_name: data.teacher_name,
-                date: new Date().toLocaleDateString(),
+                date: new Date().toLocaleDateString('en-UK', {year: 'numeric', month: '2-digit', day: '2-digit'}),
                 signature: '&nbsp;'.repeat(10)
             }
             return callback({
@@ -191,13 +199,6 @@ function resultFormG2B(data, callback) {
             padding: 8px;
         }
 
-        .imageCenter {
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            width: 50%;
-        }
-
         .row {
             display: flex;
             justify-content: center;
@@ -213,12 +214,20 @@ function resultFormG2B(data, callback) {
             display: table;
             clear: both;
         }
+
+        @media print{
+            .noprint{
+                display:none;
+            }
+            @page { margin: 0; }
+            body { margin: 1.6cm; }
+        }
     </style>
     <body>
-        <button type="button" onClick="print()">Print Form</button>
+        <button class="noprint" type="button" onClick="print()">Print Form</button>
         <div class="row">
-            <div class="column">
-                <img class="imageCenter" width="100" height="100" src="https://upload.wikimedia.org/wikipedia/en/9/95/University_of_Engineering_and_Technology_Peshawar_logo.svg"/>
+            <div class="column" style="margin-right: 30px">
+                <img width="50" height="50" src="https://upload.wikimedia.org/wikipedia/en/9/95/University_of_Engineering_and_Technology_Peshawar_logo.svg"/>
             </div>
             <div class="column">
                 <h3>DIRECTORATE OF POSTGRADUATE STUDIES<br>UNIVERSITY OF ENGINEERING & TECHNOLOGY,<br>PESHAWAR</h3>
