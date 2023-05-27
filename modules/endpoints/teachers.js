@@ -17,6 +17,7 @@ class Teachers {
         username: new DataTypes(true).string,
         password: new DataTypes(true).string,
         user_type: new DataTypes(true).string,
+        user_email: new DataTypes(true,[],['teachers/update','teachers/create']).email,
     }
 }
 
@@ -76,10 +77,11 @@ function teachersCreate(data, callback) {
         }
         db.query(`
             WITH query_one AS ( 
-                INSERT INTO users (username, user_type) 
+                INSERT INTO users (username, user_type, user_email) 
                 VALUES (
                     '${data.cnic || data.reg_no}',
-                    'teacher'
+                    'teacher',
+                    ${data.user_email ? `'${data.user_email}'` : null}
                 ) 
                 RETURNING user_id 
             )
@@ -199,7 +201,10 @@ function teachersUpdate(data, callback) {
                 WHERE teacher_id = '${data.teacher_id}'
                 RETURNING cnic, reg_no
             )
-            UPDATE users SET username = ( select COALESCE(cnic, reg_no) from query_one ) WHERE user_id = '${data.teacher_id}';
+            UPDATE users SET 
+            username = ( select COALESCE(cnic, reg_no) from query_one ) 
+            ${data.user_email ? `,user_email = '${data.user_email}'`:''}
+            WHERE user_id = '${data.teacher_id}';
         `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {

@@ -10,11 +10,12 @@ class SemestersCourses {
     name = 'Semesters Courses';
     description = 'Endpoints for creating semester courses'
     data_types = {
-        sem_course_id: new DataTypes(true,['semestersCourses/updateTeacher','semestersCourses/updateGradeDistribution','semestersCourses/delete'],['semestersCourses/fetch']).uuid,
+        sem_course_id: new DataTypes(true,['semestersCourses/updateTeacher','semestersCourses/updateGradeDistribution','semestersCourses/delete','semestersCourses/lock'],['semestersCourses/fetch']).uuid,
         course_id: new DataTypes(true,['semestersCourses/create'],['semestersCourses/fetch'],false,'CS-103').string,
         teacher_id: new DataTypes(true,['semestersCourses/create','semestersCourses/updateTeacher'],['semestersCourses/fetch']).uuid,
         semester_id: new DataTypes(true,['semestersCourses/create'],['semestersCourses/fetch']).uuid,
         grade_distribution: new DataTypes(true,['semestersCourses/updateGradeDistribution'],[], false, '{"finals": 50, "mids": 30, "sessional": 20, "assignments_distribution": [5,5,5], "quizzes_distribution": [5,5,5], "mini_project_distribution": 0}').json,
+        locked: new DataTypes(true,[],[]).boolean,
     }
 }
 
@@ -197,6 +198,45 @@ function semestersCoursesUpdateTeacher(data, callback) {
     }
 }
 
+function semestersCoursesLock(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    if (!validator.valid) {
+        if (callback) {
+            callback({
+                code: 400, 
+                status: 'BAD REQUEST',
+                message: validator.reason
+            });
+        }
+    } else {
+        db.query(`
+            UPDATE semesters_courses SET locked = true
+            WHERE sem_course_id = '${data.sem_course_id}';
+        `).then(res => {
+            if (!callback) return
+            if (res.rowCount == 1) {
+                callback({
+                    code: 200, 
+                    status: 'OK',
+                    message: 'added record to db'
+                });
+            } else {
+                callback({
+                    code: 500, 
+                    status: 'INTERNAL ERROR',
+                    message: 'unexpected DB response'
+                });
+            }
+        }).catch(err => {
+            console.log(err)
+            if (callback) {
+                callback(validations.validateDBInsertQueryError(err));
+            }
+        })
+    }
+}
+
 function validateGradeDistribution(grade_distribution) {
     const template =  {
         marking: {
@@ -360,5 +400,6 @@ module.exports = {
     semestersCoursesDelete,
     semestersCoursesUpdateTeacher,
     semestersCoursesUpdateGradeDistribution,
+    semestersCoursesLock,
     SemestersCourses
 }

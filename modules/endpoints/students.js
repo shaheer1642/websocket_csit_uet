@@ -15,7 +15,7 @@ class Students {
         student_name: new DataTypes(true,['students/create'],['students/update']).string,
         student_father_name: new DataTypes(true,['students/create'],['students/update']).string,
         student_gender: new DataTypes(true,['students/create'],['students/update'],false,'male').string,
-        student_email: new DataTypes(true,['students/create'],['students/update',],false,'abc@email.com').string,
+        user_email: new DataTypes(true,[],['students/update','students/create']).email,
         student_address: new DataTypes(true,[],['students/update','students/create'],false,'street#5, abc road, abc area, xyz city').string,
         student_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
         user_id: new DataTypes(true).uuid,
@@ -90,14 +90,15 @@ function studentsCreate(data, callback) {
         }
         db.query(`
             WITH query_one AS ( 
-                INSERT INTO users (username, user_type) 
+                INSERT INTO users (username, user_type, user_email) 
                 VALUES (
-                    '${data.cnic || data.reg_no}',
-                    'student'
+                    '${data.reg_no || data.cnic}',
+                    'student',
+                    ${data.user_email ? `'${data.user_email}'` : null}
                 ) 
                 RETURNING user_id 
             ), query_two AS (
-                INSERT INTO students (student_id, cnic, reg_no, student_name, student_father_name, student_gender, student_email, student_address) 
+                INSERT INTO students (student_id, cnic, reg_no, student_name, student_father_name, student_gender, student_address) 
                 VALUES (
                     ( select user_id from query_one ),
                     ${data.cnic ? `'${data.cnic}'`:null},
@@ -105,8 +106,7 @@ function studentsCreate(data, callback) {
                     '${data.student_name}',
                     '${data.student_father_name}',
                     '${data.student_gender.toLowerCase()}',
-                    '${data.student_email}',
-                    ${data.student_address ? `'${data.student_address}'`:null}
+                    ${data.student_address ? `'${data.student_address}'` : null}
                 )
             )
             INSERT INTO students_batch (student_id, batch_id)
@@ -207,7 +207,6 @@ function studentsUpdate(data, callback) {
         if (data.student_father_name) update_clauses.push(`student_father_name = '${data.student_father_name}'`)
         if (data.student_address) update_clauses.push(`student_address = '${data.student_address}'`)
         if (data.student_gender) update_clauses.push(`student_gender = '${data.student_gender}'`)
-        if (data.student_email) update_clauses.push(`student_email = '${data.student_email}'`)
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({
@@ -223,9 +222,12 @@ function studentsUpdate(data, callback) {
                 UPDATE students SET
                 ${update_clauses.join(',')}
                 WHERE student_id = '${data.student_id}'
-                RETURNING cnic, reg_no
+                RETURNING reg_no, cnic
             )
-            UPDATE users SET username = ( select COALESCE(cnic, reg_no) from query_one ) WHERE user_id = '${data.student_id}';
+            UPDATE users SET 
+            username = ( select COALESCE(reg_no, cnic) from query_one ) 
+            ${data.user_email ? `,user_email = '${data.user_email}'`:''} 
+            WHERE user_id = '${data.student_id}';
         `).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {

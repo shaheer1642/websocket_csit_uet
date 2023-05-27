@@ -39,6 +39,14 @@ function validateKeyValue(key,value,type) {
             valid: false,
         }
     }
+    else if (type == 'email') {
+        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(value)) return {
+            valid: false,
+        } 
+        else return {
+            valid: true,
+        }
+    }
     return {
         valid: true
     }
@@ -88,17 +96,9 @@ function validateRequestData(data,object,event) {
 function validateDBInsertQueryError(err) {
     var code = 500
     var status = 'INTERNAL ERROR'
-    var message = err
-    if (err.code == '23503') {
-        code = 400,
-        status = 'BAD REQUEST',
-        message =  err.detail
-    }
-    if (err.code == '23505') {
-        code = 400,
-        status = 'BAD REQUEST',
-        message =  err.detail
-    }
+    var message = err.detail || JSON.stringify(err)
+    if (err.code == '23503') { code = 400, status = 'BAD REQUEST' }
+    if (err.code == '23505') { code = 400, status = 'BAD REQUEST' }
     return {
         code: code, 
         status: status,
@@ -108,7 +108,7 @@ function validateDBInsertQueryError(err) {
 function validateDBSelectQueryError(err) {
     var code = 500
     var status = 'INTERNAL ERROR'
-    var message = err
+    var message = err.detail || JSON.stringify(err)
     return {
         code: code, 
         status: status,
@@ -119,7 +119,7 @@ function validateDBSelectQueryError(err) {
 function validateDBDeleteQueryError(err) {
     var code = 500
     var status = 'INTERNAL ERROR'
-    var message = err
+    var message = err.detail || JSON.stringify(err)
     return {
         code: code, 
         status: status,
@@ -131,10 +131,7 @@ function validateDBUpdateQueryError(err) {
     var code = 500
     var status = 'INTERNAL ERROR'
     var message = err.detail || JSON.stringify(err)
-    if (err.code == '23505') {
-        code = 400,
-        status = 'BAD REQUEST'
-    }
+    if (err.code == '23505') { code = 400, status = 'BAD REQUEST' }
     return {
         code: code, 
         status: status,

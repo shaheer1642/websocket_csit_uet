@@ -57,6 +57,13 @@ class DataTypes {
             type: 'unix_timestamp_milliseconds',
             example_value: example_value || 1665774803000
         }
+        this.email = {
+            attribute: attribute,
+            required: required_for_endpoints || [],
+            optional: optional_for_endpoints || [],
+            type: 'email',
+            example_value: example_value || 'test@domain.com'
+        }
     }
 }
 
