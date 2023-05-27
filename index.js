@@ -17,6 +17,16 @@ app.use(express.json());
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({extended: true}));
 
+
+app.use((err, req, res, next) => {
+  console.log(err)
+  if (err) {
+    res.status(400).send('error parsing data')
+  } else {
+    next()
+  }
+})
+
 app.get('/', (req, res) => {
   res.send('<center><h1>Websocket for MIS developed for CSIT Dept. of UET as the Final Year Project</h1></center>');
 });
