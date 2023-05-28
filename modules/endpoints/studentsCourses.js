@@ -4,6 +4,7 @@ const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
 const { markingEvalutation, calculateAttendancePercentage } = require('../grading_functions');
+const { default_objects } = require('../default_objects');
 
 class StudentsCourses {
     name = 'Students Courses';
@@ -84,14 +85,14 @@ function studentsCoursesAssignStudents(data, callback) {
             SELECT * from students_courses WHERE sem_course_id = '${sem_course_id}';
         `).then(res => {
             const semester_course = res[0].rows[0]
-            if (semester_course.locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
+            if (semester_course.changes_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
             const db_students_batch_ids = res[1].rows.map(row => row.student_batch_id)
             const received_students_batch_ids = data.student_batch_ids
             const insert_queries = []
             const delete_queries = []
             received_students_batch_ids.forEach(student_batch_id => {
                 if (!db_students_batch_ids.includes(student_batch_id)) {
-                    insert_queries.push(`INSERT INTO students_courses (sem_course_id, student_batch_id) VALUES ('${sem_course_id}','${student_batch_id}');`)
+                    insert_queries.push(`INSERT INTO students_courses (sem_course_id, student_batch_id, marking, attendance) VALUES ('${sem_course_id}','${student_batch_id}','${JSON.stringify({...default_objects.students_courses_marking, student_batch_id: student_batch_id})}','${JSON.stringify({...default_objects.students_courses_attendance, student_batch_id: student_batch_id})}');`)
                 }
             })
             db_students_batch_ids.forEach(student_batch_id => {
@@ -121,7 +122,7 @@ function studentsCoursesAssignStudents(data, callback) {
             }).catch(err => {
                 console.log(err)
                 callback? callback(validations.validateDBInsertQueryError(err)) : null
-                db.query(`ROLLBACK`);
+                db.query(`ROLLBACK;`).catch(console.error);
             })
         }).catch(err => {
             console.log(err)
@@ -135,177 +136,119 @@ function studentsCoursesUpdateGrade(data, callback) {
     
     const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
     if(!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}'`)
+    .then(res => {
+        if (res.rowCount != 1) return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find course = ${data.sem_course_id}` })
         
-    db.query(`
-        UPDATE students_courses SET
-        grade = '${data.grade}',
-        grade_assignment_timestamp = ${new Date().getTime()},
-        grade_assigned_by = '${data.user_id}',
-        grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
-        WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${data.student_batch_id}';
-    `).then(res => {
-        if (res.rowCount == 1) {
-            if (callback) {
-                callback({
-                    code: 200, 
-                    status: 'OK',
-                    message: `updated sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} record in db`
-                });
-            }
-        } else if (res.rowCount == 0) {
-            if (callback) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: `record sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} does not exist`
-                });
-            }
-        } else {
-            if (callback) {
-                callback({
-                    code: 500, 
-                    status: 'INTERNAL ERROR',
-                    message: `${res.rowCount} rows updated`
-                });
-            }
-        }
+        const semester_course = res.rows[0];
+        if (semester_course.grades_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
+
+        db.query(`
+            UPDATE students_courses SET
+            grade = '${data.grade}',
+            grade_assignment_timestamp = ${new Date().getTime()},
+            grade_assigned_by = '${data.user_id}',
+            grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
+            WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${data.student_batch_id}';
+        `).then(res => {
+            if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} record in db` });
+            else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} does not exist` });
+            else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
+        }).catch(err => {
+            console.log(err)
+            return callback(validations.validateDBUpdateQueryError(err));
+        })
     }).catch(err => {
         console.log(err)
-        if (callback) {
-            callback(validations.validateDBUpdateQueryError(err));
-        }
+        callback(validations.validateDBSelectQueryError(err));
     })
+
 }
 
 function studentsCoursesUpdateMarkings(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
+
     const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-    } else {
-        db.query(`
-            SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}';
-            SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}';
-        `).then(res => {
-            if (res[0].rowCount == 1) {
-                const semester_course = res[0].rows[0];
-                const course_students = res[1].rows;
-                if (course_students.some(student => !data.markings.map(e => e.student_batch_id).includes(student.student_batch_id))) {
-                    return callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: 'Missing data for a student'
-                    })
-                }
-                const grade_distribution = semester_course.grade_distribution
-                const update_queries = []
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+    
+    db.query(`
+        SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}';
+        SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}';
+    `).then(res => {
+        if (res[0].rowCount != 1) return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find course = ${data.sem_course_id}` })
 
-                markingEvalutation(grade_distribution, data.markings).forEach(marking => {
-                    update_queries.push(`UPDATE students_courses SET marking = '${JSON.stringify(marking)}' WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${marking.student_batch_id}';`)
-                })
+        const semester_course = res[0].rows[0];
+        const course_students = res[1].rows;
+        const grade_distribution = semester_course.grade_distribution
 
-                if (update_queries.length == 0) {
-                    return callback? callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: 'No changes were made'
-                    }) : null
-                }
-                db.query(`
-                    BEGIN;
-                    ${update_queries.join('\n')}
-                    COMMIT;
-                `).then(res => {
-                    callback? callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: 'updated records in db'
-                    }): null
-                }).catch(err => {
-                    console.log(err)
-                    callback(validations.validateDBUpdateQueryError(err));
-                    db.query(`ROLLBACK`);
-                })
-            } else {
-                return callback? callback({
-                    code: 500, 
-                    status: 'INTERNAL ERROR',
-                    message: `Could not find course = ${data.sem_course_id}`
-                }) : null
-            }
-        }).catch(err => {
-            console.log(err)
-            callback(validations.validateDBSelectQueryError(err));
+        if (semester_course.grades_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
+        if (course_students.some(student => !data.markings.map(e => e.student_batch_id).includes(student.student_batch_id))) return callback({ code: 400, status: 'BAD REQUEST', message: 'Missing data for a student' })
+
+        const update_queries = []
+        markingEvalutation(grade_distribution, data.markings).forEach(marking => {
+            update_queries.push(`UPDATE students_courses SET marking = '${JSON.stringify(marking)}' WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${marking.student_batch_id}';`)
         })
-    }
+        if (update_queries.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: 'No changes were made' })
+
+        db.query(`
+            BEGIN;
+            ${update_queries.join('\n')}
+            COMMIT;
+        `).then(res => {
+            return callback({ code: 200, status: 'OK', message: 'updated records in db' })
+        }).catch(err => {
+            db.query(`ROLLBACK;`).catch(console.error);
+            console.log(err)
+            return callback(validations.validateDBUpdateQueryError(err));
+        })
+    }).catch(err => {
+        console.log(err)
+        return callback(validations.validateDBSelectQueryError(err));
+    })
 }
 
 function studentsCoursesUpdateAttendances(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
+
     const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-    } else {
-        db.query(`SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}'`)
-        .then(res => {
-            if (res.rowCount == 1) {
-                const grade_distribution = res.rows[0].grade_distribution
-                const update_queries = []
-                console.log(JSON.stringify(grade_distribution))
-                data.attendances.forEach(attendance => {
-                    const percentage = calculateAttendancePercentage(attendance)
-                    attendance = {
-                        ...attendance,
-                        percentage: percentage
-                    }
-                    update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${Number((percentage/100*(grade_distribution.sessional.division.attendance.total_marks)).toFixed(1))}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${attendance.student_batch_id}';`)
-                })
-                if (update_queries.length == 0) {
-                    return callback? callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: 'No changes were made'
-                    }) : null
-                }
-                db.query(`
-                    BEGIN;
-                    ${update_queries.join('\n')}
-                    COMMIT;
-                `).then(res => {
-                    callback? callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: 'updated records in db'
-                    }): null
-                }).catch(err => {
-                    console.log(err)
-                    callback(validations.validateDBUpdateQueryError(err));
-                    db.query(`ROLLBACK`);
-                })
-            } else {
-                return callback? callback({
-                    code: 500, 
-                    status: 'INTERNAL ERROR',
-                    message: `Could not find course = ${data.sem_course_id}`
-                }) : null
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}'`)
+    .then(res => {
+        if (res.rowCount != 1) return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find course = ${data.sem_course_id}` })
+        
+        const semester_course = res.rows[0];
+        const grade_distribution = semester_course.grade_distribution
+
+        if (semester_course.grades_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
+
+        const update_queries = []
+        data.attendances.forEach(attendance => {
+            const percentage = calculateAttendancePercentage(attendance)
+            attendance = {
+                ...attendance,
+                percentage: percentage
             }
+            update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${Number((percentage/100*(grade_distribution.sessional.division.attendance.total_marks)).toFixed(1))}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${attendance.student_batch_id}';`)
+        })
+        if (update_queries.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: 'No changes were made' })
+
+        db.query(`
+            BEGIN;
+            ${update_queries.join('\n')}
+            COMMIT;
+        `).then(res => {
+            return callback({ code: 200, status: 'OK', message: 'updated records in db' })
         }).catch(err => {
             console.log(err)
-            callback(validations.validateDBSelectQueryError(err));
+            callback(validations.validateDBUpdateQueryError(err));
+            db.query(`ROLLBACK;`).catch(console.error);;
         })
-    }
+    }).catch(err => {
+        console.log(err)
+        callback(validations.validateDBSelectQueryError(err));
+    })
 }
 
 db.on('notification', (notification) => {

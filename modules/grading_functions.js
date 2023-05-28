@@ -52,7 +52,7 @@ function markingEvalutation(grade_distribution, markings) {
         }
         const absolute_total_marks = Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].total, 0)
         const absolute_obtained_marks = Object.keys(absolute_evaluation).reduce((sum,key) => sum += absolute_evaluation[key].obtained, 0)
-        const absolute_percentage = Number(((absolute_obtained_marks / absolute_total_marks) * 100)).toFixed(1)
+        const absolute_percentage = Number(((absolute_obtained_marks / absolute_total_marks) * 100).toFixed(1))
         const result = {
             absolute: {
                 evaluation: absolute_evaluation,
@@ -67,11 +67,15 @@ function markingEvalutation(grade_distribution, markings) {
 
     // relative evaluation - first calculation normalization factor
 
+    console.log('before_sort',JSON.stringify(markings))
     markings = markings.sort((a, b) => a.result.absolute.percentage > b.result.absolute.percentage ? -1 : 1)
+    console.log('after_sort',JSON.stringify(markings))
     const top_students_length = Math.ceil(markings.length * grade_distribution.marking.average_top / 100)
     const highest_obtained_marks = (markings .filter((o,index) => index < top_students_length) .reduce((sum,marking) => sum += marking.result.absolute.obtained_marks, 0)) / top_students_length
     const normalization_factor = markings[0].result.absolute.total_marks / highest_obtained_marks
-
+    console.log('top_students_length',top_students_length)
+    console.log('highest_obtained_marks',highest_obtained_marks)
+    console.log('normalization_factor',normalization_factor)
     markings.forEach((marking,index) => {
         const relative_total_marks = marking.result.absolute.total_marks
         const relative_obtained_marks = Math.round(Math.min(marking.result.absolute.total_marks, marking.result.absolute.obtained_marks * normalization_factor))

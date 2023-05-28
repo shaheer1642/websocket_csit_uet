@@ -377,13 +377,21 @@ const endpoints = {
             ['admin','pga'],
             semestersCourses.semestersCoursesUpdateTeacher
         ),
-        lock: new Endpoint(
-            "semestersCourses/lock",
+        lockChanges: new Endpoint(
+            "semestersCourses/lockChanges",
             new semestersCourses.SemestersCourses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
             ['admin','pga'],
-            semestersCourses.semestersCoursesLock
+            semestersCourses.semestersCoursesLockChanges
+        ),
+        lockGrades: new Endpoint(
+            "semestersCourses/lockGrades",
+            new semestersCourses.SemestersCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
+            true,
+            ['teacher'],
+            semestersCourses.semestersCoursesLockGrades
         ),
         updateGradeDistribution: new Endpoint(
             "semestersCourses/updateGradeDistribution",

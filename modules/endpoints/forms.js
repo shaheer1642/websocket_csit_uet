@@ -105,8 +105,8 @@ function resultFormG2A(data, callback) {
                     <td>${index+1}</td>
                     <td>${record.student_name}</td>
                     <td>${record.student_father_name}</td>
-                    <td>${record.marking?.result[record?.grade_distribution?.marking?.type]?.grade}</td>
-                    <td>${calculateQualityPoints(record.marking?.result[record?.grade_distribution?.marking?.type]?.grade, record.credit_hours)}</td>
+                    <td>${record.grade}</td>
+                    <td>${calculateQualityPoints(record.grade, record.credit_hours)}</td>
                 </tr>`
             }).join('\n')}
         </table>
@@ -274,8 +274,8 @@ function resultFormG2B(data, callback) {
                     <td>${record.marking?.result[record?.grade_distribution?.marking?.type]?.evaluation?.sessional?.obtained}</td>
                     <td>${record.marking?.result[record?.grade_distribution?.marking?.type]?.evaluation?.mid_term?.obtained}</td>
                     <td>${record.marking?.result[record?.grade_distribution?.marking?.type]?.evaluation?.final_term?.obtained}</td>
-                    <td>${record.marking?.result[record?.grade_distribution?.marking?.type]?.grade}</td>
-                    <td>${calculateQualityPoints(record.marking?.result[record?.grade_distribution?.marking?.type]?.grade, record.credit_hours)}</td>
+                    <td>${record.grade}</td>
+                    <td>${calculateQualityPoints(record.grade, record.credit_hours)}</td>
                 </tr>`
             }).join('\n')}
         </table>
