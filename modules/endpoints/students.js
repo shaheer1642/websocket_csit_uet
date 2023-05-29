@@ -142,7 +142,7 @@ function studentsDelete(data, callback) {
     db.query(`
         SELECT * FROM students_batch WHERE student_id = '${data.student_id}';
     `).then(res => {
-        if (res.rowCount == 1) {
+        if (res.rowCount == 1 && res.rows.some(row => row.batch_id == data.batch_id)) {
             db.query(`
                 DELETE FROM users WHERE user_id='${data.student_id}';
             `).then(res => {
@@ -280,6 +280,16 @@ db.on('notification', (notification) => {
     }
     if (notification.channel == 'students_delete') {
         event_emitter.emit('notifyAll', {event: 'students/listener/delete', data: payload})
+    }
+
+    if (notification.channel == 'students_batch_insert') {
+        event_emitter.emit('notifyAll', {event: 'studentsBatch/listener/insert', data: payload})
+    }
+    if (notification.channel == 'students_batch_update') {
+        event_emitter.emit('notifyAll', {event: 'studentsBatch/listener/update', data: res.rows[0]})
+    }
+    if (notification.channel == 'students_batch_delete') {
+        event_emitter.emit('notifyAll', {event: 'studentsBatch/listener/delete', data: payload})
     }
 })
 
