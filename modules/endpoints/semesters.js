@@ -13,6 +13,7 @@ class Semesters {
         semester_season: new DataTypes(true,['semesters/create'],['semesters/update'],false,'fall').string,
         semester_start_timestamp: new DataTypes(true,['semesters/create'],['semesters/update']).unix_timestamp_milliseconds,
         semester_end_timestamp: new DataTypes(true,['semesters/create'],['semesters/update']).unix_timestamp_milliseconds,
+        student_id: new DataTypes(false,[],['semesters/fetch']).uuid,
     }
 }
 
@@ -28,12 +29,13 @@ function semestersFetch(data, callback) {
         });
     } else {
         var where_clauses = []
-        if (data.semester_id)
-            where_clauses.push(`S.semester_id = '${data.semester_id}'`)
+        if (data.semester_id) where_clauses.push(`S.semester_id = '${data.semester_id}'`)
+        if (data.student_id) where_clauses.push(`S.semester_start_timestamp > (SELECT student_creation_timestamp FROM students WHERE student_id = '${data.student_id}')`)
         db.query(`
             SELECT S.*,(SELECT count(course_id) AS offered_courses FROM semesters_courses SC WHERE SC.semester_id = S.semester_id) FROM semesters S
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
+            ORDER BY S.semester_start_timestamp DESC;
         `).then(res => {
             callback({
                 code: 200, 

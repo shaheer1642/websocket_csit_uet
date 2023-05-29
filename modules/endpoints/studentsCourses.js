@@ -44,16 +44,19 @@ function studentsCoursesFetch(data, callback) {
         });
     } else {
         var where_clauses = []
-        if (data.sem_course_id) where_clauses.push(`sem_course_id = '${data.sem_course_id}'`)
-        if (data.student_batch_id) where_clauses.push(`student_batch_id = '${data.student_batch_id}'`)
-        if (data.grade) where_clauses.push(`grade = '${data.grade}'`)
+        if (data.sem_course_id) where_clauses.push(`SC.sem_course_id = '${data.sem_course_id}'`)
+        if (data.student_batch_id) where_clauses.push(`SC.student_batch_id = '${data.student_batch_id}'`)
+        if (data.semester_id) where_clauses.push(`SMC.semester_id = '${data.semester_id}'`)
+        if (data.grade) where_clauses.push(`SC.grade = '${data.grade}'`)
         db.query(`
             SELECT * FROM students_courses SC
             JOIN students S ON S.student_id = (select student_id from students_batch where student_batch_id = SC.student_batch_id)
-            JOIN courses C ON C.course_id = (select course_id from semesters_courses WHERE sem_course_id = SC.sem_course_id)
+            JOIN semesters_courses SMC ON SMC.sem_course_id = SC.sem_course_id
+            JOIN courses C ON C.course_id = SMC.course_id
+            JOIN semesters SM ON SM.semester_id = SMC.semester_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
-            ORDER BY enrollment_timestamp ASC
+            ORDER BY SC.enrollment_timestamp ASC
         `).then(res => {
             callback({
                 code: 200, 
