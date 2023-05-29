@@ -23,7 +23,7 @@ class Students {
         password: new DataTypes(true).string,
         user_type: new DataTypes(true).string,
         student_batch_id: new DataTypes(true).uuid,
-        batch_id: new DataTypes(true,['students/create','students/update'],['students/fetch']).uuid,
+        batch_id: new DataTypes(true,['students/create','students/update','students/delete'],['students/fetch']).uuid,
         batch_no: new DataTypes(true).string,
         joined_semester: new DataTypes(true).string,
         degree_type: new DataTypes(true).string,
@@ -78,16 +78,9 @@ function studentsCreate(data, callback) {
             });
         }
     } else {
-        if (!data.cnic && !data.reg_no) {
-            if (callback) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: 'Both CNIC and Reg No cannot be empty'
-                });
-            }
-            return
-        }
+        if (!data.cnic && !data.reg_no) return callback({ code: 400, status: 'BAD REQUEST', message: 'Both CNIC and Reg No cannot be empty' });
+        data.cnic = data.cnic?.toLowerCase()
+        data.reg_no = data.reg_no?.toLowerCase()
         db.query(`
             WITH query_one AS ( 
                 INSERT INTO users (username, user_type, user_email) 
@@ -115,24 +108,26 @@ function studentsCreate(data, callback) {
                 '${data.batch_id}'
             );
         `).then(res => {
-            if (!callback) return
-            if (res.rowCount == 1) {
-                callback({
-                    code: 200, 
-                    status: 'OK',
-                    message: 'added record to db'
-                });
-            } else {
-                callback({
-                    code: 500, 
-                    status: 'INTERNAL ERROR',
-                    message: 'unexpected DB response'
-                });
-            }
+            if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'added record to db' });
+            else return callback({ code: 500, status: 'INTERNAL ERROR', message: 'unexpected DB response' });
         }).catch(err => {
-            console.log(err)
-            if (callback) {
-                callback(validations.validateDBInsertQueryError(err));
+            if (err.code == '23505' && (err.constraint == 'students_cinc_ukey' || err.constraint == 'students_regno_ukey')) {
+                db.query(`
+                    INSERT INTO students_batch (student_id, batch_id)
+                    VALUES (
+                        ( select student_id from students WHERE cnic = '${data.cnic}' OR reg_no = '${data.reg_no}'),
+                        '${data.batch_id}'
+                    );
+                `).then(res => {
+                    if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'added record to db' });
+                    else return callback({ code: 500, status: 'INTERNAL ERROR', message: 'unexpected DB response' });
+                }).catch(err => {
+                    console.log(err)
+                    return callback(validations.validateDBInsertQueryError(err));
+                })
+            } else {
+                console.log(err)
+                return callback(validations.validateDBInsertQueryError(err));
             }
         })
     }
@@ -140,51 +135,42 @@ function studentsCreate(data, callback) {
 
 function studentsDelete(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
+
     const validator = validations.validateRequestData(data,new Students,data.event)
-    if (!validator.valid) {
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`
+        SELECT * FROM students_batch WHERE student_id = '${data.student_id}';
+    `).then(res => {
+        if (res.rowCount == 1) {
+            db.query(`
+                DELETE FROM users WHERE user_id='${data.student_id}';
+            `).then(res => {
+                if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `deleted ${data.student_id} record from db` });
+                else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.student_id} does not exist` });
+                else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows deleted` });
+            }).catch(err => {
+                console.log(err)
+                return callback(validations.validateDBDeleteQueryError(err));
+            })
+        } else if (res.rowCount > 1) {
+            db.query(`
+                DELETE FROM students_batch WHERE student_id='${data.student_id}' AND batch_id='${data.batch_id}';
+            `).then(res => {
+                if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `deleted student_id=${data.student_id} batch_id=${data.batch_id} record from db` });
+                else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record student_id=${data.student_id} batch_id=${data.batch_id} does not exist` });
+                else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows deleted` });
+            }).catch(err => {
+                console.log(err)
+                return callback(validations.validateDBDeleteQueryError(err));
+            })
+        } else return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find that user` });
+    }).catch(err => {
+        console.log(err)
         if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
+            callback(validations.validateDBDeleteQueryError(err));
         }
-    } else {
-        db.query(`
-            DELETE FROM users WHERE user_id='${data.student_id}'
-        `).then(res => {
-            if (res.rowCount == 1) {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: `deleted ${data.student_id} record from db`
-                    });
-                }
-            } else if (res.rowCount == 0) {
-                if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `record ${data.student_id} does not exist`
-                    });
-                }
-            } else {
-                if (callback) {
-                    callback({
-                        code: 500, 
-                        status: 'INTERNAL ERROR',
-                        message: `${res.rowCount} rows deleted`
-                    });
-                }
-            }
-        }).catch(err => {
-            console.log(err)
-            if (callback) {
-                callback(validations.validateDBDeleteQueryError(err));
-            }
-        })
-    }
+    })
 }
 
 function studentsUpdate(data, callback) {

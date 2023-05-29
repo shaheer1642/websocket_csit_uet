@@ -55,7 +55,7 @@ function loginAuth(data, callback) {
                 var matched_username = false
                 var matched_password = false
                 for (const user of users) {
-                    if (user.username.toLowerCase() == data.username) matched_username = true;
+                    if (user.username.toLowerCase() == data.username.toLowerCase()) matched_username = true;
                     if (!matched_username) continue
                     if (user.password == data.password) matched_password = true;
                     if (!matched_password) {
@@ -123,7 +123,7 @@ function resetPassword(data, callback) {
         var matched_username = false
         var matched_password = false
         for (const user of users) {
-            if (user.username.toLowerCase() == data.username) matched_username = true;
+            if (user.username.toLowerCase() == data.username.toLowerCase()) matched_username = true;
             if (!matched_username) continue
             if (user.password == data.old_password) matched_password = true;
             if (!matched_password) {
