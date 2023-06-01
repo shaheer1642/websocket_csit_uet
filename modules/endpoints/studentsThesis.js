@@ -4,6 +4,7 @@ const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
 const { documentsCreate, uploadDocumentsFromArray } = require('./documents');
+const { dynamicSortDesc } = require('../functions');
 
 class StudentsThesis {
     name = 'Students Thesis';
@@ -55,7 +56,6 @@ function studentsThesisFetch(data, callback) {
                         JOIN batches B ON B.batch_id = (select batch_id from students_batch SB where SB.student_batch_id = ST.student_batch_id)
                         ${where_clauses.length > 0 ? 'WHERE':''}
                         ${where_clauses.join(' AND ')}
-                        ORDER BY ST.undertaking_timestamp DESC;
                     `
                 }).join('\n')
             }
@@ -63,7 +63,7 @@ function studentsThesisFetch(data, callback) {
             callback({
                 code: 200, 
                 status: 'OK',
-                data: res.reduce((arr,obj) => arr.concat(obj.rows),[])
+                data: res.reduce((arr,obj) => arr.concat(obj.rows),[]).sort(dynamicSortDesc('undertaking_timestamp'))
             })
         }).catch(err => {
             console.log(err)
@@ -111,6 +111,7 @@ function studentsThesisCreate(data, callback) {
     } else {
         fetchStudentDegreeAndThesisTypes(data.student_batch_id)
         .then(res => {
+            if (res.degree_type == 'phd' && data.thesis_type == 'project') return callback({ code: 400, status: 'BAD REQUEST', message: `PhD project cannot be created` }); 
             db.query(`
                 INSERT INTO students_thesis_${res.degree_type}_${data.thesis_type} (student_batch_id, thesis_type, thesis_title, supervisor_id, co_supervisor_id)
                 VALUES (

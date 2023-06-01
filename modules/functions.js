@@ -117,8 +117,37 @@ function checkKeysExists(obj, ref_obj, ignore_keys) {
     return valid
 }
 
+const departmentIds = {
+    'cs': 'Computer Science & Information Technology',
+    'bsi': 'Basic Sciences & Islamiat',
+    'ae': 'Agricultural Engineering',
+    'che': 'Chemical Engineering',
+    'ce': 'Civil Engineering',
+    'eec': 'Electrical Engineering',
+    'ie': 'Industrial Engineering',
+    'me': 'Mechanical Engineering',
+    'mte': 'Mechatronics Engineering',
+    'mine': 'Mining Engineering',
+    'cse': 'Computer Systems Engineering',
+    'arc': 'Architecture, Abbottabad Campus',
+}
+function getDepartmentFromCourseId(course_id) {
+    return departmentIds[course_id.toLowerCase().split('-')[0]] || course_id.toUpperCase().split('-')[0] || 'Not Determined'
+}
+
 function escapeDBCharacters(str) {
     return str.replace(/'/g,`''`).replace(/\"/g,`\\"`).replace(/\r\n/g,`\\n`).replace(/\n/g,`\\r\\n`)
 }
 
-module.exports = {dynamicSort,dynamicSortDesc,msToTime,msToFullTime,getRandomColor,embedScore,convertUpper, checkKeysExists, escapeDBCharacters};
+module.exports = {
+    dynamicSort,
+    dynamicSortDesc,
+    msToTime,
+    msToFullTime,
+    getRandomColor,
+    embedScore,
+    convertUpper,
+    checkKeysExists,
+    escapeDBCharacters,
+    getDepartmentFromCourseId
+};
