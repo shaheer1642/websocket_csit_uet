@@ -215,6 +215,14 @@ const endpoints = {
             ['ALL'],
             users.usersFetch
         ),
+        FCMTokenUpdate: new Endpoint(
+            "users/FCMTokenUpdate",
+            new users.Users(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'updated token'},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            users.usersFCMTokenUpdate
+        ),
     },
     students: {
         fetch: new Endpoint(

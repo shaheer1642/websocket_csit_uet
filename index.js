@@ -10,6 +10,8 @@ const {db} = require('./modules/db_connection')
 const {endpoints,getEndpoints} = require('./modules/endpoints/endpoints')
 const {event_emitter} = require('./modules/event_emitter')
 require('./modules/gmail_client')
+// if (process.env.ENVIRONMENT_TYPE == 'prod') 
+  require('./modules/notifications')
 const cors = require('cors')
 
 app.use(cors())

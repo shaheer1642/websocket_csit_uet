@@ -4,12 +4,14 @@ const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter')
 
 class Users {
-    name = 'Students';
-    description = 'Endpoints for creating student'
+    name = 'Users';
+    description = 'Endpoints for users'
     data_types = {
         fetch_user_id: new DataTypes(true,[],['users/fetch']).uuid,
         name: new DataTypes(true,[],[]).string,
         user_type: new DataTypes(true,[],[]).string,
+        login_token: new DataTypes(false,['users/FCMTokenUpdate'],[]).uuid,
+        fcm_token: new DataTypes(false,['users/FCMTokenUpdate'],[]).string,
     }
 }
 
@@ -46,7 +48,27 @@ function usersFetch(data, callback) {
     })
 }
 
+function usersFCMTokenUpdate(data,callback) {
+    console.log(`[${data.event}] called data received:`, data)
+
+    const validator = validations.validateRequestData(data,new Users,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`
+        UPDATE users SET 
+        fcm_tokens = fcm_tokens || '[${JSON.stringify({timestamp: new Date().getTime(), token: data.fcm_token})}]'
+        WHERE login_token = '${data.login_token}' AND NOT(fcm_tokens @> '[{"token": "${data.fcm_token}"}]');
+    `).then(res => {
+        if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'updated token'})
+        else return callback({ code: 400, status: 'BAD REQUEST', message: 'could not update record in db. maybe token already exists'})
+    }).catch(err => {
+        console.log(err)
+        return callback(validations.validateDBUpdateQueryError(err));
+    })
+}
+
 module.exports = {
     usersFetch,
+    usersFCMTokenUpdate,
     Users
 }
