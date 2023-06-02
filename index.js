@@ -54,7 +54,7 @@ for (const key in endpoints) {
           authorizeEvent(login_token,subendpoint.permission_level)
           .then(db_res => {
             if (db_res.code == 200) {
-              return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token, user_id: db_res.user_id}, (data) => removeSensitiveInfo(data, res.send))
+              return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token, user_id: db_res.user_id}, (data) => removeSensitiveInfo(data, (data) => res.send(data)))
             } else {
               return res.send(db_res) 
             }
@@ -65,7 +65,7 @@ for (const key in endpoints) {
           return res.send({code: 400, message: 'No authorization token provided.'})
         }
       } else {
-        return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token}, (data) => removeSensitiveInfo(data, res.send))
+        return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token}, (data) => removeSensitiveInfo(data, (data) => res.send(data)))
       }
     })
   }
