@@ -9,6 +9,7 @@ const {db} = require('./modules/db_connection')
 // const db_modules = require('./modules/db_modules')
 const {endpoints,getEndpoints} = require('./modules/endpoints/endpoints')
 const {event_emitter} = require('./modules/event_emitter')
+require('./modules/gmail_client')
 const cors = require('cors')
 
 app.use(cors())
