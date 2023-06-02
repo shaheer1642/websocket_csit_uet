@@ -4,52 +4,26 @@ const { checkKeysExists } = require('./functions');
 
 function validateKeyValue(key,value,type) {
     if (type == 'unix_timestamp_milliseconds') {
-        if (Number(value) && value < 9999999999999) return {
-            valid: true
-        } 
-        else return {
-            valid: false,
-        }
+        if (Number(value) && value < 9999999999999) return { valid: true } 
+        else return { valid: false, }
     } else if (type == 'number') {
-        if (Number(value)) return {
-            valid: true
-        } 
-        else return {
-            valid: false,
-        }
-    }
-    else if (type == 'uuid') {
+        if (Number(value)) return { valid: true } 
+        else return { valid: false, }
+    } else if (type == 'uuid') {
         try {
             uuid.parse(value)
-            return {
-                valid: true
-            } 
+            return { valid: true } 
         } catch (e) {
             console.log(e)
-            return {
-                valid: false,
-            }
+            return { valid: false, }
         }
-    }
-    else if (type == 'boolean') {
-        if (typeof value == 'boolean') return {
-            valid: true
-        } 
-        else return {
-            valid: false,
-        }
-    }
-    else if (type == 'email') {
-        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(value)) return {
-            valid: false,
-        } 
-        else return {
-            valid: true,
-        }
-    }
-    return {
-        valid: true
-    }
+    } else if (type == 'boolean') {
+        if (typeof value == 'boolean') return { valid: true } 
+        else return { valid: false, }
+    } else if (type == 'email') {
+        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(value)) return { valid: false, } 
+        else return { valid: true, }
+    } else return { valid: true }
 }
 
 function validateRequestData(data,object,event) {
@@ -77,7 +51,7 @@ function validateRequestData(data,object,event) {
                 reason: `Invalid data. Missing key \'${key}\' of type ${field.type}. Example value: ${field.example_value}`,
             }
         } else if (field.optional.includes(event)) {
-            if (data[key]) {
+            if (data[key] != undefined && data[key] != '') {
                 optional_keys++;
                 if (validateKeyValue(key, data[key], field.type).valid) continue
                 else return {

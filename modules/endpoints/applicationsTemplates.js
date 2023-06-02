@@ -36,7 +36,6 @@ function applicationsTemplatesFetch(data, callback) {
     `).then(res => {
         const user = res[0].rows[0]
         var templates = res[1].rows
-        console.log(user)
         if (user) templates = templates.filter(template => !template.degree_type || template.degree_type == user.degree_type)
         return callback({code: 200, status: 'OK', data: templates})
     }).catch(err => {

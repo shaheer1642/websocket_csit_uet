@@ -54,7 +54,7 @@ for (const key in endpoints) {
           authorizeEvent(login_token,subendpoint.permission_level)
           .then(db_res => {
             if (db_res.code == 200) {
-              return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token, user_id: db_res.user_id}, (data) => res.send(data))
+              return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token, user_id: db_res.user_id}, (data) => removeSensitiveInfo(data, res.send))
             } else {
               return res.send(db_res) 
             }
@@ -65,7 +65,7 @@ for (const key in endpoints) {
           return res.send({code: 400, message: 'No authorization token provided.'})
         }
       } else {
-        return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token}, (data) => res.send(data))
+        return subendpoint.listener_function({...req.body, event: event.replace('/api/',''), login_token: login_token}, (data) => removeSensitiveInfo(data, res.send))
       }
     })
   }
@@ -77,6 +77,26 @@ app.get('/api/', (req, res) => {
     message: 'Invalid endpoint',
   })
 });
+
+function removeSensitiveInfo(res,callback) {
+  if (res.data) {
+    if (Array.isArray(res.data)) {
+      res.data = res.data.reduce((data,object) => {
+        if (object?.username) delete object.username
+        if (object?.password) delete object.password
+        if (object?.login_token) delete object.login_token
+        if (object?.fcm_tokens) delete object.fcm_tokens
+        return [...data,object]
+      },[])
+    } else {
+      if (res.data.username) delete res.data.username
+      if (res.data.password) delete res.data.password
+      if (res.data.login_token) delete res.data.login_token
+      if (res.data.fcm_tokens) delete res.data.fcm_tokens
+    }
+  }
+  callback(res)
+}
 
 const clients = {}
 
@@ -102,7 +122,7 @@ io.on('connection', (socket) => {
           .then(res => {
             if (res.code == 200) {
               try {
-                return subendpoint.listener_function({...data, event: event, login_token: login_token, user_id: res.user_id}, callback ? callback : () => {})
+                return subendpoint.listener_function({...data, event: event, login_token: login_token, user_id: res.user_id}, callback ? (res) => removeSensitiveInfo(res, callback) : () => {})
               } catch (e) {
                 console.log(e)
                 callback ? callback({code: 500, message: e.stack || e}) : () => {}
@@ -115,7 +135,7 @@ io.on('connection', (socket) => {
           })
         } else {
           try {
-            return subendpoint.listener_function({...data, event: event, login_token: login_token}, callback ? callback : () => {})
+            return subendpoint.listener_function({...data, event: event, login_token: login_token}, callback ? (res) => removeSensitiveInfo(res, callback) : () => {})
           } catch (e) {
             console.log(e)
             callback ? callback({code: 500, message: e.stack || e}) : () => {}

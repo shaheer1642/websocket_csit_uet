@@ -33,7 +33,6 @@ function loginAuth(data, callback) {
     .then(res => {
         if (res.rowCount == 1) {
             const userObj = res.rows[0]
-            delete userObj.password
             return callback({
                 code: 200, 
                 status: 'OK',
@@ -72,7 +71,6 @@ function loginAuth(data, callback) {
                     .then(res => {
                         if (res[0].rowCount == 1) {
                             const userObj = res[1].rows[0]
-                            delete userObj.password
                             return callback({
                                 code: 200, 
                                 status: 'OK',

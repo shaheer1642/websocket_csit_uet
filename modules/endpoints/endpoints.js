@@ -256,7 +256,15 @@ const endpoints = {
             true,
             ['admin'],
             students.studentsDelete
-        )
+        ),
+        freezeSemester: new Endpoint(
+            "students/freezeSemester",
+            new students.Students(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            students.studentsFreezeSemester
+        ),
     },
     teachers: {
         fetch: new Endpoint(

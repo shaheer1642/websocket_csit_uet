@@ -23,22 +23,6 @@ function sendNotification(notification) {
     })
 }
 
-function sendFCMNotification(notification) {
-    console.log('[sendEmailNotification] called')
-    db.query(`SELECT * FROM users WHERE user_id = '${notification.user_id}'`).then(res => {
-        if (res.rowCount != 1) return
-        const user = res.rows[0]
-        const email = user.user_email
-        if (!email) return console.log('[sendEmailNotification] email does not exist')
-
-        sendMail(notification.title,notification.body,email).then(res => {
-            console.log('[sendEmailNotification] Sent notification to',email)
-        }).catch(err => {
-            console.error('[sendEmailNotification] Error sending notification to',email,':', err.message || err.stack || err)
-        })
-    }).catch(err => console.error('[sendEmailNotification] error querying DB',err))
-}
-
 async function createNotification(title,body,id,id_type) {
     var user_id;
     if (id_type != 'user_id') {
@@ -73,6 +57,17 @@ db.on('notification', (notification) => {
                     'student_batch_id'
                 )
             })
+        }
+    }
+
+    if (notification.channel == 'students_batch_update') {
+        if (payload[0].semester_frozen != payload[1].semester_frozen) {
+            createNotification(
+                'Semester Freeze',
+                `Your semester has been ${payload[0].semester_frozen ? 'frozen' : 'unfrozen'}`,
+                payload[0].student_batch_id,
+                'student_batch_id'
+            )
         }
     }
 })
