@@ -54,6 +54,7 @@ function studentsCoursesFetch(data, callback) {
             JOIN semesters_courses SMC ON SMC.sem_course_id = SC.sem_course_id
             JOIN courses C ON C.course_id = SMC.course_id
             JOIN semesters SM ON SM.semester_id = SMC.semester_id
+            JOIN teachers T ON SMC.teacher_id = T.teacher_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
             ORDER BY SC.enrollment_timestamp ASC

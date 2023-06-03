@@ -55,7 +55,7 @@ function studentsThesisFetch(data, callback) {
                         JOIN students S ON S.student_id = (select student_id from students_batch SB where SB.student_batch_id = ST.student_batch_id)
                         JOIN batches B ON B.batch_id = (select batch_id from students_batch SB where SB.student_batch_id = ST.student_batch_id)
                         ${where_clauses.length > 0 ? 'WHERE':''}
-                        ${where_clauses.join(' AND ')}
+                        ${where_clauses.join(' AND ')};
                     `
                 }).join('\n')
             }
