@@ -3,7 +3,7 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
-const { getDepartmentFromCourseId } = require('../functions');
+const { getDepartmentIdFromCourseId } = require('../functions');
 
 class Courses {
     name = 'Courses';
@@ -11,7 +11,7 @@ class Courses {
     data_types = {
         course_id: new DataTypes(true,['courses/create','courses/update','courses/delete'],['courses/fetch'],false,'CS-103').string,
         course_name: new DataTypes(true,['courses/create'],['courses/update'],false,'Algorithms').string,
-        department: new DataTypes(true,[],[],false,'Computer Science').string,
+        department_id: new DataTypes(true,[],[],false,'CS&IT').string,
         course_type: new DataTypes(true,['courses/create'],['courses/update'],false,'core').string,
         credit_hours: new DataTypes(true,['courses/create'],['courses/update'],false,3).number,
         course_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
@@ -34,6 +34,7 @@ function coursesFetch(data, callback) {
             where_clauses.push(`course_id = '${data.course_id}'`)
         db.query(`
             SELECT * FROM courses
+            JOIN departments ON departments.department_id = courses.department_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
@@ -62,11 +63,11 @@ function coursesCreate(data, callback) {
         }
     } else {
         db.query(`
-            INSERT INTO courses (course_id,course_name, department, course_type, credit_hours) 
+            INSERT INTO courses (course_id,course_name, department_id, course_type, credit_hours) 
             VALUES (
                 '${data.course_id.toUpperCase()}',
                 '${data.course_name}',
-                '${getDepartmentFromCourseId(data.course_id)}',
+                '${getDepartmentIdFromCourseId(data.course_id)}',
                 '${data.course_type}',
                 ${data.credit_hours}
             );

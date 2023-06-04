@@ -67,6 +67,20 @@ function usersFCMTokenUpdate(data,callback) {
     })
 }
 
+db.on('notification', (notification) => {
+    const payload = JSON.parse(notification.payload);
+    
+    if (notification.channel == 'users_insert') {
+        event_emitter.emit('notifyAll', {event: 'users/listener/insert', data: payload})
+    }
+    if (notification.channel == 'users_update') {
+        event_emitter.emit('notifyAll', {event: 'users/listener/update', data: payload[0]})
+    }
+    if (notification.channel == 'users_delete') {
+        event_emitter.emit('notifyAll', {event: 'users/listener/delete', data: payload})
+    }
+})
+
 module.exports = {
     usersFetch,
     usersFCMTokenUpdate,

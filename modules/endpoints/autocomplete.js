@@ -2,7 +2,8 @@ const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
+const {event_emitter} = require('../event_emitter');
+const { convertUpper } = require('../functions');
 
 class Autocomplete {
     name = 'Autocomplete';
@@ -10,6 +11,7 @@ class Autocomplete {
     data_types = {
         exclude_user_types: new DataTypes(false,[],['autocomplete/users'],false,JSON.stringify(['admin','teacher'])).array,
         exclude_user_ids: new DataTypes(false,[],['autocomplete/users'],false,JSON.stringify(['e670c3ea-f740-11ed-a9d6-0242ac110032','7bce48da-f5c1-11ed-b0ba-0242ac110032'])).array,
+        include_roles: new DataTypes(false,[],['autocomplete/teachers'],false,JSON.stringify(['chairman','semester_coordinator','batch_advisor'])).array,
     }
 }
 
@@ -60,12 +62,20 @@ function autocompleteTeachers(data, callback) {
         });
     } else {
         db.query(`
-            SELECT * FROM teachers;
+            SELECT 
+            T.*,
+            (SELECT department_id AS chairman FROM departments WHERE chairman_id = T.teacher_id) ,
+            (SELECT 'Batch '||batch_no||' '||degree_type||' '||batch_stream AS batch_advisor FROM batches WHERE batch_advisor_id = T.teacher_id limit 1),
+            (SELECT CASE WHEN semester_coordinator_id = T.teacher_id THEN semester_season::text||' '||semester_year END AS semester_coordinator FROM semesters ORDER BY semester_start_timestamp DESC limit 1)
+            FROM teachers T;
         `).then(res => {
             callback({
                 code: 200, 
                 status: 'OK',
-                data: res.rows.map(row => ({id: row.teacher_id, label: row.teacher_name}))
+                data: res.rows.map(row => ({
+                    id: row.teacher_id, 
+                    label: `${row.teacher_name}${row.chairman && data.include_roles?.includes('chairman') ? ` (Chairman - ${row.chairman})`:''}${row.batch_advisor && data.include_roles?.includes('batch_advisor') ? ` (Batch Advisor - ${row.batch_advisor.split(' ').map(str => convertUpper(str)).join(' ')})`:''}${row.semester_coordinator && data.include_roles?.includes('semester_coordinator') ? ` (Semester Coordinator - ${row.semester_coordinator.split(' ').map(str => convertUpper(str)).join(' ')})`:''}`
+                }))
             })
         }).catch(err => {
             console.log(err)
@@ -87,12 +97,11 @@ function autocompleteFaculty(data, callback) {
     } else {
         db.query(`
             SELECT * FROM users WHERE username = 'admin' OR username = 'pga';
-            SELECT * FROM teachers;
         `).then(res => {
             callback({
                 code: 200, 
                 status: 'OK',
-                data: [...res[0].rows.map(row => ({id: row.user_id, label: row.username})), ...res[1].rows.map(row => ({id: row.teacher_id, label: row.teacher_name}))]
+                data: [...res.rows.map(row => ({id: row.user_id, label: row.username}))]
             })
         }).catch(err => {
             console.log(err)

@@ -13,6 +13,7 @@ class Semesters {
         semester_season: new DataTypes(true,['semesters/create'],['semesters/update'],false,'fall').string,
         semester_start_timestamp: new DataTypes(true,['semesters/create'],['semesters/update']).unix_timestamp_milliseconds,
         semester_end_timestamp: new DataTypes(true,['semesters/create'],['semesters/update']).unix_timestamp_milliseconds,
+        semester_coordinator_id: new DataTypes(true,[],['semesters/update','semesters/create']).uuid,
         student_id: new DataTypes(false,[],['semesters/fetch']).uuid,
     }
 }
@@ -62,10 +63,11 @@ function semestersCreate(data, callback) {
         }
     } else {
         db.query(`
-            INSERT INTO semesters (semester_year, semester_season, semester_start_timestamp, semester_end_timestamp) 
+            INSERT INTO semesters (semester_year, semester_season, semester_coordinator_id, semester_start_timestamp, semester_end_timestamp) 
             VALUES (
                 ${data.semester_year},
                 '${data.semester_season}',
+                ${data.semester_coordinator_id ? `'${data.semester_coordinator_id}'` : 'NULL'},
                 ${data.semester_start_timestamp},
                 ${data.semester_end_timestamp}
             );
@@ -158,6 +160,7 @@ function semestersUpdate(data, callback) {
         var update_clauses = []
         if (data.semester_year) update_clauses.push(`semester_year = ${data.semester_year}`)
         if (data.semester_season) update_clauses.push(`semester_season = '${data.semester_season}'`)
+        if (data.semester_coordinator_id != undefined) update_clauses.push(`semester_coordinator_id = ${data.semester_coordinator_id ? `'${data.semester_coordinator_id}'`:'NULL'}`)
         if (data.semester_start_timestamp) update_clauses.push(`semester_start_timestamp = ${data.semester_start_timestamp}`)
         if (data.semester_end_timestamp) update_clauses.push(`semester_end_timestamp = ${data.semester_end_timestamp}`)
         if (update_clauses.length == 0) {

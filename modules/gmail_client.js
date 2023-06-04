@@ -157,7 +157,7 @@ const sendMail = async (title, body, email) => {
         // cc: 'cc1@example.com, cc2@example.com',
         // replyTo: 'amit@labnol.org',
         subject: title,
-        text: body + '\n\nThis is an auto-generated email sent via MIS application from CSIT, University of Engineering & Technology, Peshawar',
+        text: body.replace(/\\r\\n/g,'\n') + '\n\nThis is an auto-generated email sent via MIS application from CSIT, University of Engineering & Technology, Peshawar',
         // html: `<p>🙋🏻‍♀️  &mdash; This is a <b>test email</b> from <a href="https://digitalinspiration.com">Digital Inspiration</a>.</p>`,
         // attachments: fileAttachments,
         textEncoding: 'base64',

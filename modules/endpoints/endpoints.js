@@ -1,4 +1,5 @@
 const events = require('./events')
+const departments = require('./departments')
 const batches = require('./batches')
 const users = require('./users')
 const students = require('./students')
@@ -171,6 +172,24 @@ const endpoints = {
             ['admin'],
             events.eventsDelete
         )
+    },
+    departments: {
+        fetch: new Endpoint(
+            "departments/fetch",
+            new departments.Departments(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            departments.departmentsFetch
+        ),
+        updateChairman: new Endpoint(
+            "departments/updateChairman",
+            new departments.Departments(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated CS&IT record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            departments.departmentsUpdateChairman
+        ),
     },
     batches: {
         fetch: new Endpoint(
@@ -877,6 +896,11 @@ const endpointsClasses = [
         class1: new events.Events(),
         class2: endpoints.events,
         class3: listener_endpoints.events
+    },
+    {
+        id: 'departments',
+        class1: new departments.Departments(),
+        class2: endpoints.departments,
     },
     {
         id: 'batches',

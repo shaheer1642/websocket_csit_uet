@@ -10,6 +10,7 @@ function validateKeyValue(key,value,type) {
         if (Number(value)) return { valid: true } 
         else return { valid: false, }
     } else if (type == 'uuid') {
+        if (value == '') return { valid: true } 
         try {
             uuid.parse(value)
             return { valid: true } 
@@ -36,7 +37,7 @@ function validateRequestData(data,object,event) {
         required_length = field.required.length
         optional_length = field.optional.length
         if (field.required.includes(event)) {
-            if (data[key] != undefined && data[key] != '') {
+            if (data[key] != undefined) {
                 required_keys++;
                 if (validateKeyValue(key, data[key], field.type).valid) continue
                 else return {
@@ -51,7 +52,7 @@ function validateRequestData(data,object,event) {
                 reason: `Invalid data. Missing key \'${key}\' of type ${field.type}. Example value: ${field.example_value}`,
             }
         } else if (field.optional.includes(event)) {
-            if (data[key] != undefined && data[key] != '') {
+            if (data[key] != undefined) {
                 optional_keys++;
                 if (validateKeyValue(key, data[key], field.type).valid) continue
                 else return {

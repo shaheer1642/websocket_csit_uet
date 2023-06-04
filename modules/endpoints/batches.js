@@ -10,7 +10,7 @@ class Batches {
     data_types = {
         serial: new DataTypes(true).autonumber,
         batch_id: new DataTypes(true,['batches/update','batches/delete'],['batches/fetch']).uuid,
-        batch_advisor_id: new DataTypes(true,[],['batches/update']).uuid,
+        batch_advisor_id: new DataTypes(true,[],['batches/create','batches/update']).uuid,
         batch_no: new DataTypes(true,['batches/create'],['batches/update'],false,3).number,
         batch_stream: new DataTypes(true,['batches/create'],['batches/update'],false,3).string,
         enrollment_year: new DataTypes(true,['batches/create'],['batches/update'],false,2022).number,
@@ -33,7 +33,8 @@ function batchesFetch(data, callback) {
         }
     } else {
         db.query(`
-            SELECT B.*,(SELECT count(student_id) AS registered_students FROM students_batch SB WHERE SB.batch_id = B.batch_id) FROM batches B
+            SELECT B.*,D.*,(SELECT count(student_id) AS registered_students FROM students_batch SB WHERE SB.batch_id = B.batch_id) FROM batches B
+            JOIN departments D ON D.department_id = B.department_id
             ${data.batch_id ? ` WHERE B.batch_id = '${data.batch_id}'`:''}
             ORDER BY B.batch_creation_timestamp DESC
         `).then(res => {
@@ -70,15 +71,15 @@ function batchesCreate(data, callback) {
             batch_stream,
             enrollment_year,
             enrollment_season,
-            degree_type
-            ${data.batch_advisor_id ? ',batch_advisor_id':''}
+            degree_type,
+            batch_advisor_id
         ) VALUES (
             ${data.batch_no},
             '${data.batch_stream}',
             ${data.enrollment_year},
             '${data.enrollment_season}',
-            '${data.degree_type}'
-            ${data.batch_advisor_id ? `,'${data.batch_advisor_id}'`:''}
+            '${data.degree_type}',
+            ${data.batch_advisor_id ? `,'${data.batch_advisor_id}'`:'NULL'}
         )
         `).then(res => {
             if (callback) {
@@ -178,7 +179,7 @@ function batchesUpdate(data, callback) {
         if (data.enrollment_year) update_clauses.push(`enrollment_year = ${data.enrollment_year}`)
         if (data.enrollment_season) update_clauses.push(`enrollment_season = '${data.enrollment_season}'`)
         if (data.degree_type) update_clauses.push(`degree_type = '${data.degree_type}'`)
-        if (data.batch_advisor_id) update_clauses.push(`batch_advisor_id = '${data.batch_advisor_id}'`)
+        if (data.batch_advisor_id != undefined) update_clauses.push(`batch_advisor_id = ${data.batch_advisor_id ? `'${data.batch_advisor_id}'` : 'NULL'}`)
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({

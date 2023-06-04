@@ -4,23 +4,50 @@ const { escapeDBCharacters } = require("./functions");
 const { sendMail } = require("./gmail_client");
 const { users } = require("./objects/users");
 
-function sendNotification(notification) {
-    console.log('[sendEmailNotification] called')
+db.on('connected', () => {
+    db.query(`SELECT * FROM notifications WHERE email_sent = false OR push_notified = false`).then(res => {
+        res.rows.forEach(notification => sendNotification(notification))
+    }).catch(console.error)
+})
 
-    const email = users[notification.user_id]?.user_email
-    if (email) {
-        sendMail(notification.title,notification.body,email).then(res => {
-            console.log('[sendEmailNotification] Sent notification to',email)
-        }).catch(err => {
-            console.error('[sendEmailNotification] Error sending notification to',email,':', err.message || err.stack || err)
-        })
+function markNotificationAsSent(notification_id,type) {
+    db.query(`update notifications set ${type} = true where notification_id = ${notification_id}`).catch(console.error)
+}
+
+function sendNotification(notification) {
+    console.log('[sendNotification] called')
+
+    if (!notification.email_sent) {
+        db.query(`SELECT user_email FROM users WHERE user_id = '${notification.user_id}'`).then(res => {
+            const email = res.rows[0]?.user_email
+            if (email) {
+                sendMail(notification.title,notification.body,email).then(res => {
+                    console.log('[sendNotification] Sent notification to',email)
+                    markNotificationAsSent(notification.notification_id,'email_sent')
+                }).catch(err => {
+                    console.error('[sendNotification] Error sending notification to',email,':', err.message || err.stack || err)
+                })
+            } else {
+                markNotificationAsSent(notification.notification_id,'email_sent')
+            }
+        }).catch(console.error)
     }
 
-    FCMNotify({
-        title: notification.title,
-        body: notification.body,
-        user_ids: [notification.user_id]
-    })
+    if (!notification.push_notified) {
+        FCMNotify({
+            title: notification.title,
+            body: notification.body,
+            user_ids: [notification.user_id]
+        }).then(res => {
+            markNotificationAsSent(notification.notification_id,'push_notified')
+        }).catch(err => {
+            if (err?.code == 4000) {
+                markNotificationAsSent(notification.notification_id,'push_notified')
+            } else {
+                console.error(err)
+            }
+        })
+    }
 }
 
 async function createNotification(title,body,id,id_type) {
@@ -67,6 +94,25 @@ db.on('notification', (notification) => {
                 `Your semester has been ${payload[0].semester_frozen ? 'frozen' : 'unfrozen'}`,
                 payload[0].student_batch_id,
                 'student_batch_id'
+            )
+        }
+    }
+
+    if (notification.channel == 'users_insert') {
+        createNotification(
+            'Account Credentials',
+            `Your account credentials for MIS login\n\nUsername: ${payload.username}\nPassword: ${payload.password}\n\nIt is recommended to change your password to a secure one after login`,
+            payload.user_id,
+            'user_id'
+        )
+    }
+    if (notification.channel == 'users_update') {
+        if ((payload[0].user_email != payload[1].user_email) || (payload[0].username != payload[1].username) || (payload[0].password != payload[1].password)) {
+            createNotification(
+                'Account Credentials',
+                `Your account credentials for MIS login\n\nUsername: ${payload[0].username}\nPassword: ${payload[0].password}`,
+                payload[0].user_id,
+                'user_id'
             )
         }
     }

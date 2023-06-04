@@ -101,6 +101,9 @@ function embedScore(text) {
 }
 
 function convertUpper(str) {
+    if (str.toLowerCase() == 'ms') return 'MS'
+    if (str.toLowerCase() == 'phd') return 'PhD'
+    if (typeof str != 'string') return str
     return str.replace(/_/g, " ").replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())
 }
 
@@ -117,22 +120,22 @@ function checkKeysExists(obj, ref_obj, ignore_keys) {
     return valid
 }
 
-const departmentIds = {
-    'cs': 'Computer Science & Information Technology',
-    'bsi': 'Basic Sciences & Islamiat',
-    'ae': 'Agricultural Engineering',
-    'che': 'Chemical Engineering',
-    'ce': 'Civil Engineering',
-    'eec': 'Electrical Engineering',
-    'ie': 'Industrial Engineering',
-    'me': 'Mechanical Engineering',
-    'mte': 'Mechatronics Engineering',
-    'mine': 'Mining Engineering',
-    'cse': 'Computer Systems Engineering',
-    'arc': 'Architecture, Abbottabad Campus',
+const courseIds = {
+    'cs': 'CS&IT',
+    'bsi': 'BSI',
+    'ae': 'AE',
+    'che': 'CHE',
+    'ce': 'CE',
+    'eec': 'EEC',
+    'ie': 'IE',
+    'me': 'ME',
+    'mte': 'MTE',
+    'mine': 'MINE',
+    'cse': 'CSE',
+    'arc': 'ARC',
 }
-function getDepartmentFromCourseId(course_id) {
-    return departmentIds[course_id.toLowerCase().split('-')[0]] || course_id.toUpperCase().split('-')[0] || 'Not Determined'
+function getDepartmentIdFromCourseId(course_id) {
+    return courseIds[course_id.toLowerCase().split('-')[0]] || course_id.toUpperCase().split('-')[0]
 }
 
 function escapeDBCharacters(str) {
@@ -149,5 +152,5 @@ module.exports = {
     convertUpper,
     checkKeysExists,
     escapeDBCharacters,
-    getDepartmentFromCourseId
+    getDepartmentIdFromCourseId
 };
