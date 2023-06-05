@@ -26,7 +26,7 @@ function departmentsFetch(data, callback) {
     `).then(res => {
         return callback({ code: 200, status: 'OK', data: res.rows })
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
 }
@@ -46,7 +46,7 @@ function departmentsUpdateChairman(data, callback) {
         else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.department_id} does not exist` });
         else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBUpdateQueryError(err));
     })
 }

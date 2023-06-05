@@ -44,7 +44,7 @@ function coursesFetch(data, callback) {
                 data: res.rows
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -87,7 +87,7 @@ function coursesCreate(data, callback) {
                 });
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBInsertQueryError(err));
             }
@@ -136,7 +136,7 @@ function coursesDelete(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBDeleteQueryError(err));
             }
@@ -202,7 +202,7 @@ function coursesUpdate(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBUpdateQueryError(err));
             }

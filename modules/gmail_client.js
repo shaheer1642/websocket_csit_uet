@@ -18,7 +18,7 @@ authorize(JSON.parse(process.env.GMAIL_CREDENTIAL), (auth) => {
         gmail_client = google.gmail({ version: 'v1', auth })
     }
     catch (err) {
-        return console.log(err)
+        return console.error(err)
     }
     console.log('authorized gmail')
     // getEmails()
@@ -99,7 +99,7 @@ async function getEmails() {
         // The user's email address. The special value `me` can be used to indicate the authenticated user.
         userId: 'me',
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return false
     });
     if (!msgs) {
@@ -118,7 +118,7 @@ async function getEmails() {
                 requestBody: {
                     removeLabelIds: ['UNREAD']
                 },
-            }).catch(err => console.log(err));
+            }).catch(err => console.error(err));
             const res = await gmail_client.users.messages.get({
                 // The format to return the message in.
                 //format: 'full',
@@ -128,7 +128,7 @@ async function getEmails() {
                 //metadataHeaders: 'placeholder-value',
                 // The user's email address. The special value `me` can be used to indicate the authenticated user.
                 userId: 'me',
-            }).catch(err => console.log(err));
+            }).catch(err => console.error(err));
             const email = res.data.snippet
             console.log('Received email on google: ' + email)
             // var part = res.data.payload.parts.filter(function(part) {

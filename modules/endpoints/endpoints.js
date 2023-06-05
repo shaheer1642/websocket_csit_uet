@@ -8,6 +8,7 @@ const courses = require('./courses')
 const semestersCourses = require('./semestersCourses')
 const studentsCourses = require('./studentsCourses')
 const studentsThesis = require('./studentsThesis')
+const studentsThesisExaminers = require('./studentsThesisExaminers')
 const semesters = require('./semesters')
 const login = require('./login')
 const autocomplete = require('./autocomplete')
@@ -75,6 +76,14 @@ const endpoints = {
             false,
             ['ALL'],
             autocomplete.autocompleteBatchStudents
+        ),
+        studentsThesisExaminers: new Endpoint(
+            "autocomplete/studentsThesisExaminers",
+            new autocomplete.Autocomplete(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ''},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            autocomplete.autocompleteStudentsThesisExaminers
         ),
     },
     documents: {
@@ -521,6 +530,40 @@ const endpoints = {
             studentsThesis.studentsThesisDelete
         ),
     },
+    studentsThesisExaminers: {
+        fetch: new Endpoint(
+            "studentsThesisExaminers/fetch",
+            new studentsThesisExaminers.StudentsThesisExaminers(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ['${record_schema}']},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            studentsThesisExaminers.studentsThesisExaminersFetch
+        ),
+        create: new Endpoint(
+            "studentsThesisExaminers/create",
+            new studentsThesisExaminers.StudentsThesisExaminers(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `added record to db`},null,4)}</code></pre>`,
+            true,
+            ['pga'],
+            studentsThesisExaminers.studentsThesisExaminersCreate
+        ),
+        update: new Endpoint(
+            "studentsThesisExaminers/update",
+            new studentsThesisExaminers.StudentsThesisExaminers(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['pga'],
+            studentsThesisExaminers.studentsThesisExaminersUpdate
+        ),
+        delete: new Endpoint(
+            "studentsThesisExaminers/delete",
+            new studentsThesisExaminers.StudentsThesisExaminers(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted record from db`},null,4)}</code></pre>`,
+            true,
+            ['pga'],
+            studentsThesisExaminers.studentsThesisExaminersDelete
+        ),
+    },
     applications: {
         fetch: new Endpoint(
             "applications/fetch",
@@ -953,6 +996,11 @@ const endpointsClasses = [
         class1: new studentsThesis.StudentsThesis(),
         class2: endpoints.studentsThesis,
         class3: listener_endpoints.studentsThesis
+    },
+    {
+        id: 'studentsThesisExaminers',
+        class1: new studentsThesisExaminers.StudentsThesisExaminers(),
+        class2: endpoints.studentsThesisExaminers,
     },
     {
         id: 'documents',

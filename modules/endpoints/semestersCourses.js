@@ -51,7 +51,7 @@ function semestersCoursesFetch(data, callback) {
                 data: res.rows
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -92,7 +92,7 @@ function semestersCoursesCreate(data, callback) {
                 });
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBInsertQueryError(err));
             }
@@ -141,7 +141,7 @@ function semestersCoursesDelete(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBDeleteQueryError(err));
             }
@@ -192,7 +192,7 @@ function semestersCoursesUpdateTeacher(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBUpdateQueryError(err));
             }
@@ -231,7 +231,7 @@ function semestersCoursesLockChanges(data, callback) {
                 });
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBInsertQueryError(err));
             }
@@ -276,7 +276,7 @@ function semestersCoursesLockGrades(data, callback) {
                     else return callback({ code: 500, status: 'INTERNAL ERROR', message: 'unexpected DB response' });
                 }).catch(err => {
                     db.query('ROLLBACK;').catch(console.error)
-                    console.log(err)
+                    console.error(err)
                     return callback(validations.validateDBInsertQueryError(err));
                 })
             }).catch(err => {
@@ -286,7 +286,7 @@ function semestersCoursesLockGrades(data, callback) {
             })
         }).catch(console.error)
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
 }
@@ -432,7 +432,7 @@ function semestersCoursesUpdateGradeDistribution(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBUpdateQueryError(err));
             }

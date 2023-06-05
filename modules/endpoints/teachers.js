@@ -47,7 +47,7 @@ function teachersFetch(data, callback) {
                 data: res.rows
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -109,7 +109,7 @@ function teachersCreate(data, callback) {
                 });
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBInsertQueryError(err));
             }
@@ -158,7 +158,7 @@ function teachersDelete(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBDeleteQueryError(err));
             }
@@ -232,7 +232,7 @@ function teachersUpdate(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBUpdateQueryError(err));
             }

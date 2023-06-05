@@ -12,6 +12,7 @@ class Autocomplete {
         exclude_user_types: new DataTypes(false,[],['autocomplete/users'],false,JSON.stringify(['admin','teacher'])).array,
         exclude_user_ids: new DataTypes(false,[],['autocomplete/users'],false,JSON.stringify(['e670c3ea-f740-11ed-a9d6-0242ac110032','7bce48da-f5c1-11ed-b0ba-0242ac110032'])).array,
         include_roles: new DataTypes(false,[],['autocomplete/teachers'],false,JSON.stringify(['chairman','semester_coordinator','batch_advisor'])).array,
+        examiner_type: new DataTypes(false,[],['autocomplete/studentsThesisExaminers'],false,'internal_examiner').string,
     }
 }
 
@@ -45,7 +46,7 @@ function autocompleteUsers(data, callback) {
             data: users_list.map(user => ({id: user.user_id, label: user.name})) 
         })
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         callback(validations.validateDBSelectQueryError(err));
     })
 }
@@ -78,7 +79,7 @@ function autocompleteTeachers(data, callback) {
                 }))
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -104,7 +105,7 @@ function autocompleteFaculty(data, callback) {
                 data: [...res.rows.map(row => ({id: row.user_id, label: row.username}))]
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -130,7 +131,7 @@ function autocompleteCourses(data, callback) {
                 data: res.rows.map(row => ({id: row.course_id, label: `${row.course_id} ${row.course_name}`}))
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -167,10 +168,36 @@ function autocompleteBatchStudents(data, callback) {
                 data: res.rows.map(row => ({id: row.student_batch_id, label: `${row.student_name} (${row.reg_no || row.cnic}) - ${row.degree_type}`}))
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
+}
+
+function autocompleteStudentsThesisExaminers(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+
+    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    const where_clauses = []
+    if (data.examiner_type) where_clauses.push(`examiner_type = '${data.examiner_type}'`)
+
+    db.query(`
+        SELECT * FROM students_thesis_examiners
+        ${where_clauses.length > 0 ? `WHERE `:''}
+        ${where_clauses.join(' AND ')}
+        ORDER BY examiner_creation_timestamp;
+    `).then(res => {
+        return callback({
+            code: 200, 
+            status: 'OK',
+            data: res.rows.map(row => ({id: row.examiner_id, label: `${row.examiner_name} - ${row.examiner_designation} @ ${row.examiner_university}`}))
+        })
+    }).catch(err => {
+        console.error(err)
+        return callback(validations.validateDBSelectQueryError(err));
+    })
 }
 
 module.exports = {
@@ -179,5 +206,6 @@ module.exports = {
     autocompleteTeachers,
     autocompleteCourses,
     autocompleteBatchStudents,
+    autocompleteStudentsThesisExaminers,
     Autocomplete
 }

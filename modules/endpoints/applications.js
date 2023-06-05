@@ -61,7 +61,7 @@ function applicationsFetch(data, callback) {
         })
         return callback({code: 200, status: 'OK', data: applications})
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
 }
@@ -91,7 +91,7 @@ function applicationsCreate(data, callback) {
         if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: 'added record to db'});
         else return callback({code: 500, status: 'INTERNAL ERROR', message: 'database could not add record'});
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBInsertQueryError(err));
     })
 }
@@ -121,7 +121,7 @@ function applicationsUpdateStatus(data, callback) {
                 else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
                 else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
             }).catch(err => {
-                console.log(err)
+                console.error(err)
                 return callback(validations.validateDBUpdateQueryError(err));
             })
         } else {
@@ -149,12 +149,12 @@ function applicationsUpdateStatus(data, callback) {
                 else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
                 else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
             }).catch(err => {
-                console.log(err)
+                console.error(err)
                 return callback(validations.validateDBUpdateQueryError(err));
             })
         }
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
 
@@ -208,11 +208,11 @@ function applicationsForward(data, callback) {
             else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
             else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             return callback(validations.validateDBUpdateQueryError(err));
         })
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
 }

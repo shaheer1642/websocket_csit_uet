@@ -44,7 +44,7 @@ function semestersFetch(data, callback) {
                 data: res.rows
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -87,7 +87,7 @@ function semestersCreate(data, callback) {
                 });
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBInsertQueryError(err));
             }
@@ -136,7 +136,7 @@ function semestersDelete(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBDeleteQueryError(err));
             }
@@ -204,7 +204,7 @@ function semestersUpdate(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBUpdateQueryError(err));
             }

@@ -39,7 +39,7 @@ function applicationsTemplatesFetch(data, callback) {
         if (user) templates = templates.filter(template => !template.degree_type || template.degree_type == user.degree_type)
         return callback({code: 200, status: 'OK', data: templates})
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
 }
@@ -68,7 +68,7 @@ function applicationsTemplatesCreate(data, callback) {
         if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: 'added record to db'});
         else return callback({code: 500, status: 'INTERNAL ERROR', message: 'database could not add record'});
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBInsertQueryError(err));
     })
 }
@@ -100,7 +100,7 @@ function applicationsTemplatesUpdate(data, callback) {
         else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.template_id} does not exist`});
         else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBUpdateQueryError(err));
     })
 }
@@ -116,7 +116,7 @@ function applicationsTemplatesDelete(data, callback) {
         if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: 'deleted record from db'});
         else return callback({code: 400, status: 'BAD REQUEST', message: 'record does not exist'});
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBDeleteQueryError(err));
     })
 }

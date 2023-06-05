@@ -66,7 +66,7 @@ function studentsCoursesFetch(data, callback) {
                 data: res.rows
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -125,12 +125,12 @@ function studentsCoursesAssignStudents(data, callback) {
                     message: 'updated records in db'
                 }):null
             }).catch(err => {
-                console.log(err)
+                console.error(err)
                 callback? callback(validations.validateDBInsertQueryError(err)) : null
                 db.query(`ROLLBACK;`).catch(console.error);
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -161,11 +161,11 @@ function studentsCoursesUpdateGrade(data, callback) {
             else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} does not exist` });
             else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             return callback(validations.validateDBUpdateQueryError(err));
         })
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         callback(validations.validateDBSelectQueryError(err));
     })
 
@@ -204,11 +204,11 @@ function studentsCoursesUpdateMarkings(data, callback) {
             return callback({ code: 200, status: 'OK', message: 'updated records in db' })
         }).catch(err => {
             db.query(`ROLLBACK;`).catch(console.error);
-            console.log(err)
+            console.error(err)
             return callback(validations.validateDBUpdateQueryError(err));
         })
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
 }
@@ -246,12 +246,12 @@ function studentsCoursesUpdateAttendances(data, callback) {
         `).then(res => {
             return callback({ code: 200, status: 'OK', message: 'updated records in db' })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBUpdateQueryError(err));
             db.query(`ROLLBACK;`).catch(console.error);;
         })
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         callback(validations.validateDBSelectQueryError(err));
     })
 }

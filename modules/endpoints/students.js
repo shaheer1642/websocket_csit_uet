@@ -61,7 +61,7 @@ function studentsFetch(data, callback) {
                 data: res.rows
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -123,11 +123,11 @@ function studentsCreate(data, callback) {
                     if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'added record to db' });
                     else return callback({ code: 500, status: 'INTERNAL ERROR', message: 'unexpected DB response' });
                 }).catch(err => {
-                    console.log(err)
+                    console.error(err)
                     return callback(validations.validateDBInsertQueryError(err));
                 })
             } else {
-                console.log(err)
+                console.error(err)
                 return callback(validations.validateDBInsertQueryError(err));
             }
         })
@@ -151,7 +151,7 @@ function studentsDelete(data, callback) {
                 else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.student_id} does not exist` });
                 else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows deleted` });
             }).catch(err => {
-                console.log(err)
+                console.error(err)
                 return callback(validations.validateDBDeleteQueryError(err));
             })
         } else if (res.rowCount > 1) {
@@ -162,12 +162,12 @@ function studentsDelete(data, callback) {
                 else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record student_id=${data.student_id} batch_id=${data.batch_id} does not exist` });
                 else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows deleted` });
             }).catch(err => {
-                console.log(err)
+                console.error(err)
                 return callback(validations.validateDBDeleteQueryError(err));
             })
         } else return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find that user` });
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         if (callback) {
             callback(validations.validateDBDeleteQueryError(err));
         }
@@ -242,7 +242,7 @@ function studentsUpdate(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBUpdateQueryError(err));
             }
@@ -265,7 +265,7 @@ function studentsFreezeSemester(data,callback) {
         else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` }); 
         else callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         callback(validations.validateDBUpdateQueryError(err));
     })
 }

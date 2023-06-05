@@ -43,7 +43,7 @@ function documentsFetch(data, callback) {
                 data: res.rows
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -86,13 +86,13 @@ function documentsCreate(data, callback) {
                     });
                 }
             }).catch(err => {
-                console.log(err)
+                console.error(err)
                 if (callback) {
                     callback(validations.validateDBInsertQueryError(err));
                 }
             })
         }).catch((err) => {
-            console.log(err)
+            console.error(err)
             callback({
                 code: 500, 
                 status: 'OK',
@@ -143,7 +143,7 @@ function documentsDelete(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBDeleteQueryError(err));
             }

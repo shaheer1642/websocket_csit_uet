@@ -46,7 +46,7 @@ function batchesFetch(data, callback) {
                 })
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBSelectQueryError(err));
             }
@@ -90,7 +90,7 @@ function batchesCreate(data, callback) {
                 });
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBInsertQueryError(err));
             }
@@ -152,7 +152,7 @@ function batchesDelete(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBDeleteQueryError(err));
             }
@@ -221,7 +221,7 @@ function batchesUpdate(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBUpdateQueryError(err));
             }

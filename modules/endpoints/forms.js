@@ -139,7 +139,7 @@ function resultFormG2A(data, callback) {
 </html>`
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -310,7 +310,7 @@ function resultFormG2B(data, callback) {
 </html>`
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }

@@ -14,21 +14,30 @@ class StudentsThesis {
         thesis_type: new DataTypes(true,['studentsThesis/create'],['studentsThesis/fetch','studentsThesis/update']).string,
         thesis_title: new DataTypes(true,['studentsThesis/create'],['studentsThesis/update']).string,
         grade: new DataTypes(true,['studentsThesis/updateGrade'],['studentsThesis/fetch'],false,'B').string,
+        undertaking_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
+
         supervisor_id: new DataTypes(true,['studentsThesis/create'],['studentsThesis/update']).uuid,
         co_supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/update']).uuid,
-        undertaking_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
-        internal_examiner: new DataTypes(true,[],['studentsThesis/update']).string,
-        external_examiner: new DataTypes(true,[],['studentsThesis/update']).string,
+        internal_examiner: new DataTypes(true,[],['studentsThesis/update']).uuid,
+        external_examiner: new DataTypes(true,[],['studentsThesis/update']).uuid,
+        examiner_within_department: new DataTypes(true,[],['studentsThesis/update']).uuid,
+        examiner_outside_department: new DataTypes(true,[],['studentsThesis/update']).uuid,
+        examiner_outside_university: new DataTypes(true,[],['studentsThesis/update']).uuid,
+        examiner_from_industry: new DataTypes(true,[],['studentsThesis/update']).uuid,
+        foreign_thesis_evaluator_1: new DataTypes(true,[],['studentsThesis/update']).uuid,
+        foreign_thesis_evaluator_2: new DataTypes(true,[],['studentsThesis/update']).uuid,
+
         boasar_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         proposal_submission_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         committee_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         defense_day_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
-        // proposal_completed: new DataTypes(true,[],['studentsThesis/update']).boolean,
-        proposal_documents: new DataTypes(true,[],['studentsThesis/update']).array,
-        pre_defense_documents: new DataTypes(true,[],['studentsThesis/update']).array,
-        thesis_submission_documents: new DataTypes(true,[],['studentsThesis/update']).array,
-        post_defense_documents: new DataTypes(true,[],['studentsThesis/update']).array,
-        post_thesis_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        
+        phase_0_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        phase_1_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        phase_2_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        phase_3_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        phase_4_documents: new DataTypes(true,[],['studentsThesis/update']).array,
+        phase_5_documents: new DataTypes(true,[],['studentsThesis/update']).array,
     }
 }
 
@@ -66,7 +75,7 @@ function studentsThesisFetch(data, callback) {
                 data: res.reduce((arr,obj) => arr.concat(obj.rows),[]).sort(dynamicSortDesc('undertaking_timestamp'))
             })
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             callback(validations.validateDBSelectQueryError(err));
         })
     }
@@ -91,7 +100,7 @@ function fetchStudentDegreeAndThesisTypes(student_batch_id) {
                 })
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             reject(validations.validateDBSelectQueryError(err));
         })
     })
@@ -137,7 +146,7 @@ function studentsThesisCreate(data, callback) {
                     });
                 }
             }).catch(err => {
-                console.log(err)
+                console.error(err)
                 if (callback) {
                     callback(validations.validateDBInsertQueryError(err));
                 }
@@ -152,110 +161,78 @@ function studentsThesisCreate(data, callback) {
 
 async function studentsThesisUpdate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
+
     const validator = validations.validateRequestData(data,new StudentsThesis,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    fetchStudentDegreeAndThesisTypes(data.student_batch_id)
+    .then(async res => {
+        const child_table = `students_thesis_${res.degree_type}_${res.thesis_type}`
+        
+        var update_clauses = []
+
+        if (data.thesis_type) update_clauses.push(`thesis_type = '${data.thesis_type}'`)
+        if (data.thesis_title) update_clauses.push(`thesis_title = '${data.thesis_title}'`)
+        
+        if (data.supervisor_id != undefined) update_clauses.push(`supervisor_id = ${data.supervisor_id ? `'${data.supervisor_id}'` : 'NULL'}`)
+        if (data.co_supervisor_id != undefined) update_clauses.push(`co_supervisor_id = ${data.co_supervisor_id ? `'${data.co_supervisor_id}'` : 'NULL'}`)
+        if (data.internal_examiner != undefined) update_clauses.push(`internal_examiner = ${data.internal_examiner ? `'${data.internal_examiner}'` : 'NULL'}`)
+        if (data.external_examiner != undefined) update_clauses.push(`external_examiner = ${data.external_examiner ? `'${data.external_examiner}'` : 'NULL'}`)
+        if (data.examiner_within_department != undefined) update_clauses.push(`examiner_within_department = ${data.examiner_within_department ? `'${data.examiner_within_department}'` : 'NULL'}`)
+        if (data.examiner_outside_department != undefined) update_clauses.push(`examiner_outside_department = ${data.examiner_outside_department ? `'${data.examiner_outside_department}'` : 'NULL'}`)
+        if (data.examiner_outside_university != undefined) update_clauses.push(`examiner_outside_university = ${data.examiner_outside_university ? `'${data.examiner_outside_university}'` : 'NULL'}`)
+        if (data.examiner_from_industry != undefined) update_clauses.push(`examiner_from_industry = ${data.examiner_from_industry ? `'${data.examiner_from_industry}'` : 'NULL'}`)
+        if (data.foreign_thesis_evaluator_1 != undefined) update_clauses.push(`foreign_thesis_evaluator_1 = ${data.foreign_thesis_evaluator_1 ? `'${data.foreign_thesis_evaluator_1}'` : 'NULL'}`)
+        if (data.foreign_thesis_evaluator_2 != undefined) update_clauses.push(`foreign_thesis_evaluator_2 = ${data.foreign_thesis_evaluator_2 ? `'${data.foreign_thesis_evaluator_2}'` : 'NULL'}`)
+
+        if (data.boasar_notification_timestamp) update_clauses.push(`boasar_notification_timestamp = ${data.boasar_notification_timestamp}`)
+        if (data.proposal_submission_timestamp) update_clauses.push(`proposal_submission_timestamp = ${data.proposal_submission_timestamp}`)
+        if (data.committee_notification_timestamp) update_clauses.push(`committee_notification_timestamp = ${data.committee_notification_timestamp}`)
+        if (data.defense_day_timestamp) update_clauses.push(`defense_day_timestamp = ${data.defense_day_timestamp}`)
+        
+        if (data.phase_0_documents) {
+            const document_ids = await uploadDocumentsFromArray(data.phase_0_documents).catch(console.error)
+            update_clauses.push(`phase_0_documents = '${JSON.stringify(document_ids)}'`)
         }
-        return
-    } else {
-        fetchStudentDegreeAndThesisTypes(data.student_batch_id)
-        .then(async res => {
-            const child_table = `students_thesis_${res.degree_type}_${res.thesis_type}`
-            
-            var update_clauses = []
-            if (data.supervisor_id) update_clauses.push(`supervisor_id = '${data.supervisor_id}'`)
-            if (data.co_supervisor_id) update_clauses.push(`co_supervisor_id = '${data.co_supervisor_id}'`)
-            if (data.thesis_type) update_clauses.push(`thesis_type = '${data.thesis_type}'`)
-            if (data.thesis_title) update_clauses.push(`thesis_title = '${data.thesis_title}'`)
-            if (data.internal_examiner) update_clauses.push(`internal_examiner = '${data.internal_examiner}'`)
-            if (data.external_examiner) update_clauses.push(`external_examiner = '${data.external_examiner}'`)
-            if (data.boasar_notification_timestamp) update_clauses.push(`boasar_notification_timestamp = ${data.boasar_notification_timestamp}`)
-            if (data.proposal_submission_timestamp) update_clauses.push(`proposal_submission_timestamp = ${data.proposal_submission_timestamp}`)
-            if (data.committee_notification_timestamp) update_clauses.push(`committee_notification_timestamp = ${data.committee_notification_timestamp}`)
-            if (data.defense_day_timestamp) update_clauses.push(`defense_day_timestamp = ${data.defense_day_timestamp}`)
-            // if (data.proposal_completed != undefined) update_clauses.push(`proposal_completed = ${data.proposal_completed}`)
-            if (data.proposal_documents) {
-                const document_ids = await uploadDocumentsFromArray(data.proposal_documents)
-                console.log(document_ids)
-                update_clauses.push(`proposal_documents = '${JSON.stringify(document_ids)}'`)
-            }
-            if (data.pre_defense_documents) {
-                const document_ids = await uploadDocumentsFromArray(data.pre_defense_documents)
-                console.log(document_ids)
-                update_clauses.push(`pre_defense_documents = '${JSON.stringify(document_ids)}'`)
-            }
-            if (data.thesis_submission_documents) {
-                const document_ids = await uploadDocumentsFromArray(data.thesis_submission_documents)
-                console.log(document_ids)
-                update_clauses.push(`thesis_submission_documents = '${JSON.stringify(document_ids)}'`)
-            }
-            if (data.post_defense_documents) {
-                const document_ids = await uploadDocumentsFromArray(data.post_defense_documents)
-                console.log(document_ids)
-                update_clauses.push(`post_defense_documents = '${JSON.stringify(document_ids)}'`)
-            }
-            if (data.post_thesis_documents) {
-                const document_ids = await uploadDocumentsFromArray(data.post_thesis_documents)
-                console.log(document_ids)
-                update_clauses.push(`post_thesis_documents = '${JSON.stringify(document_ids)}'`)
-            }
-            if (update_clauses.length == 0) {
-                if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `No valid parameters found in requested data.`,
-                    });
-                }
-                return
-            }
-            db.query(`
-                UPDATE ${child_table} SET
-                ${update_clauses.join(',')}
-                WHERE student_batch_id = '${data.student_batch_id}';
-            `).then(res => {
-                if (res.rowCount == 1) {
-                    if (callback) {
-                        callback({
-                            code: 200, 
-                            status: 'OK',
-                            message: `updated ${data.student_batch_id} record in db`
-                        });
-                    }
-                } else if (res.rowCount == 0) {
-                    if (callback) {
-                        callback({
-                            code: 400, 
-                            status: 'BAD REQUEST',
-                            message: `record ${data.student_batch_id} does not exist`
-                        });
-                    }
-                } else {
-                    if (callback) {
-                        callback({
-                            code: 500, 
-                            status: 'INTERNAL ERROR',
-                            message: `${res.rowCount} rows updated`
-                        });
-                    }
-                }
-            }).catch(err => {
-                console.log(err)
-                if (callback) {
-                    callback(validations.validateDBUpdateQueryError(err));
-                }
-            })
+        if (data.phase_1_documents) {
+            const document_ids = await uploadDocumentsFromArray(data.phase_1_documents).catch(console.error)
+            update_clauses.push(`phase_1_documents = '${JSON.stringify(document_ids)}'`)
+        }
+        if (data.phase_2_documents) {
+            const document_ids = await uploadDocumentsFromArray(data.phase_2_documents).catch(console.error)
+            update_clauses.push(`phase_2_documents = '${JSON.stringify(document_ids)}'`)
+        }
+        if (data.phase_3_documents) {
+            const document_ids = await uploadDocumentsFromArray(data.phase_3_documents).catch(console.error)
+            update_clauses.push(`phase_3_documents = '${JSON.stringify(document_ids)}'`)
+        }
+        if (data.phase_4_documents) {
+            const document_ids = await uploadDocumentsFromArray(data.phase_4_documents).catch(console.error)
+            update_clauses.push(`phase_4_documents = '${JSON.stringify(document_ids)}'`)
+        }
+        if (data.phase_5_documents) {
+            const document_ids = await uploadDocumentsFromArray(data.phase_5_documents).catch(console.error)
+            update_clauses.push(`phase_5_documents = '${JSON.stringify(document_ids)}'`)
+        }
+
+        if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.`, });
+        
+        db.query(`
+            UPDATE ${child_table} SET
+            ${update_clauses.join(',')}
+            WHERE student_batch_id = '${data.student_batch_id}';
+        `).then(res => {
+            if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated ${data.student_batch_id} record in db` });
+            else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.student_batch_id} does not exist` });
+            else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
         }).catch(err => {
-            if (callback) {
-                callback(err);
-            }
+            console.error(err)
+            return callback(validations.validateDBUpdateQueryError(err));
         })
-    }
+    }).catch(err => {
+        console.error(err)
+        return callback(err);
+    })
 }
 
 function studentsThesisDelete(data, callback) {
@@ -299,7 +276,7 @@ function studentsThesisDelete(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBDeleteQueryError(err));
             }
@@ -366,7 +343,7 @@ function studentsThesisUpdateGrade(data, callback) {
                 }
             }
         }).catch(err => {
-            console.log(err)
+            console.error(err)
             if (callback) {
                 callback(validations.validateDBUpdateQueryError(err));
             }

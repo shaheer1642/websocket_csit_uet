@@ -77,7 +77,7 @@ db.connect().then(async res => {
 
 db.on('error', err => {
     console.log('=============== DB Connection error. ==============')
-    console.log(err)
+    console.error(err)
     process.exit()
 })
 

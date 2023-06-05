@@ -43,7 +43,7 @@ function usersFetch(data, callback) {
 
         return callback({ code: 200, status: 'OK', data: users_list})
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
     })
 }
@@ -62,7 +62,7 @@ function usersFCMTokenUpdate(data,callback) {
         if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'updated token'})
         else return callback({ code: 400, status: 'BAD REQUEST', message: 'could not update record in db. maybe token already exists'})
     }).catch(err => {
-        console.log(err)
+        console.error(err)
         return callback(validations.validateDBUpdateQueryError(err));
     })
 }
