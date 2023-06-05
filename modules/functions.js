@@ -139,7 +139,7 @@ function getDepartmentIdFromCourseId(course_id) {
 }
 
 function escapeDBCharacters(str) {
-    return str.replace(/'/g,`''`).replace(/\"/g,`\\"`).replace(/\r\n/g,`\\n`).replace(/\n/g,`\\r\\n`)
+    return str.replace(/'/g,`''`).replace(/\\/g,`\\\\`).replace(/\"/g,`\\"`).replace(/\r\n/g,`\\n`).replace(/\n/g,`\\r\\n`)
 }
 
 module.exports = {
