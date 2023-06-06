@@ -43,10 +43,8 @@ function studentsFetch(data, callback) {
         });
     } else {
         var where_clauses = []
-        if (data.batch_id)
-            where_clauses.push(`batches.batch_id = '${data.batch_id}'`)
-        if (data.student_id)
-            where_clauses.push(`students.student_id = '${data.student_id}'`)
+        if (data.batch_id) where_clauses.push(`batches.batch_id = '${data.batch_id}'`)
+        if (data.student_id) where_clauses.push(`students.student_id = '${data.student_id}'`)
         db.query(`
             SELECT * FROM students
             JOIN students_batch on students_batch.student_id = students.student_id

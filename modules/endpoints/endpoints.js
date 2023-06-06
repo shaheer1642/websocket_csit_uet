@@ -251,6 +251,22 @@ const endpoints = {
             ['ALL'],
             users.usersFCMTokenUpdate
         ),
+        sendEmailVerificationCode: new Endpoint(
+            "users/sendEmailVerificationCode",
+            new users.Users(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'email sent'},null,4)}</code></pre>`,
+            true,
+            ['ALL'],
+            users.usersSendEmailVerificationCode
+        ),
+        updateEmail: new Endpoint(
+            "users/updateEmail",
+            new users.Users(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'email updated'},null,4)}</code></pre>`,
+            true,
+            ['ALL'],
+            users.usersUpdateEmail
+        ),
     },
     students: {
         fetch: new Endpoint(

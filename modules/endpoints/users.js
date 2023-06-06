@@ -1,7 +1,8 @@
 const {db} = require('../db_connection');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
+const {event_emitter} = require('../event_emitter');
+const { emailVerificationCode, verifyVerificationCode } = require('../email_code_verification');
 
 class Users {
     name = 'Users';
@@ -12,6 +13,8 @@ class Users {
         user_type: new DataTypes(true,[],[]).string,
         login_token: new DataTypes(false,['users/FCMTokenUpdate'],[]).uuid,
         fcm_token: new DataTypes(false,['users/FCMTokenUpdate'],[]).string,
+        user_email: new DataTypes(true,['users/updateEmail'],['users/sendEmailVerificationCode']).email,
+        email_verification_code: new DataTypes(false,['users/updateEmail'],[]).string,
     }
 }
 
@@ -25,19 +28,24 @@ function usersFetch(data, callback) {
     if (data.fetch_user_id) where_clauses.push(`users.user_id = '${data.fetch_user_id}'`)
 
     db.query(`
-        SELECT * FROM users WHERE user_type NOT IN ('student','teacher');
-        SELECT * FROM users JOIN students on students.student_id = users.user_id;
-        SELECT * FROM users JOIN teachers on teachers.teacher_id = users.user_id;
+        SELECT * FROM users WHERE user_type NOT IN ('student','teacher')
+        ${where_clauses.length > 0 ? 'AND ' + where_clauses.join(' AND '):''}
+        ;
+        SELECT * FROM users JOIN students on students.student_id = users.user_id
         ${where_clauses.length > 0 ? 'WHERE':''}
         ${where_clauses.join(' AND ')}
+        ;
+        SELECT * FROM users JOIN teachers on teachers.teacher_id = users.user_id
+        ${where_clauses.length > 0 ? 'WHERE':''}
+        ${where_clauses.join(' AND ')}
+        ;
     `).then(res => {
         const users_list = []
 
         res[0].rows.concat(res[1].rows.concat(res[2].rows)).forEach(user => {
             users_list.push({
-                user_id: user.user_id,
+                ...user,
                 name:  user.student_name || user.teacher_name || user.user_type,
-                user_type: user.user_type
             })
         })
 
@@ -67,6 +75,40 @@ function usersFCMTokenUpdate(data,callback) {
     })
 }
 
+function usersSendEmailVerificationCode(data,callback) {
+    console.log(`[${data.event}] called data received:`, data)
+
+    const validator = validations.validateRequestData(data,new Users,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    emailVerificationCode(data.user_id,data.user_email).then(() => {
+        return callback({ code: 200, status: 'OK', message: 'email sent'})
+    }).catch(err => {
+        return callback({ code: 500, status: 'ERROR', message: err.message || err})
+    })
+}
+
+function usersUpdateEmail(data,callback) {
+    console.log(`[${data.event}] called data received:`, data)
+
+    const validator = validations.validateRequestData(data,new Users,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    if (verifyVerificationCode(data.user_id,data.email_verification_code)) {
+        db.query(`
+            UPDATE users SET 
+            user_email = '${data.user_email}'
+            WHERE login_token = '${data.login_token}';
+        `).then(res => {
+            if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'updated email'})
+            else return callback({ code: 500, status: 'INTERNAL ERROR', message: 'could not update record in db'})
+        }).catch(err => {
+            console.error(err)
+            return callback(validations.validateDBUpdateQueryError(err));
+        })
+    } else return callback({ code: 400, status: 'BAD REQUEST', message: 'Invalid verification code provided'})
+}
+
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
     
@@ -84,5 +126,7 @@ db.on('notification', (notification) => {
 module.exports = {
     usersFetch,
     usersFCMTokenUpdate,
+    usersSendEmailVerificationCode,
+    usersUpdateEmail,
     Users
 }
