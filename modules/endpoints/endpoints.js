@@ -267,6 +267,14 @@ const endpoints = {
             ['ALL'],
             users.usersUpdateEmail
         ),
+        changePassword: new Endpoint(
+            "users/changePassword",
+            new users.Users(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'password reset successful'},null,4)}</code></pre>`,
+            true,
+            ['ALL'],
+            users.usersChangePassword
+        ),
     },
     students: {
         fetch: new Endpoint(
@@ -656,14 +664,6 @@ const endpoints = {
             false,
             ['ALL'],
             login.loginAuth
-        ),
-        resetPassword: new Endpoint(
-            "login/resetPassword",
-            new login.Login,
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'password reset successful'},null,4)}</code></pre>`,
-            false,
-            ['ALL'],
-            login.resetPassword
         ),
     },
     schema: {

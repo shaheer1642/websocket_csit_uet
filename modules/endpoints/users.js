@@ -15,6 +15,8 @@ class Users {
         fcm_token: new DataTypes(false,['users/FCMTokenUpdate'],[]).string,
         user_email: new DataTypes(true,['users/updateEmail'],['users/sendEmailVerificationCode']).email,
         email_verification_code: new DataTypes(false,['users/updateEmail'],[]).string,
+        current_password: new DataTypes(false,['users/changePassword'],[]).string,
+        new_password: new DataTypes(false,['users/changePassword'],[]).string,
     }
 }
 
@@ -109,6 +111,64 @@ function usersUpdateEmail(data,callback) {
     } else return callback({ code: 400, status: 'BAD REQUEST', message: 'Invalid verification code provided'})
 }
 
+function usersChangePassword(data, callback) {
+    console.log(`[${data.event}] called, data received: `, data)
+
+    const validator = validations.validateRequestData(data,new Users,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+    
+    db.query(`
+        UPDATE users SET password = '${data.new_password}' WHERE user_id = '${data.user_id}' AND password = '${data.current_password}';
+        SELECT * FROM users WHERE user_id = '${data.user_id}';
+    `).then(res => {
+        if (res[0].rowCount == 1) return callback({ code: 200, status: 'OK', message: 'password reset successful' });
+        else {
+            if (res[1]?.rows[0]?.password != data.current_password) return callback({ code: 401, status: 'BAD REQUEST', message: `Current password is incorrect` });
+            else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res[0].rowCount} rows received while updating record` });
+        }
+    }).catch(err => {
+        console.error(err)
+        return callback(validations.validateDBUpdateQueryError(err));
+    })
+
+    // db.query(`SELECT * FROM users`)
+    // .then(res => {
+    //     const users = res.rows
+    //     var matched_username = false
+    //     var matched_password = false
+    //     for (const user of users) {
+    //         if (user.username.toLowerCase() == data.username.toLowerCase()) matched_username = true;
+    //         if (!matched_username) continue
+    //         if (user.password == data.old_password) matched_password = true;
+    //         if (!matched_password) {
+    //             return callback({
+    //                 code: 402, 
+    //                 status: 'INVALID CREDENTIALS',
+    //                 message: 'Invalid password'
+    //             });
+    //         }
+    //         if (data.old_password == data.new_password) {
+    //             return callback({
+    //                 code: 403, 
+    //                 status: 'BAD REQUEST',
+    //                 message: 'old and new password cannot be the same'
+    //             });
+    //         }
+    //         return
+    //     }
+    //     if (!matched_username) {
+    //         return callback({
+    //             code: 401, 
+    //             status: 'INVALID CREDENTIALS',
+    //             message: 'Invalid username'
+    //         });
+    //     }
+    // }).catch(err => {
+    //     console.log(`[${data.event}] internal error: ${err}`)
+    //     callback(validations.validateDBInsertQueryError(err));
+    // })
+}
+
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
     
@@ -128,5 +188,6 @@ module.exports = {
     usersFCMTokenUpdate,
     usersSendEmailVerificationCode,
     usersUpdateEmail,
+    usersChangePassword,
     Users
 }
