@@ -142,6 +142,11 @@ function escapeDBCharacters(str) {
     return str.replace(/'/g,`''`).replace(/\\/g,`\\\\`).replace(/\"/g,`\\"`).replace(/\r\n/g,`\\n`).replace(/\n/g,`\\r\\n`)
 }
 
+function isEmailValid(value) {
+    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(value)) return false
+    else return true
+}
+
 module.exports = {
     dynamicSort,
     dynamicSortDesc,
@@ -152,5 +157,6 @@ module.exports = {
     convertUpper,
     checkKeysExists,
     escapeDBCharacters,
-    getDepartmentIdFromCourseId
+    getDepartmentIdFromCourseId,
+    isEmailValid
 };

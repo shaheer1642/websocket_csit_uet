@@ -254,8 +254,8 @@ const endpoints = {
         sendEmailVerificationCode: new Endpoint(
             "users/sendEmailVerificationCode",
             new users.Users(),
-            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'email sent'},null,4)}</code></pre>`,
-            true,
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'email sent', data: 'user_object'},null,4)}</code></pre>`,
+            false,
             ['ALL'],
             users.usersSendEmailVerificationCode
         ),
@@ -274,6 +274,14 @@ const endpoints = {
             true,
             ['ALL'],
             users.usersChangePassword
+        ),
+        resetPassword: new Endpoint(
+            "users/resetPassword",
+            new users.Users(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'password reset successful'},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            users.usersResetPassword
         ),
     },
     students: {

@@ -1,7 +1,8 @@
 const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
+const {DataTypes} = require('../classes/DataTypes');
+const { emailVerificationCode } = require('../email_code_verification');
 
 class Login {
     name = 'Login';
@@ -37,42 +38,6 @@ function loginAuth(data, callback) {
             if (res.rowCount == 0) return callback({ code: 402, status: 'INVALID CREDENTIALS', message: 'Username or password does not exist' });
             else if (res.rowCount == 1) return callback({ code: 200, status: 'OK', data: res.rows[0] });
             else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res[0].rowCount} rows received while updating record` });
-            // const users = res.rows
-            // var matched_username = false
-            // var matched_password = false
-            // var matched_user_type = false
-            // for (const user of users) {
-            //     if (user.username.toLowerCase() == data.username.toLowerCase()) matched_username = true;
-            //     if (!matched_username) continue
-            //     if (user.password == data.password) matched_password = true;
-            //     if (!matched_password) return callback({ code: 402, status: 'INVALID CREDENTIALS', message: 'Invalid password' });
-            //     if (!['admin','pga'].data.username.toLowerCase()) {
-            //         if (!data.user_type) return callback({ code: 403, status: 'INVALID USER TYPE', message: 'User type not found' });
-            //         if ()
-            //     }
-            //     db.query(`
-            //         SELECT * FROM users WHERE user_id = '${user.user_id}';
-            //     `)
-            //     .then(res => {
-            //         if (res[0].rowCount == 1) {
-            //             const userObj = res[1].rows[0]
-                        
-            //         } else {
-                        
-            //         }
-            //     }).catch(err => {
-            //         console.log(`[${data.event}] internal error: ${err}`)
-            //         return callback(validations.validateDBUpdateQueryError(err));
-            //     })
-            //     return
-            // }
-            // if (!matched_username) {
-            //     return callback({
-            //         code: 401, 
-            //         status: 'INVALID CREDENTIALS',
-            //         message: 'Invalid username'
-            //     });
-            // }
         }).catch(err => {
             console.log(`[${data.event}] internal error: ${err}`)
             callback(validations.validateDBUpdateQueryError(err));

@@ -8,15 +8,17 @@ class Users {
     name = 'Users';
     description = 'Endpoints for users'
     data_types = {
+        user_id: new DataTypes(true,['users/resetPassword'],[]).uuid,
         fetch_user_id: new DataTypes(true,[],['users/fetch']).uuid,
         name: new DataTypes(true,[],[]).string,
-        user_type: new DataTypes(true,[],[]).string,
+        user_type: new DataTypes(true,[],['users/sendEmailVerificationCode']).string,
         login_token: new DataTypes(false,['users/FCMTokenUpdate'],[]).uuid,
         fcm_token: new DataTypes(false,['users/FCMTokenUpdate'],[]).string,
         user_email: new DataTypes(true,['users/updateEmail'],['users/sendEmailVerificationCode']).email,
-        email_verification_code: new DataTypes(false,['users/updateEmail'],[]).string,
+        username: new DataTypes(true,[],['users/sendEmailVerificationCode']).string,
+        email_verification_code: new DataTypes(false,['users/updateEmail','users/resetPassword'],[]).string,
         current_password: new DataTypes(false,['users/changePassword'],[]).string,
-        new_password: new DataTypes(false,['users/changePassword'],[]).string,
+        new_password: new DataTypes(false,['users/changePassword','users/resetPassword'],[]).string,
     }
 }
 
@@ -83,11 +85,42 @@ function usersSendEmailVerificationCode(data,callback) {
     const validator = validations.validateRequestData(data,new Users,data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
-    emailVerificationCode(data.user_id,data.user_email).then(() => {
-        return callback({ code: 200, status: 'OK', message: 'email sent'})
-    }).catch(err => {
-        return callback({ code: 500, status: 'ERROR', message: err.message || err})
-    })
+    if (data.username) {
+        if (!['admin','pga'].includes(data.username) && !data.user_type) return callback({ code: 400, status: 'BAD REQUEST', message: 'user_type not provided with the username' });
+        db.query(`
+            SELECT * FROM users WHERE 
+            username = '${data.username}'
+            ${['admin','pga'].includes(data.username) ? '' : `AND user_type = '${data.user_type}'`};
+        `).then(res => {
+            const user = res.rows[0]
+            if (!user) return callback({ code: 400, status: 'BAD REQUEST', message: 'No user registered with given info' });
+            emailVerificationCode(user.user_id,user.user_email).then(() => {
+                return callback({ code: 200, status: 'OK', data: user, message: 'email sent'})
+            }).catch(err => {
+                return callback({ code: 500, status: 'ERROR', message: err.message || err})
+            })
+        }).catch(err => {
+            console.error(err)
+            return callback(validations.validateDBSelectQueryError(err));
+        })
+    } else if (data.user_email) {
+        db.query(`
+            SELECT * FROM users WHERE user_email = '${data.user_email}';
+        `).then(res => {
+            const user = res.rows[0]
+            if (!user) return callback({ code: 400, status: 'BAD REQUEST', message: 'No user registered with given info' });
+            emailVerificationCode(data.user_id,data.user_email).then(() => {
+                return callback({ code: 200, status: 'OK', data: user, message: 'email sent'})
+            }).catch(err => {
+                return callback({ code: 500, status: 'ERROR', message: err.message || err})
+            })
+        }).catch(err => {
+            console.error(err)
+            return callback(validations.validateDBSelectQueryError(err));
+        })
+    } else {
+        return callback({ code: 400, status: 'BAD REQUEST', message: 'No username or email provided'})
+    }
 }
 
 function usersUpdateEmail(data,callback) {
@@ -130,43 +163,25 @@ function usersChangePassword(data, callback) {
         console.error(err)
         return callback(validations.validateDBUpdateQueryError(err));
     })
+}
 
-    // db.query(`SELECT * FROM users`)
-    // .then(res => {
-    //     const users = res.rows
-    //     var matched_username = false
-    //     var matched_password = false
-    //     for (const user of users) {
-    //         if (user.username.toLowerCase() == data.username.toLowerCase()) matched_username = true;
-    //         if (!matched_username) continue
-    //         if (user.password == data.old_password) matched_password = true;
-    //         if (!matched_password) {
-    //             return callback({
-    //                 code: 402, 
-    //                 status: 'INVALID CREDENTIALS',
-    //                 message: 'Invalid password'
-    //             });
-    //         }
-    //         if (data.old_password == data.new_password) {
-    //             return callback({
-    //                 code: 403, 
-    //                 status: 'BAD REQUEST',
-    //                 message: 'old and new password cannot be the same'
-    //             });
-    //         }
-    //         return
-    //     }
-    //     if (!matched_username) {
-    //         return callback({
-    //             code: 401, 
-    //             status: 'INVALID CREDENTIALS',
-    //             message: 'Invalid username'
-    //         });
-    //     }
-    // }).catch(err => {
-    //     console.log(`[${data.event}] internal error: ${err}`)
-    //     callback(validations.validateDBInsertQueryError(err));
-    // })
+function usersResetPassword(data, callback) {
+    console.log(`[${data.event}] called, data received: `, data)
+
+    const validator = validations.validateRequestData(data,new Users,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+    
+    if (verifyVerificationCode(data.user_id,data.email_verification_code)) {
+        db.query(`
+            UPDATE users SET password = '${data.new_password}' WHERE user_id = '${data.user_id}';
+        `).then(res => {
+            if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'password reset successful' });
+            else return callback({ code: 500, status: 'BAD REQUEST', message: 'could not find that record in db'})
+        }).catch(err => {
+            console.error(err)
+            return callback(validations.validateDBUpdateQueryError(err));
+        })
+    } else return callback({ code: 400, status: 'BAD REQUEST', message: 'Invalid verification code provided'})
 }
 
 db.on('notification', (notification) => {
@@ -189,5 +204,6 @@ module.exports = {
     usersSendEmailVerificationCode,
     usersUpdateEmail,
     usersChangePassword,
+    usersResetPassword,
     Users
 }
