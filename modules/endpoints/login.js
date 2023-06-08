@@ -35,7 +35,7 @@ function loginAuth(data, callback) {
             ${['admin','pga'].includes(data.username.toLowerCase()) ? '' : `AND user_type = '${data.user_type}'`}
             returning *;
         `).then(res => {
-            if (res.rowCount == 0) return callback({ code: 402, status: 'INVALID CREDENTIALS', message: 'Username or password does not exist' });
+            if (res.rowCount == 0) return callback({ code: 402, status: 'INVALID CREDENTIALS', message: 'Username or password is invalid' });
             else if (res.rowCount == 1) return callback({ code: 200, status: 'OK', data: res.rows[0] });
             else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res[0].rowCount} rows received while updating record` });
         }).catch(err => {
