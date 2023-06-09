@@ -64,6 +64,13 @@ class DataTypes {
             type: 'email',
             example_value: example_value || 'test@domain.com'
         }
+        this.any = {
+            attribute: attribute,
+            required: required_for_endpoints || [],
+            optional: optional_for_endpoints || [],
+            type: 'any',
+            example_value: example_value
+        }
     }
 }
 

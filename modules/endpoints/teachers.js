@@ -14,7 +14,7 @@ class Teachers {
         cnic: new DataTypes(true,[],['teachers/create','teachers/update'],false,'1730155555555').string,
         teacher_name: new DataTypes(true,['teachers/create'],['teachers/update']).string,
         teacher_gender: new DataTypes(true,['teachers/create'],['teachers/update'],false,'male').string,
-        digital_signature: new DataTypes(true,[],['teachers/update'],false,'link-to-image').string,
+        digital_signature: new DataTypes(true,[],['teachers/update'],false,'image-buffer').any,
         areas_of_interest: new DataTypes(true,[],['teachers/update']).array,
         teacher_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
         user_id: new DataTypes(true).uuid,
@@ -172,73 +172,72 @@ function teachersDelete(data, callback) {
 
 async function teachersUpdate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Teachers,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-        return
-    } else {
-        var update_clauses = []
-        if (data.teacher_name) update_clauses.push(`teacher_name = '${data.teacher_name}'`)
-        if (data.teacher_gender) update_clauses.push(`teacher_gender = '${data.teacher_gender}'`)
-        if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
-        if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
-        if (data.areas_of_interest) update_clauses.push(`areas_of_interest = '${JSON.stringify(data.areas_of_interest)}'`)
-        if (data.digital_signature) {
-            const fileUrl = await uploadFile(digital_signature, data.digital_signature).catch(console.error)
-            if (fileUrl) update_clauses.push(`digital_signature = '${fileUrl}'`)
-        }
-        if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.` });
 
-        db.query(`
-            WITH query_one AS ( 
-                UPDATE teachers SET
-                ${update_clauses.join(',')}
-                WHERE teacher_id = '${data.teacher_id}'
-                RETURNING cnic, reg_no
-            )
-            UPDATE users SET 
-            username = ( select COALESCE(cnic, reg_no) from query_one ) 
-            ${data.user_email ? `,user_email = '${data.user_email}'`:''}
-            WHERE user_id = '${data.teacher_id}';
-        `).then(res => {
-            if (res.rowCount == 1) {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: `updated ${data.teacher_id} record in db`
-                    });
-                }
-            } else if (res.rowCount == 0) {
-                if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `record ${data.teacher_id} does not exist`
-                    });
-                }
-            } else {
-                if (callback) {
-                    callback({
-                        code: 500, 
-                        status: 'INTERNAL ERROR',
-                        message: `${res.rowCount} rows updated`
-                    });
-                }
-            }
-        }).catch(err => {
-            console.error(err)
-            if (callback) {
-                callback(validations.validateDBUpdateQueryError(err));
-            }
-        })
+    const validator = validations.validateRequestData(data,new Teachers,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    var update_clauses = []
+    if (data.teacher_name) update_clauses.push(`teacher_name = '${data.teacher_name}'`)
+    if (data.teacher_gender) update_clauses.push(`teacher_gender = '${data.teacher_gender}'`)
+    if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
+    if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
+    if (data.areas_of_interest) update_clauses.push(`areas_of_interest = '${JSON.stringify(data.areas_of_interest)}'`)
+    if (data.digital_signature) {
+        console.log('digital_signature detected')
+        const fileUrl = await uploadFile('digital_signature', data.digital_signature).catch(console.error)
+        console.log('fileUrl',fileUrl)
+        if (fileUrl) update_clauses.push(`digital_signature = '${fileUrl}'`)
     }
+    if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.` });
+
+    db.query(
+        data.cnic || data.reg_no ? 
+        `WITH query_one AS ( 
+            UPDATE teachers SET
+            ${update_clauses.join(',')}
+            WHERE teacher_id = '${data.teacher_id}'
+            RETURNING cnic, reg_no
+        )
+        UPDATE users SET 
+        username = ( select COALESCE(cnic, reg_no) from query_one ) 
+        ${data.user_email ? `,user_email = '${data.user_email}'`:''}
+        WHERE user_id = '${data.teacher_id}';`
+        : 
+        `UPDATE teachers SET
+        ${update_clauses.join(',')}
+        WHERE teacher_id = '${data.teacher_id}';`
+    ).then(res => {
+        if (res.rowCount == 1) {
+            if (callback) {
+                callback({
+                    code: 200, 
+                    status: 'OK',
+                    message: `updated ${data.teacher_id} record in db`
+                });
+            }
+        } else if (res.rowCount == 0) {
+            if (callback) {
+                callback({
+                    code: 400, 
+                    status: 'BAD REQUEST',
+                    message: `record ${data.teacher_id} does not exist`
+                });
+            }
+        } else {
+            if (callback) {
+                callback({
+                    code: 500, 
+                    status: 'INTERNAL ERROR',
+                    message: `${res.rowCount} rows updated`
+                });
+            }
+        }
+    }).catch(err => {
+        console.error(err)
+        if (callback) {
+            callback(validations.validateDBUpdateQueryError(err));
+        }
+    })
 }
 
 db.on('notification', (notification) => {

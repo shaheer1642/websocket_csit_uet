@@ -24,6 +24,8 @@ function validateKeyValue(key,value,type) {
     } else if (type == 'email') {
         if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(value)) return { valid: false, } 
         else return { valid: true, }
+    } else if (type == 'any') {
+        return { valid: true, }
     } else return { valid: true }
 }
 

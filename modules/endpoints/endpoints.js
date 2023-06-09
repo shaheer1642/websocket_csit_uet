@@ -291,6 +291,14 @@ const endpoints = {
             ['ALL'],
             users.usersResetPassword
         ),
+        updateAvatar: new Endpoint(
+            "users/updateAvatar",
+            new users.Users(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: 'avatar updated'},null,4)}</code></pre>`,
+            true,
+            ['ALL'],
+            users.usersUpdateAvatar
+        ),
     },
     students: {
         fetch: new Endpoint(

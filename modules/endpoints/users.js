@@ -3,6 +3,7 @@ const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
 const { emailVerificationCode, verifyVerificationCode } = require('../email_code_verification');
+const { uploadFile } = require('../aws/aws');
 
 class Users {
     name = 'Users';
@@ -19,6 +20,7 @@ class Users {
         email_verification_code: new DataTypes(false,['users/updateEmail','users/resetPassword'],[]).string,
         current_password: new DataTypes(false,['users/changePassword'],[]).string,
         new_password: new DataTypes(false,['users/changePassword','users/resetPassword'],[]).string,
+        avatar: new DataTypes(false,['users/updateAvatar'],[]).any,
     }
 }
 
@@ -184,6 +186,26 @@ function usersResetPassword(data, callback) {
     } else return callback({ code: 400, status: 'BAD REQUEST', message: 'Invalid verification code provided'})
 }
 
+async function usersUpdateAvatar(data, callback) {
+    console.log(`[${data.event}] called, data received: `, data)
+
+    const validator = validations.validateRequestData(data,new Users,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+    
+    const fileUrl = await uploadFile('avatar', data.avatar).catch(console.error)
+    if (!fileUrl) return callback({ code: 500, status: 'INTERNAL ERROR', message: 'Error uploading file' })
+        
+    db.query(`
+        UPDATE users SET avatar = '${fileUrl}' WHERE user_id = '${data.user_id}';
+    `).then(res => {
+        if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'avatar updated' });
+        else return callback({ code: 400, status: 'BAD REQUEST', message: `record not found` });
+    }).catch(err => {
+        console.error(err)
+        return callback(validations.validateDBUpdateQueryError(err));
+    })
+}
+
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
     
@@ -205,5 +227,6 @@ module.exports = {
     usersUpdateEmail,
     usersChangePassword,
     usersResetPassword,
+    usersUpdateAvatar,
     Users
 }

@@ -209,7 +209,7 @@ function autocompleteAreasOfInterest(data, callback) {
     db.query(`
         SELECT * FROM teachers WHERE jsonb_array_length(areas_of_interest) > 0;
     `).then(res => {
-        return callback({ code: 200, status: 'OK', data: res.rows.reduce((arr,row) => ([...arr, ...row.areas_of_interest]),[]) })
+        return callback({ code: 200, status: 'OK', data: res.rows.reduce((arr,row) => ([...arr, ...row.areas_of_interest.filter(o => !arr.includes(o))]), [])})
     }).catch(err => {
         console.error(err)
         callback(validations.validateDBSelectQueryError(err));

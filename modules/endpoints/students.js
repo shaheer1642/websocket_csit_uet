@@ -202,8 +202,9 @@ function studentsUpdate(data, callback) {
             }
             return
         }
-        db.query(`
-            WITH query_one AS ( 
+        db.query(
+            data.cnic || data.reg_no ?
+            `WITH query_one AS ( 
                 UPDATE students SET
                 ${update_clauses.join(',')}
                 WHERE student_id = '${data.student_id}'
@@ -212,8 +213,12 @@ function studentsUpdate(data, callback) {
             UPDATE users SET 
             username = ( select COALESCE(reg_no, cnic) from query_one ) 
             ${data.user_email ? `,user_email = '${data.user_email}'`:''} 
-            WHERE user_id = '${data.student_id}';
-        `).then(res => {
+            WHERE user_id = '${data.student_id}';`
+            :
+            `UPDATE students SET
+            ${update_clauses.join(',')}
+            WHERE student_id = '${data.student_id}';`
+        ).then(res => {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
