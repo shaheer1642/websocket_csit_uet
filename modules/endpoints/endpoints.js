@@ -85,6 +85,14 @@ const endpoints = {
             ['ALL'],
             autocomplete.autocompleteStudentsThesisExaminers
         ),
+        areasOfInterest: new Endpoint(
+            "autocomplete/areasOfInterest",
+            new autocomplete.Autocomplete(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: ''},null,4)}</code></pre>`,
+            false,
+            ['ALL'],
+            autocomplete.autocompleteAreasOfInterest
+        ),
     },
     documents: {
         fetch: new Endpoint(
@@ -348,7 +356,7 @@ const endpoints = {
             new teachers.Teachers(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
-            ['admin','pga'],
+            ['admin','pga','teacher'],
             teachers.teachersUpdate
         ),
         delete: new Endpoint(

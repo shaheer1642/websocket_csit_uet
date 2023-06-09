@@ -2,7 +2,9 @@ const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
+const {event_emitter} = require('../event_emitter');
+const { uploadDocumentsFromArray } = require('./documents');
+const { uploadFile } = require('../aws/aws');
 
 class Teachers {
     name = 'Teachers';
@@ -12,6 +14,8 @@ class Teachers {
         cnic: new DataTypes(true,[],['teachers/create','teachers/update'],false,'1730155555555').string,
         teacher_name: new DataTypes(true,['teachers/create'],['teachers/update']).string,
         teacher_gender: new DataTypes(true,['teachers/create'],['teachers/update'],false,'male').string,
+        digital_signature: new DataTypes(true,[],['teachers/update'],false,'link-to-image').string,
+        areas_of_interest: new DataTypes(true,[],['teachers/update']).array,
         teacher_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
         user_id: new DataTypes(true).uuid,
         username: new DataTypes(true).string,
@@ -166,7 +170,7 @@ function teachersDelete(data, callback) {
     }
 }
 
-function teachersUpdate(data, callback) {
+async function teachersUpdate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     const validator = validations.validateRequestData(data,new Teachers,data.event)
     if (!validator.valid) {
@@ -184,16 +188,13 @@ function teachersUpdate(data, callback) {
         if (data.teacher_gender) update_clauses.push(`teacher_gender = '${data.teacher_gender}'`)
         if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
         if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
-        if (update_clauses.length == 0) {
-            if (callback) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: `No valid parameters found in requested data.`,
-                });
-            }
-            return
+        if (data.areas_of_interest) update_clauses.push(`areas_of_interest = '${JSON.stringify(data.areas_of_interest)}'`)
+        if (data.digital_signature) {
+            const fileUrl = await uploadFile(digital_signature, data.digital_signature).catch(console.error)
+            if (fileUrl) update_clauses.push(`digital_signature = '${fileUrl}'`)
         }
+        if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.` });
+
         db.query(`
             WITH query_one AS ( 
                 UPDATE teachers SET

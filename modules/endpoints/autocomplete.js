@@ -200,6 +200,22 @@ function autocompleteStudentsThesisExaminers(data, callback) {
     })
 }
 
+function autocompleteAreasOfInterest(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+
+    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`
+        SELECT * FROM teachers WHERE jsonb_array_length(areas_of_interest) > 0;
+    `).then(res => {
+        return callback({ code: 200, status: 'OK', data: res.rows.reduce((arr,row) => ([...arr, ...row.areas_of_interest]),[]) })
+    }).catch(err => {
+        console.error(err)
+        callback(validations.validateDBSelectQueryError(err));
+    })
+}
+
 module.exports = {
     autocompleteUsers,
     autocompleteFaculty,
@@ -207,5 +223,6 @@ module.exports = {
     autocompleteCourses,
     autocompleteBatchStudents,
     autocompleteStudentsThesisExaminers,
+    autocompleteAreasOfInterest,
     Autocomplete
 }
