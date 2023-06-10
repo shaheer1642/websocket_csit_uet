@@ -585,6 +585,14 @@ const endpoints = {
             ['pga'],
             studentsThesis.studentsThesisDelete
         ),
+        updateGrade: new Endpoint(
+            "studentsThesis/updateGrade",
+            new studentsThesis.StudentsThesis(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['pga'],
+            studentsThesis.studentsThesisUpdateGrade
+        ),
     },
     studentsThesisExaminers: {
         fetch: new Endpoint(

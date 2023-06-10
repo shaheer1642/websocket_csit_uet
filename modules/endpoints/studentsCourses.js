@@ -22,8 +22,6 @@ class StudentsCourses {
         grade: new DataTypes(true,
             ['studentsCourses/updateGrade'],
             ['studentsCourses/fetch'],false,'B').string,
-        grade_assignment_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
-        grade_assigned_by: new DataTypes(true).uuid,
         grade_change_logs: new DataTypes(true,[],[],false,'["timestamp user_id grade"]').array,
         marking: new DataTypes(true).json,
         markings: new DataTypes(true,['studentsCourses/updateMarkings']).array,
@@ -152,8 +150,6 @@ function studentsCoursesUpdateGrade(data, callback) {
         db.query(`
             UPDATE students_courses SET
             grade = '${data.grade}',
-            grade_assignment_timestamp = ${new Date().getTime()},
-            grade_assigned_by = '${data.user_id}',
             grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
             WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${data.student_batch_id}';
         `).then(res => {

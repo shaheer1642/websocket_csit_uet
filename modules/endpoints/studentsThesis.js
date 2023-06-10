@@ -286,69 +286,23 @@ function studentsThesisDelete(data, callback) {
 
 function studentsThesisUpdateGrade(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
+
     const validator = validations.validateRequestData(data,new StudentsThesis,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-        return
-    } else {
-        var update_clauses = []
-        if (data.grade) update_clauses.push(`grade = '${data.grade}'`)
-        if (update_clauses.length == 0) {
-            if (callback) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: `No valid parameters found in requested data.`,
-                });
-            }
-            return
-        }
-        db.query(`
-            UPDATE students_thesis SET
-            grade = '${data.grade}',
-            grade_assignment_timestamp = ${new Date().getTime()},
-            grade_assigned_by = '${data.user_id}',
-            grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
-            WHERE student_batch_id = '${data.student_batch_id}';
-        `).then(res => {
-            if (res.rowCount == 1) {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: `updated record in db`
-                    });
-                }
-            } else if (res.rowCount == 0) {
-                if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `record student_batch_id=${data.student_batch_id} does not exist`
-                    });
-                }
-            } else {
-                if (callback) {
-                    callback({
-                        code: 500, 
-                        status: 'INTERNAL ERROR',
-                        message: `${res.rowCount} rows updated`
-                    });
-                }
-            }
-        }).catch(err => {
-            console.error(err)
-            if (callback) {
-                callback(validations.validateDBUpdateQueryError(err));
-            }
-        })
-    }
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`
+        UPDATE students_thesis SET
+        grade = '${data.grade}',
+        grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
+        WHERE student_batch_id = '${data.student_batch_id}';
+    `).then(res => {
+        if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated record in db` });
+        else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record student_batch_id=${data.student_batch_id} does not exist` });
+        else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
+    }).catch(err => {
+        console.error(err)
+        return callback(validations.validateDBUpdateQueryError(err));
+    })
 }
 
 db.on('notification', (notification) => {
