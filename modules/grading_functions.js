@@ -14,7 +14,11 @@ db.on('connected',() => {
 })
 
 function calculateQualityPoints(grade, credit_hours) {
-    return (grades_obj[grade].grade_points * credit_hours) || 0
+    return (grades_obj[grade]?.grade_points * credit_hours) || 0
+}
+
+function gradeToGPA(grade) {
+    return (grades_obj[grade]?.grade_points) || 0
 }
 
 function getGradePoints() {
@@ -132,5 +136,6 @@ module.exports = {
     getGradePoints,
     markingEvalutation,
     calculateAttendancePercentage,
-    calculateGrade
+    calculateGrade,
+    gradeToGPA
 }

@@ -155,6 +155,14 @@ const endpoints = {
             ['admin','pga','teacher'],
             forms.resultFormG2B
         ),
+        studentTranscript: new Endpoint(
+            "forms/studentTranscript",
+            new forms.Forms(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: `<html></html>`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga','student'],
+            forms.studentTranscript
+        ),
     },
     events: {
         fetch: new Endpoint(

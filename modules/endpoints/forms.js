@@ -2,13 +2,14 @@ const { db } = require('../db_connection');
 const validations = require('../validations');
 const { DataTypes } = require('../classes/DataTypes');
 const { convertUpper } = require('../functions');
-const { calculateQualityPoints, getGradePoints } = require('../grading_functions');
+const { calculateQualityPoints, getGradePoints, gradeToGPA } = require('../grading_functions');
 
 class Forms {
     name = 'Forms';
     description = 'Endpoints for generating forms'
     data_types = {
-        sem_course_id: new DataTypes(true, ['forms/resultFormG2A','forms/resultFormG2B'], []).uuid,
+        sem_course_id: new DataTypes(true, ['forms/resultFormG2A', 'forms/resultFormG2B'], []).uuid,
+        student_batch_id: new DataTypes(true, ['forms/studentTranscript'], []).uuid,
     }
 }
 
@@ -44,13 +45,13 @@ function resultFormG2A(data, callback) {
                 credit_hours: data.credit_hours,
                 course_title: data.course_name,
                 instructor_name: data.teacher_name,
-                date: new Date().toLocaleDateString('en-UK', {year: 'numeric', month: '2-digit', day: '2-digit'}),
+                date: new Date().toLocaleDateString('en-UK', { year: 'numeric', month: '2-digit', day: '2-digit' }),
                 signature: '&nbsp;'.repeat(10)
             }
             return callback({
                 code: 200,
-                data: 
-`<html>
+                data:
+                    `<html>
     <style>
         table {
             font-family: arial, sans-serif;
@@ -100,15 +101,15 @@ function resultFormG2A(data, callback) {
                 <th>FINAL SEMESTER GRADE</th>
                 <th>QUALITY POINTS</th>
             </tr>
-            ${res.rows.map((record,index) => {
-                return `<tr>
-                    <td>${index+1}</td>
+            ${res.rows.map((record, index) => {
+                        return `<tr>
+                    <td>${index + 1}</td>
                     <td>${record.student_name}</td>
                     <td>${record.student_father_name}</td>
                     <td>${record.grade}</td>
                     <td>${calculateQualityPoints(record.grade, record.credit_hours)}</td>
                 </tr>`
-            }).join('\n')}
+                    }).join('\n')}
         </table>
         <p style="text-align:left;">
             DATE ${htmlFunctions.formatUnderlined(attributes.date)}
@@ -145,7 +146,6 @@ function resultFormG2A(data, callback) {
     }
 }
 
-
 function resultFormG2B(data, callback) {
     console.log(`[${data.event}] called data received:`, data)
     const validator = validations.validateRequestData(data, new Forms, data.event)
@@ -179,13 +179,13 @@ function resultFormG2B(data, callback) {
                 credit_hours: data.credit_hours,
                 course_title: data.course_name,
                 instructor_name: data.teacher_name,
-                date: new Date().toLocaleDateString('en-UK', {year: 'numeric', month: '2-digit', day: '2-digit'}),
+                date: new Date().toLocaleDateString('en-UK', { year: 'numeric', month: '2-digit', day: '2-digit' }),
                 signature: '&nbsp;'.repeat(10)
             }
             return callback({
                 code: 200,
-                data: 
-`<html>
+                data:
+                    `<html>
     <style>
         table {
             font-family: arial, sans-serif;
@@ -236,7 +236,7 @@ function resultFormG2B(data, callback) {
         <p align="right"><u>FORM G-2B</u></p>
         <h4 align="center"><u>RESULT SHEET</u></h4>
         <p style="text-align:left;">
-            Semester: Fall ${data.semester_season == 'fall' ? '☑':'☐'} Spring ${data.semester_season == 'spring' ? '☑':'☐'}
+            Semester: Fall ${data.semester_season == 'fall' ? '☑' : '☐'} Spring ${data.semester_season == 'spring' ? '☑' : '☐'}
             <span style="float:right;">
                 Course Title: <u>${attributes.course_title}</u>
             </span>
@@ -267,8 +267,8 @@ function resultFormG2B(data, callback) {
                 <th></th>
                 <th></th>
             </tr>
-            ${res.rows.map((record,index) => {
-                return `<tr>
+            ${res.rows.map((record, index) => {
+                        return `<tr>
                     <td>${record.student_name}</td>
                     <td>${record.student_father_name}</td>
                     <td>${record.marking?.result[record?.grade_distribution?.marking?.type]?.evaluation?.sessional?.obtained}</td>
@@ -277,7 +277,7 @@ function resultFormG2B(data, callback) {
                     <td>${record.grade}</td>
                     <td>${calculateQualityPoints(record.grade, record.credit_hours)}</td>
                 </tr>`
-            }).join('\n')}
+                    }).join('\n')}
         </table>
         <p style="text-align:left;">
             Signature of Instructor ${'. '.repeat(10)}
@@ -316,6 +316,193 @@ function resultFormG2B(data, callback) {
     }
 }
 
+function studentTranscript(data, callback) {
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Forms, data.event)
+    if (!validator.valid) {
+        if (callback) {
+            callback({
+                code: 400,
+                status: 'BAD REQUEST',
+                message: validator.reason
+            });
+        }
+    } else {
+        db.query(`
+            SELECT * FROM students_courses SDC
+            JOIN semesters_courses SMC ON SMC.sem_course_id = SDC.sem_course_id
+            JOIN semesters SM ON SM.semester_id = SMC.semester_id
+            JOIN students_batch SDB ON SDB.student_batch_id = SDC.student_batch_id
+            JOIN batches B ON SDB.batch_id = B.batch_id
+            JOIN students S ON S.student_id = SDB.student_id
+            JOIN courses C ON C.course_id = SMC.course_id
+            JOIN grades G ON SDC.grade = G.grade
+            WHERE SDC.student_batch_id = '${data.student_batch_id}';
+        `).then(res => {
+            if (res.rowCount == 0) return callback({ code: 200, data: '<html><body><h4>No courses assigned yet</h4></body></html>' })
+            const data = res.rows[0]
+            const attributes = {
+                reg_no: data.reg_no || data.cnic,
+                student_name: data.student_name,
+                student_father_name: data.student_father_name,
+                program: `${convertUpper(data.degree_type)} ${convertUpper(data.batch_stream)}`,
+                date: new Date().toLocaleDateString('en-UK', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+            }
+            const semestersCourses = {}
+            res.rows.forEach(row => {
+                if (!semestersCourses[row.semester_id]) semestersCourses[row.semester_id] = {result: {}, courses: []}
+                semestersCourses[row.semester_id].courses.push(row)
+            })
+            console.log(Object.values(semestersCourses))
+            Object.keys(semestersCourses).forEach((semester_id,index) => {
+                const sch = semestersCourses[semester_id].courses.reduce((sum, course) => sum += course.credit_hours, 0)
+                const sgp = semestersCourses[semester_id].courses.reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
+                const sgpa = sgp / sch
+                const cch = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).reduce((sum, course) => sum += course.credit_hours, 0)
+                const cgp = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
+                const cgpa = cgp / cch
+                semestersCourses[semester_id].result = {
+                    SCH: sch.toFixed(2),
+                    SGP: sgp.toFixed(2),
+                    SGPA: sgpa.toFixed(2),
+                    CCH: cch.toFixed(2),
+                    CGP: cgp.toFixed(2),
+                    CGPA: cgpa.toFixed(2),
+                }
+            })
+            console.log(semestersCourses)
+            return callback({
+                code: 200,
+                data:
+                    `<html>
+    <style>
+        table {
+            font-family: arial, sans-serif;
+            font-size: 12px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td, th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .column {
+            float: left;
+        }
+        
+        /* Clear floats after the columns */
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: auto auto auto;
+            justify-content: space-around;
+        }
+        .grid-item {
+            text-align: center;
+        }
+
+        @media print{
+            .noprint{
+                display:none;
+            }
+            @page { margin: 0; }
+            body { margin: 1.6cm; }
+        }
+    </style>
+    <body>
+        <button class="noprint" type="button" onClick="print()">Print Form</button>
+        <h3 align="center">University of Engineering & Technology<br>Peshawar, Pakistan</h3>
+        <p align="right">Registration No: <b>${attributes.reg_no}</b></p>
+        <h4 align="center" style="border-width:1px; border-style:solid; padding: 0.2em;">TRANSCRIPT</h4>
+        
+        <div class="grid-container">
+            <div class="grid-item">
+                <p><b>Student's Name:</b> ${attributes.student_name}</p>
+            </div>
+            <div class="grid-item">
+                <p><b>Father's Name:</b> ${attributes.student_father_name}</p>
+            </div>
+            <div class="grid-item">
+                <p><b>Program:</b> ${attributes.program}</p>
+            </div>
+        </div>
+
+        <div class="grid-container" style="grid-template-columns: auto auto; justify-content: space-around; align-items: space-around;">
+            ${Object.keys(semestersCourses).map(semester_id => {
+                const data = semestersCourses[semester_id].courses[0]
+                const result = semestersCourses[semester_id].result
+                return (
+                    `<div class="grid-item" style="padding: 10px">
+                        <table>
+                            <tr>
+                                <th style="text-align: center" colspan="4">${convertUpper(data.semester_season)} ${data.semester_year}</th>
+                            </tr>
+                            <tr>
+                                <th>Code</th>
+                                <th>Title</th>
+                                <th>CH</th>
+                                <th>Grade</th>
+                            </tr>
+                            ${semestersCourses[semester_id].courses.map(semesterCourse => {
+                                return (
+                                    `
+                                    <tr>
+                                        <td>${semesterCourse.course_id}</td>
+                                        <td>${semesterCourse.course_name}</td>
+                                        <td>${semesterCourse.credit_hours}</td>
+                                        <td>${semesterCourse.grade}</td>
+                                    </tr>
+                                    `
+                                )
+                            }).join('\n')}
+                            <tr>
+                                <td colspan="4">
+                                    <div class="grid-container">
+                                        ${Object.keys(result).map(k => {
+                                            return (
+                                                `<div class="grid-item">
+                                                    <p><b>${k.toUpperCase()}:</b> ${result[k]}</p>
+                                                </div>`
+                                            )
+                                        }).join('\n')}
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>`
+                )
+            }).join('\n')}
+        </div>
+
+        <p style="margin-top: 10px"><b>"The Official Transcript carries the embossed stamp of the University" </b></p>
+        <p>Transcript Prepared By: ${htmlFunctions.formatUnderlined('')}</p>
+        <p>Transcript Checked By: ${htmlFunctions.formatUnderlined('')}</p>
+        <p>Date of issue: ${htmlFunctions.formatUnderlined(attributes.date)}</p>
+        <p><b>"Errors and Omissions are subject to subsequent rectification"</b></p>
+        <p align="right"><b>Controller of Examinations</b></p>
+    </body>
+</html>`
+            })
+        }).catch(err => {
+            console.error(err)
+            callback(validations.validateDBSelectQueryError(err));
+        })
+    }
+}
+
 const htmlFunctions = {
     formatUnderlined: (str, options = { uppercase: undefined, bold: undefined }) => `${options.bold ? '<b>' : ''}<u>${'&nbsp;'.repeat(10)}${options.uppercase ? convertUpper(str) : str}${'&nbsp;'.repeat(10)}</u>${options.bold ? '</b>' : ''}`
 }
@@ -323,5 +510,6 @@ const htmlFunctions = {
 module.exports = {
     resultFormG2A,
     resultFormG2B,
+    studentTranscript,
     Forms
 }
