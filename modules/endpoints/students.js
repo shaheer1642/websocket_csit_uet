@@ -45,6 +45,9 @@ function studentsFetch(data, callback) {
         var where_clauses = []
         if (data.batch_id) where_clauses.push(`batches.batch_id = '${data.batch_id}'`)
         if (data.student_id) where_clauses.push(`students.student_id = '${data.student_id}'`)
+        if (data.reg_no) where_clauses.push(`students.reg_no = '${data.reg_no}'`)
+        if (data.cnic) where_clauses.push(`students.cnic = '${data.cnic}'`)
+        
         db.query(`
             SELECT * FROM students
             JOIN students_batch on students_batch.student_id = students.student_id
