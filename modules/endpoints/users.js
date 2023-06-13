@@ -9,7 +9,7 @@ class Users {
     name = 'Users';
     description = 'Endpoints for users'
     data_types = {
-        user_id: new DataTypes(true,['users/resetPassword'],[]).uuid,
+        user_id: new DataTypes(true,['users/resetPassword'],['users/sendEmailVerificationCode']).uuid,
         fetch_user_id: new DataTypes(true,[],['users/fetch']).uuid,
         name: new DataTypes(true,[],[]).string,
         user_type: new DataTypes(true,[],['users/sendEmailVerificationCode']).string,
@@ -95,7 +95,7 @@ function usersSendEmailVerificationCode(data,callback) {
             ${['admin','pga'].includes(data.username) ? '' : `AND user_type = '${data.user_type}'`};
         `).then(res => {
             const user = res.rows[0]
-            if (!user) return callback({ code: 400, status: 'BAD REQUEST', message: 'No user registered with given info' });
+            if (!user) return callback({ code: 400, status: 'BAD REQUEST', message: 'No user registered with given username and user type' });
             emailVerificationCode(user.user_id,user.user_email).then(() => {
                 return callback({ code: 200, status: 'OK', data: user, message: 'email sent'})
             }).catch(err => {
@@ -105,13 +105,19 @@ function usersSendEmailVerificationCode(data,callback) {
             console.error(err)
             return callback(validations.validateDBSelectQueryError(err));
         })
+    } else if (data.user_email && data.user_id) {
+        emailVerificationCode(data.user_id,data.user_email).then(() => {
+            return callback({ code: 200, status: 'OK', data: {user_id: data.user_id, user_email: data.user_email}, message: 'email sent'})
+        }).catch(err => {
+            return callback({ code: 500, status: 'ERROR', message: err.message || err})
+        })
     } else if (data.user_email) {
         db.query(`
-            SELECT * FROM users WHERE user_email = '${data.user_email}';
+            SELECT * FROM users WHERE user_email = '${data.user_email}'
         `).then(res => {
             const user = res.rows[0]
-            if (!user) return callback({ code: 400, status: 'BAD REQUEST', message: 'No user registered with given info' });
-            emailVerificationCode(data.user_id,data.user_email).then(() => {
+            if (!user) return callback({ code: 400, status: 'BAD REQUEST', message: 'No user registered with given email' });
+            emailVerificationCode(user.user_id,user.user_email).then(() => {
                 return callback({ code: 200, status: 'OK', data: user, message: 'email sent'})
             }).catch(err => {
                 return callback({ code: 500, status: 'ERROR', message: err.message || err})
@@ -121,7 +127,7 @@ function usersSendEmailVerificationCode(data,callback) {
             return callback(validations.validateDBSelectQueryError(err));
         })
     } else {
-        return callback({ code: 400, status: 'BAD REQUEST', message: 'No username or email provided'})
+        return callback({ code: 400, status: 'BAD REQUEST', message: 'No username or email and user_id provided'})
     }
 }
 
