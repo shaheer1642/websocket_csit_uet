@@ -141,7 +141,7 @@ async function getEmails() {
 const sendMail = async (title, body, email) => {
     if (!gmail_client) throw Error('Could not authorize gmail')
 
-    return true;
+    throw Error('Email service has been temporarily disabled')
 
     const fileAttachments = [
         {
