@@ -141,6 +141,8 @@ async function getEmails() {
 const sendMail = async (title, body, email) => {
     if (!gmail_client) throw Error('Could not authorize gmail')
 
+    return true;
+
     const fileAttachments = [
         {
             filename: 'attachment1.txt',
