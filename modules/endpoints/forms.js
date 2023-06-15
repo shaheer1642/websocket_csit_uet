@@ -499,7 +499,7 @@ function studentTranscript(data, callback) {
                 <td>${thesis?.completion_timestamp ? convertTimestampToSeasonYear(thesis.completion_timestamp) : ''}</td>
                 <td>CS-5199</td>
                 <td>Master's Thesis</td>
-                <td style="text-align: center;">6</td>
+                <td style="text-align: center;">${thesis?.thesis_type == 'research' ? '6' : thesis?.thesis_type == 'project' ? '3' : ''}</td>
                 <td style="text-align: center;">${thesis?.grade || ''}</td>
                 <td style="text-align: center;">---</td>
             </tr>` : ''}

@@ -17,6 +17,7 @@ class Batches {
         enrollment_season: new DataTypes(true,['batches/create'],['batches/update'],false,'spring').string,
         degree_type: new DataTypes(true,['batches/create'],['batches/update'],false,'msc').string,
         batch_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
+        batch_expiration_timestamp: new DataTypes(true,['batches/create'],['batches/update']).unix_timestamp_milliseconds,
     }
 }
 
@@ -72,14 +73,16 @@ function batchesCreate(data, callback) {
             enrollment_year,
             enrollment_season,
             degree_type,
-            batch_advisor_id
+            batch_advisor_id,
+            batch_expiration_timestamp
         ) VALUES (
             ${data.batch_no},
             '${data.batch_stream}',
             ${data.enrollment_year},
             '${data.enrollment_season}',
             '${data.degree_type}',
-            ${data.batch_advisor_id ? `,'${data.batch_advisor_id}'`:'NULL'}
+            ${data.batch_advisor_id ? `,'${data.batch_advisor_id}'`:'NULL'},
+            ${data.batch_expiration_timestamp}
         )
         `).then(res => {
             if (callback) {
@@ -179,6 +182,7 @@ function batchesUpdate(data, callback) {
         if (data.enrollment_year) update_clauses.push(`enrollment_year = ${data.enrollment_year}`)
         if (data.enrollment_season) update_clauses.push(`enrollment_season = '${data.enrollment_season}'`)
         if (data.degree_type) update_clauses.push(`degree_type = '${data.degree_type}'`)
+        if (data.batch_expiration_timestamp) update_clauses.push(`batch_expiration_timestamp = ${data.batch_expiration_timestamp}`)
         if (data.batch_advisor_id != undefined) update_clauses.push(`batch_advisor_id = ${data.batch_advisor_id ? `'${data.batch_advisor_id}'` : 'NULL'}`)
         if (update_clauses.length == 0) {
             if (callback) {
