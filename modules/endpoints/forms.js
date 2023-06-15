@@ -1,7 +1,7 @@
 const { db } = require('../db_connection');
 const validations = require('../validations');
 const { DataTypes } = require('../classes/DataTypes');
-const { convertUpper } = require('../functions');
+const { convertUpper, convertTimestampToSeasonYear } = require('../functions');
 const { calculateQualityPoints, getGradePoints, gradeToGPA } = require('../grading_functions');
 
 class Forms {
@@ -338,29 +338,38 @@ function studentTranscript(data, callback) {
             JOIN courses C ON C.course_id = SMC.course_id
             JOIN grades G ON SDC.grade = G.grade
             WHERE SDC.student_batch_id = '${data.student_batch_id}';
+            SELECT * FROM students_thesis WHERE student_batch_id = '${data.student_batch_id}';
         `).then(res => {
-            if (res.rowCount == 0) return callback({ code: 200, data: '<html><body><h4>No courses assigned yet</h4></body></html>' })
-            const data = res.rows[0]
+            if (res[0].rowCount == 0) return callback({ code: 200, data: '<html><body><h4>No courses assigned yet</h4></body></html>' })
+            const courses = res[0].rows
+            const thesis = res[1].rows[0]
+            const data = courses[0]
             const attributes = {
-                reg_no: data.reg_no || data.cnic,
+                reg_no: data.reg_no,
+                cnic: data.cnic,
                 student_name: data.student_name,
                 student_father_name: data.student_father_name,
-                program: `${convertUpper(data.degree_type)} ${convertUpper(data.batch_stream)}`,
+                degree_type: data.degree_type,
+                department: `Computer Science & Information Technology`,
+                specialization: convertUpper(data.batch_stream),
                 date: new Date().toLocaleDateString('en-UK', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                thesis_title: data.thesis_title,
+                thesis_grade: data.thesis_grade
             }
             const semestersCourses = {}
-            res.rows.forEach(row => {
+            courses.forEach(row => {
                 if (!semestersCourses[row.semester_id]) semestersCourses[row.semester_id] = {result: {}, courses: []}
                 semestersCourses[row.semester_id].courses.push(row)
             })
             console.log(Object.values(semestersCourses))
+            var gpa = 0
             Object.keys(semestersCourses).forEach((semester_id,index) => {
-                const sch = semestersCourses[semester_id].courses.reduce((sum, course) => sum += course.credit_hours, 0)
-                const sgp = semestersCourses[semester_id].courses.reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
-                const sgpa = sgp / sch
-                const cch = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).reduce((sum, course) => sum += course.credit_hours, 0)
-                const cgp = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
-                const cgpa = cgp / cch
+                const sch = semestersCourses[semester_id].courses.filter(course => !['W','I','N'].includes(course.grade)).reduce((sum, course) => sum += course.credit_hours, 0)
+                const sgp = semestersCourses[semester_id].courses.filter(course => !['W','I','N'].includes(course.grade)).reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
+                const sgpa = sgp / (sch || 1)
+                const cch = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).filter(course => !['W','I','N'].includes(course.grade)).reduce((sum, course) => sum += course.credit_hours, 0)
+                const cgp = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).filter(course => !['W','I','N'].includes(course.grade)).reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
+                const cgpa = cgp / (cch || 1)
                 semestersCourses[semester_id].result = {
                     SCH: sch.toFixed(2),
                     SGP: sgp.toFixed(2),
@@ -369,6 +378,7 @@ function studentTranscript(data, callback) {
                     CGP: cgp.toFixed(2),
                     CGPA: cgpa.toFixed(2),
                 }
+                gpa = cgpa.toFixed(2)
             })
             console.log(semestersCourses)
             return callback({
@@ -384,7 +394,7 @@ function studentTranscript(data, callback) {
         }
 
         td, th {
-            border: 1px solid #dddddd;
+            border: 1px solid black;
             text-align: left;
             padding: 8px;
         }
@@ -424,74 +434,83 @@ function studentTranscript(data, callback) {
     </style>
     <body>
         <button class="noprint" type="button" onClick="print()">Print Form</button>
-        <h3 align="center">University of Engineering & Technology<br>Peshawar, Pakistan</h3>
-        <p align="right">Registration No: <b>${attributes.reg_no}</b></p>
-        <h4 align="center" style="border-width:1px; border-style:solid; padding: 0.2em;">TRANSCRIPT</h4>
-        
-        <div class="grid-container">
-            <div class="grid-item">
-                <p><b>Student's Name:</b> ${attributes.student_name}</p>
+        <div class="row">
+            <div class="column" style="margin-right: 30px">
+                <img width="100" height="100" src="https://upload.wikimedia.org/wikipedia/en/9/95/University_of_Engineering_and_Technology_Peshawar_logo.svg"/>
             </div>
-            <div class="grid-item">
-                <p><b>Father's Name:</b> ${attributes.student_father_name}</p>
-            </div>
-            <div class="grid-item">
-                <p><b>Program:</b> ${attributes.program}</p>
+            <div class="column">
+                <center><h3>UNIVERSITY OF ENGINEERING & TECHNOLOGY<br>PESHAWAR, PAKISTAN</h3></center>
+                <center><h5>TRANSCRIPT FOR POST GRADUATE STUDIES<br>${attributes.degree_type == 'ms' ? 'MASTER OF SCIENCE' : attributes.degree_type == 'phd' ? 'DOCTOR OF PHILOSOPHY' : '<invalid-degree-type>'} IN ${attributes.specialization.toUpperCase()}</h5></center>
             </div>
         </div>
 
-        <div class="grid-container" style="grid-template-columns: auto auto; justify-content: space-around; align-items: space-around;">
-            ${Object.keys(semestersCourses).map(semester_id => {
+        <table style="border: none;">
+            <tr style="border: none;">
+                <td style="border: none;">Student's Name</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.student_name,{bold: true, line_length: 60})}</td>
+            </tr>
+            <tr style="border: none;">
+                <td style="border: none;">Father's Name</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.student_father_name,{bold: true, line_length: 60})}</td>
+            </tr>
+            <tr style="border: none;">
+                <td style="border: none;">National Identity Card No.</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.cnic || 'N/A',{bold: true, line_length: 60})}</td>
+            </tr>
+            <tr style="border: none;">
+                <td style="border: none;">Department</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.department,{bold: true, line_length: 60})}</td>
+            </tr>
+            <tr style="border: none;">
+                <td style="border: none;">Specialization</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.specialization,{bold: true, line_length: 60})}</td>
+            </tr>
+            <tr style="border: none;">
+                <td style="border: none;">Registration Number</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.reg_no || 'N/A',{bold: true, line_length: 60})}</td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th style="text-align: center">Semester</th>
+                <th style="text-align: center">Course No</th>
+                <th style="text-align: center">Course Title</th>
+                <th style="text-align: center">Credit Hours</th>
+                <th style="text-align: center">Grade</th>
+                <th style="text-align: center">Quality Points</th>
+            </tr>
+            ${Object.keys(semestersCourses).map((semester_id,oi) => {
                 const data = semestersCourses[semester_id].courses[0]
                 const result = semestersCourses[semester_id].result
-                return (
-                    `<div class="grid-item" style="padding: 10px">
-                        <table>
-                            <tr>
-                                <th style="text-align: center" colspan="4">${convertUpper(data.semester_season)} ${data.semester_year}</th>
-                            </tr>
-                            <tr>
-                                <th>Code</th>
-                                <th>Title</th>
-                                <th>CH</th>
-                                <th>Grade</th>
-                            </tr>
-                            ${semestersCourses[semester_id].courses.map(semesterCourse => {
-                                return (
-                                    `
-                                    <tr>
-                                        <td>${semesterCourse.course_id}</td>
-                                        <td>${semesterCourse.course_name}</td>
-                                        <td>${semesterCourse.credit_hours}</td>
-                                        <td>${semesterCourse.grade}</td>
-                                    </tr>
-                                    `
-                                )
-                            }).join('\n')}
-                            <tr>
-                                <td colspan="4">
-                                    <div class="grid-container">
-                                        ${Object.keys(result).map(k => {
-                                            return (
-                                                `<div class="grid-item">
-                                                    <p><b>${k.toUpperCase()}:</b> ${result[k]}</p>
-                                                </div>`
-                                            )
-                                        }).join('\n')}
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>`
-                )
+                return semestersCourses[semester_id].courses.map((semesterCourse,ii) => 
+                    `<tr>
+                        <td>${ii == 0 ? `${convertUpper(data.semester_season)} ${data.semester_year}` : ''}</td>
+                        <td>${semesterCourse.course_id}</td>
+                        <td>${semesterCourse.course_name}</td>
+                        <td style="text-align: center;">${semesterCourse.credit_hours}</td>
+                        <td style="text-align: center;">${semesterCourse.grade}</td>
+                        <td style="text-align: center;">${calculateQualityPoints(semesterCourse.grade,semesterCourse.credit_hours)}</td>
+                    </tr>`
+                ).join('\n')
             }).join('\n')}
-        </div>
+            ${attributes.degree_type == 'ms' ? 
+            `<tr>
+                <td>${thesis?.completion_timestamp ? convertTimestampToSeasonYear(thesis.completion_timestamp) : ''}</td>
+                <td>CS-5199</td>
+                <td>Master's Thesis</td>
+                <td style="text-align: center;">6</td>
+                <td style="text-align: center;">${thesis?.grade || ''}</td>
+                <td style="text-align: center;">---</td>
+            </tr>` : ''}
+        </table>
 
-        <p style="margin-top: 10px"><b>"The Official Transcript carries the embossed stamp of the University" </b></p>
+        <p style="font-size: 10px">Errors and omissions are subject to subsequent rectification</p>
+        <p>Grade Point Average = <b><u>${gpa}</u></b></p>
+        <p>Thesis Title ${htmlFunctions.formatUnderlined(thesis?.thesis_title || 'N/A')}</p>
         <p>Transcript Prepared By: ${htmlFunctions.formatUnderlined('')}</p>
         <p>Transcript Checked By: ${htmlFunctions.formatUnderlined('')}</p>
         <p>Date of issue: ${htmlFunctions.formatUnderlined(attributes.date)}</p>
-        <p><b>"Errors and Omissions are subject to subsequent rectification"</b></p>
         <p align="right"><b>Controller of Examinations</b></p>
     </body>
 </html>`
@@ -504,7 +523,8 @@ function studentTranscript(data, callback) {
 }
 
 const htmlFunctions = {
-    formatUnderlined: (str, options = { uppercase: undefined, bold: undefined }) => `${options.bold ? '<b>' : ''}<u>${'&nbsp;'.repeat(10)}${options.uppercase ? convertUpper(str) : str}${'&nbsp;'.repeat(10)}</u>${options.bold ? '</b>' : ''}`
+    formatUnderlined: (str, options = { uppercase: undefined, bold: undefined, line_length: undefined }) => 
+        `${options.bold ? '<b>' : ''}<u>${'&nbsp;'.repeat(options.line_length ? options.line_length - str.length : 10)}${options.uppercase ? convertUpper(str) : str}${'&nbsp;'.repeat(options.line_length ? options.line_length - str.length : 10)}</u>${options.bold ? '</b>' : ''}`
 }
 
 module.exports = {

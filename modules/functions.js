@@ -147,6 +147,11 @@ function isEmailValid(value) {
     else return true
 }
 
+function convertTimestampToSeasonYear(ts) {
+    ts = Number(ts)
+    return `${new Date(ts).getMonth() < 7 ? 'Spring' : 'Fall'} ${new Date(ts).getFullYear()}`
+}
+
 module.exports = {
     dynamicSort,
     dynamicSortDesc,
@@ -158,5 +163,6 @@ module.exports = {
     checkKeysExists,
     escapeDBCharacters,
     getDepartmentIdFromCourseId,
-    isEmailValid
+    isEmailValid,
+    convertTimestampToSeasonYear
 };

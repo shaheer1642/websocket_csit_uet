@@ -14,6 +14,7 @@ class StudentsThesis {
         thesis_type: new DataTypes(true,['studentsThesis/create'],['studentsThesis/fetch','studentsThesis/update']).string,
         thesis_title: new DataTypes(true,['studentsThesis/create'],['studentsThesis/update']).string,
         grade: new DataTypes(true,['studentsThesis/updateGrade'],['studentsThesis/fetch'],false,'B').string,
+        completion_timestamp: new DataTypes(true,['studentsThesis/updateGrade'],[]).unix_timestamp_milliseconds,
         undertaking_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
 
         supervisor_id: new DataTypes(true,['studentsThesis/create'],['studentsThesis/update']).uuid,
@@ -28,6 +29,11 @@ class StudentsThesis {
         foreign_thesis_evaluator_2: new DataTypes(true,[],['studentsThesis/update']).uuid,
 
         boasar_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
+        qe_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
+        rec_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
+        rec_i_meeting_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
+        rec_ii_meeting_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
+        rec_iii_meeting_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         proposal_submission_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         committee_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         defense_day_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
@@ -186,6 +192,11 @@ async function studentsThesisUpdate(data, callback) {
         if (data.foreign_thesis_evaluator_2 != undefined) update_clauses.push(`foreign_thesis_evaluator_2 = ${data.foreign_thesis_evaluator_2 ? `'${data.foreign_thesis_evaluator_2}'` : 'NULL'}`)
 
         if (data.boasar_notification_timestamp) update_clauses.push(`boasar_notification_timestamp = ${data.boasar_notification_timestamp}`)
+        if (data.qe_notification_timestamp) update_clauses.push(`qe_notification_timestamp = ${data.qe_notification_timestamp}`)
+        if (data.rec_notification_timestamp) update_clauses.push(`rec_notification_timestamp = ${data.rec_notification_timestamp}`)
+        if (data.rec_i_meeting_timestamp) update_clauses.push(`rec_i_meeting_timestamp = ${data.rec_i_meeting_timestamp}`)
+        if (data.rec_ii_meeting_timestamp) update_clauses.push(`rec_ii_meeting_timestamp = ${data.rec_ii_meeting_timestamp}`)
+        if (data.rec_iii_meeting_timestamp) update_clauses.push(`rec_iii_meeting_timestamp = ${data.rec_iii_meeting_timestamp}`)
         if (data.proposal_submission_timestamp) update_clauses.push(`proposal_submission_timestamp = ${data.proposal_submission_timestamp}`)
         if (data.committee_notification_timestamp) update_clauses.push(`committee_notification_timestamp = ${data.committee_notification_timestamp}`)
         if (data.defense_day_timestamp) update_clauses.push(`defense_day_timestamp = ${data.defense_day_timestamp}`)
@@ -293,6 +304,7 @@ function studentsThesisUpdateGrade(data, callback) {
     db.query(`
         UPDATE students_thesis SET
         grade = '${data.grade}',
+        completion_timestamp = ${data.completion_timestamp},
         grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
         WHERE student_batch_id = '${data.student_batch_id}';
     `).then(res => {

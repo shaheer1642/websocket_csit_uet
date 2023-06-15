@@ -15,9 +15,11 @@ class Students {
         student_name: new DataTypes(true,['students/create'],['students/update']).string,
         student_father_name: new DataTypes(true,['students/create'],['students/update']).string,
         student_gender: new DataTypes(true,['students/create'],['students/update'],false,'male').string,
-        user_email: new DataTypes(true,[],['students/update','students/create']).email,
+        student_admission_status: new DataTypes(true,['students/create'],['students/update'],false,'open_merit').string,
+        student_contact_no: new DataTypes(true,[],['students/create','students/update'],false,'03123456789').string,
         student_address: new DataTypes(true,[],['students/update','students/create'],false,'street#5, abc road, abc area, xyz city').string,
         student_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
+        user_email: new DataTypes(true,[],['students/update','students/create']).email,
         user_id: new DataTypes(true).uuid,
         username: new DataTypes(true).string,
         password: new DataTypes(true).string,
@@ -93,7 +95,7 @@ function studentsCreate(data, callback) {
                 ) 
                 RETURNING user_id 
             ), query_two AS (
-                INSERT INTO students (student_id, cnic, reg_no, student_name, student_father_name, student_gender, student_address) 
+                INSERT INTO students (student_id, cnic, reg_no, student_name, student_father_name, student_gender, student_admission_status, student_address, student_contact_no) 
                 VALUES (
                     ( select user_id from query_one ),
                     ${data.cnic ? `'${data.cnic}'`:null},
@@ -101,7 +103,9 @@ function studentsCreate(data, callback) {
                     '${data.student_name}',
                     '${data.student_father_name}',
                     '${data.student_gender.toLowerCase()}',
-                    ${data.student_address ? `'${data.student_address}'` : null}
+                    '${data.student_admission_status}',
+                    ${data.student_address ? `'${data.student_address}'` : null},
+                    ${data.student_contact_no ? `'${data.student_contact_no}'` : null}
                 )
             )
             INSERT INTO students_batch (student_id, batch_id)
@@ -177,83 +181,69 @@ function studentsDelete(data, callback) {
 
 function studentsUpdate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
+
     const validator = validations.validateRequestData(data,new Students,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-        return
-    } else {
-        var update_clauses = []
-        if (data.student_name) update_clauses.push(`student_name = '${data.student_name}'`)
-        if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
-        if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
-        if (data.student_father_name) update_clauses.push(`student_father_name = '${data.student_father_name}'`)
-        if (data.student_address) update_clauses.push(`student_address = '${data.student_address}'`)
-        if (data.student_gender) update_clauses.push(`student_gender = '${data.student_gender}'`)
-        if (update_clauses.length == 0) {
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    var update_clauses = []
+    if (data.student_name) update_clauses.push(`student_name = '${data.student_name}'`)
+    if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
+    if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
+    if (data.student_father_name) update_clauses.push(`student_father_name = '${data.student_father_name}'`)
+    if (data.student_address) update_clauses.push(`student_address = '${data.student_address}'`)
+    if (data.student_gender) update_clauses.push(`student_gender = '${data.student_gender}'`)
+    if (data.student_admission_status) update_clauses.push(`student_admission_status = '${data.student_admission_status}'`)
+    if (data.student_contact_no) update_clauses.push(`student_contact_no = '${data.student_contact_no}'`)
+    if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.`, })
+
+    db.query(
+        data.cnic || data.reg_no ?
+        `WITH query_one AS ( 
+            UPDATE students SET
+            ${update_clauses.join(',')}
+            WHERE student_id = '${data.student_id}'
+            RETURNING reg_no, cnic
+        )
+        UPDATE users SET 
+        username = ( select COALESCE(reg_no, cnic) from query_one ) 
+        ${data.user_email ? `,user_email = '${data.user_email}'`:''} 
+        WHERE user_id = '${data.student_id}';`
+        :
+        `UPDATE students SET
+        ${update_clauses.join(',')}
+        WHERE student_id = '${data.student_id}';`
+    ).then(res => {
+        if (res.rowCount == 1) {
+            if (callback) {
+                callback({
+                    code: 200, 
+                    status: 'OK',
+                    message: `updated ${data.student_id} record in db`
+                });
+            }
+        } else if (res.rowCount == 0) {
             if (callback) {
                 callback({
                     code: 400, 
                     status: 'BAD REQUEST',
-                    message: `No valid parameters found in requested data.`,
+                    message: `record ${data.student_id} does not exist`
                 });
             }
-            return
-        }
-        db.query(
-            data.cnic || data.reg_no ?
-            `WITH query_one AS ( 
-                UPDATE students SET
-                ${update_clauses.join(',')}
-                WHERE student_id = '${data.student_id}'
-                RETURNING reg_no, cnic
-            )
-            UPDATE users SET 
-            username = ( select COALESCE(reg_no, cnic) from query_one ) 
-            ${data.user_email ? `,user_email = '${data.user_email}'`:''} 
-            WHERE user_id = '${data.student_id}';`
-            :
-            `UPDATE students SET
-            ${update_clauses.join(',')}
-            WHERE student_id = '${data.student_id}';`
-        ).then(res => {
-            if (res.rowCount == 1) {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: `updated ${data.student_id} record in db`
-                    });
-                }
-            } else if (res.rowCount == 0) {
-                if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `record ${data.student_id} does not exist`
-                    });
-                }
-            } else {
-                if (callback) {
-                    callback({
-                        code: 500, 
-                        status: 'INTERNAL ERROR',
-                        message: `${res.rowCount} rows updated`
-                    });
-                }
-            }
-        }).catch(err => {
-            console.error(err)
+        } else {
             if (callback) {
-                callback(validations.validateDBUpdateQueryError(err));
+                callback({
+                    code: 500, 
+                    status: 'INTERNAL ERROR',
+                    message: `${res.rowCount} rows updated`
+                });
             }
-        })
-    }
+        }
+    }).catch(err => {
+        console.error(err)
+        if (callback) {
+            callback(validations.validateDBUpdateQueryError(err));
+        }
+    })
 }
 
 function studentsFreezeSemester(data,callback) {

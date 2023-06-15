@@ -178,7 +178,7 @@ const endpoints = {
             new events.Events(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             events.eventsCreate
         ),
         update: new Endpoint(
@@ -186,7 +186,7 @@ const endpoints = {
             new events.Events(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated event caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             events.eventsUpdate
         ),
         delete: new Endpoint(
@@ -194,7 +194,7 @@ const endpoints = {
             new events.Events(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted event caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             events.eventsDelete
         )
     },
@@ -230,7 +230,7 @@ const endpoints = {
             new batches.Batches(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             batches.batchesCreate
         ),
         update: new Endpoint(
@@ -238,7 +238,7 @@ const endpoints = {
             new batches.Batches(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             batches.batchesUpdate
         ),
         delete: new Endpoint(
@@ -246,7 +246,7 @@ const endpoints = {
             new batches.Batches(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             batches.batchesDelete
         )
     },
@@ -322,7 +322,7 @@ const endpoints = {
             new students.Students(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             students.studentsCreate
         ),
         update: new Endpoint(
@@ -338,7 +338,7 @@ const endpoints = {
             new students.Students(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             students.studentsDelete
         ),
         freezeSemester: new Endpoint(
@@ -364,7 +364,7 @@ const endpoints = {
             new teachers.Teachers(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             teachers.teachersCreate
         ),
         update: new Endpoint(
@@ -380,7 +380,7 @@ const endpoints = {
             new teachers.Teachers(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             teachers.teachersDelete
         )
     },
@@ -398,7 +398,7 @@ const endpoints = {
             new courses.Courses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             courses.coursesCreate
         ),
         update: new Endpoint(
@@ -414,7 +414,7 @@ const endpoints = {
             new courses.Courses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted CS-103 record from db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             courses.coursesDelete
         )
     },
@@ -432,7 +432,7 @@ const endpoints = {
             new semesters.Semesters(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             semesters.semestersCreate
         ),
         update: new Endpoint(
@@ -448,7 +448,7 @@ const endpoints = {
             new semesters.Semesters(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             semesters.semestersDelete
         )
     },
@@ -466,7 +466,7 @@ const endpoints = {
             new semestersCourses.SemestersCourses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', data: 'added record to db'},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             semestersCourses.semestersCoursesCreate
         ),
         updateTeacher: new Endpoint(
@@ -506,7 +506,7 @@ const endpoints = {
             new semestersCourses.SemestersCourses(),
             `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `deleted caa1534e-da15-41b6-8110-cc3fcffb14ed record from db`},null,4)}</code></pre>`,
             true,
-            ['admin'],
+            ['admin','pga'],
             semestersCourses.semestersCoursesDelete
         ),
     },

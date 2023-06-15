@@ -14,7 +14,7 @@ db.on('connected',() => {
 })
 
 function calculateQualityPoints(grade, credit_hours) {
-    return (grades_obj[grade]?.grade_points * credit_hours) || 0
+    return Number((grades_obj[grade]?.grade_points * credit_hours).toFixed(2)) || 0
 }
 
 function gradeToGPA(grade) {
