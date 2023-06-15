@@ -138,7 +138,7 @@ async function getEmails() {
     }
 }
 
-const sendMail = async (title, body, email) => {
+const sendMail = async (title, body, email, exclude_footer, is_html) => {
     if (!gmail_client) throw Error('Could not authorize gmail')
 
     throw Error('Email service has been temporarily disabled')
@@ -154,13 +154,15 @@ const sendMail = async (title, body, email) => {
         },
     ];
 
+    const text_body = `${body.replace(/\\r\\n/g, '\n')}${exclude_footer ? '' : '\n\nThis is an auto-generated email sent via MIS application from CSIT, University of Engineering & Technology, Peshawar'}`
+
     const options = {
         to: email,
         // cc: 'cc1@example.com, cc2@example.com',
         // replyTo: 'amit@labnol.org',
         subject: title,
-        text: body.replace(/\\r\\n/g,'\n') + '\n\nThis is an auto-generated email sent via MIS application from CSIT, University of Engineering & Technology, Peshawar',
-        // html: `<p>🙋🏻‍♀️  &mdash; This is a <b>test email</b> from <a href="https://digitalinspiration.com">Digital Inspiration</a>.</p>`,
+        text: is_html ? '' : text_body,
+        html: is_html ? text_body : undefined,
         // attachments: fileAttachments,
         textEncoding: 'base64',
         // headers: [
