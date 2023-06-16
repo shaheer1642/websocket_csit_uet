@@ -349,6 +349,14 @@ const endpoints = {
             ['admin','pga'],
             students.studentsFreezeSemester
         ),
+        cancelAdmission: new Endpoint(
+            "students/cancelAdmission",
+            new students.Students(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            students.studentsCancelAdmission
+        ),
     },
     teachers: {
         fetch: new Endpoint(
