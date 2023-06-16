@@ -116,6 +116,38 @@ db.on('notification', (notification) => {
             )
         }
     }
+
+    if (notification.channel == 'applications_insert') {
+        createNotification(
+            'New Application',
+            `You've received a new application`,
+            payload.submitted_to,
+            'user_id'
+        )
+        createNotification(
+            'Application Submitted',
+            `This is to confirm that your application has been submitted to respective authority. Kindly await review`,
+            payload.submitted_by,
+            'user_id'
+        )
+    }
+    if (notification.channel == 'applications_update') {
+        if (payload[0].forwarded_to.length > payload[1].forwarded_to.length) {
+            const detail = payload[0].forwarded_to.pop()
+            createNotification(
+                'New Application',
+                `A new application has been forwarded to you`,
+                detail.receiver_id,
+                'user_id'
+            )
+            createNotification(
+                'Application Forwarded',
+                `This is to confirm that your application has been forwarded. Kindly await review`,
+                detail.sender_id,
+                'user_id'
+            )
+        }
+    }
 })
 
 module.exports = {
