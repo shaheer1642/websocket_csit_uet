@@ -136,13 +136,13 @@ db.on('notification', (notification) => {
             const detail = payload[0].forwarded_to.pop()
             createNotification(
                 'New Application',
-                `A new application #${payload.serial} has been forwarded to you`,
+                `A new application #${payload[0].serial} has been forwarded to you`,
                 detail.receiver_id,
                 'user_id'
             )
             createNotification(
                 'Application Forwarded',
-                `This is to confirm that your application #${payload.serial} has been forwarded. Kindly await review`,
+                `This is to confirm that your application #${payload[0].serial} has been forwarded. Kindly await review`,
                 detail.sender_id,
                 'user_id'
             )
