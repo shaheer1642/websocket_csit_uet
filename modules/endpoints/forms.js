@@ -46,7 +46,8 @@ function resultFormG2A(data, callback) {
                 course_title: data.course_name,
                 instructor_name: data.teacher_name,
                 date: new Date().toLocaleDateString('en-UK', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-                signature: '&nbsp;'.repeat(10)
+                signature: '&nbsp;'.repeat(10),
+                digital_signature: data.digital_signature
             }
             return callback({
                 code: 200,
@@ -111,11 +112,14 @@ function resultFormG2A(data, callback) {
                 </tr>`
                     }).join('\n')}
         </table>
-        <p style="text-align:left;">
+        <p style="text-align:left; ${attributes.digital_signature ? 'position: relative; padding-top: 25px; padding-bottom: 25px;' : '' }">
             DATE ${htmlFunctions.formatUnderlined(attributes.date)}
             <span style="float:right;">
                 SIGNATURE ${htmlFunctions.formatUnderlined(attributes.signature)}
             </span>
+            ${attributes.digital_signature ? `
+                <img style="position: absolute; right: 50; top: 0" src='${attributes.digital_signature}' width="40px"/>
+            `:''}
         </p>
         <p align="right">
             ${htmlFunctions.formatUnderlined(attributes.instructor_name, { bold: true })}
@@ -180,7 +184,8 @@ function resultFormG2B(data, callback) {
                 course_title: data.course_name,
                 instructor_name: data.teacher_name,
                 date: new Date().toLocaleDateString('en-UK', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-                signature: '&nbsp;'.repeat(10)
+                signature: '&nbsp;'.repeat(10),
+                digital_signature: data.digital_signature
             }
             return callback({
                 code: 200,
@@ -279,11 +284,14 @@ function resultFormG2B(data, callback) {
                 </tr>`
                     }).join('\n')}
         </table>
-        <p style="text-align:left;">
+        <p style="text-align:left; ${attributes.digital_signature ? 'position: relative; padding-top: 25px; padding-bottom: 25px;' : '' }">
             Signature of Instructor ${'. '.repeat(10)}
             <span style="float:right;">
                 Name of Instructor: <b><u>${attributes.instructor_name}</u></b>
             </span>
+            ${attributes.digital_signature ? `
+                <img style="position: absolute; left: 170; top: 0" src='${attributes.digital_signature}' width="40px"/>
+            `:''}
         </p>
         <p style="text-align:left;">
             Department <u>CS & IT</u>
