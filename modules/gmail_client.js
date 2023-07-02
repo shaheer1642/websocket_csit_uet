@@ -76,68 +76,6 @@ function getNewToken(oAuth2Client, callback) {
     });
 }
 
-/**
- * Lists the labels in the user's account.
- *
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
- */
-
-async function getEmails() {
-    if (!gmail_client) throw Error('Could not authorize gmail')
-
-    const msgs = await gmail_client.users.messages.list({
-        // Include messages from `SPAM` and `TRASH` in the results.
-        //includeSpamTrash: 'placeholder-value',
-        // Only return messages with labels that match all of the specified label IDs.
-        //labelIds: 'placeholder-value',
-        // Maximum number of messages to return. This field defaults to 100. The maximum allowed value for this field is 500.
-        //maxResults: 'placeholder-value',
-        // Page token to retrieve a specific page of results in the list.
-        //pageToken: 'placeholder-value',
-        // Only return messages matching the specified query. Supports the same query format as the Gmail search box. For example, `"from:someuser@example.com rfc822msgid: is:unread"`. Parameter cannot be used when accessing the api using the gmail.metadata scope.
-        q: `is:unread`,
-        // The user's email address. The special value `me` can be used to indicate the authenticated user.
-        userId: 'me',
-    }).catch(err => {
-        console.error(err)
-        return false
-    });
-    if (!msgs) {
-        return
-    }
-    if (msgs.data.resultSizeEstimate > 0) {
-        //Read all msgs
-        msgs.data.messages.map(async msg => {
-            //first mark msg as read
-            await gmail_client.users.messages.modify({
-                // The ID of the message to modify.
-                id: msg.id,
-                // The user's email address. The special value `me` can be used to indicate the authenticated user.
-                userId: 'me',
-                // Request body metadata
-                requestBody: {
-                    removeLabelIds: ['UNREAD']
-                },
-            }).catch(err => console.error(err));
-            const res = await gmail_client.users.messages.get({
-                // The format to return the message in.
-                //format: 'full',
-                // The ID of the message to retrieve. This ID is usually retrieved using `messages.list`. The ID is also contained in the result when a message is inserted (`messages.insert`) or imported (`messages.import`).
-                id: msg.id,
-                // When given and format is `METADATA`, only include headers specified.
-                //metadataHeaders: 'placeholder-value',
-                // The user's email address. The special value `me` can be used to indicate the authenticated user.
-                userId: 'me',
-            }).catch(err => console.error(err));
-            const email = res.data.snippet
-            console.log('Received email on google: ' + email)
-            // var part = res.data.payload.parts.filter(function(part) {
-            //     return part.mimeType == 'text/html';
-            // });
-        })
-    }
-}
-
 const sendMail = async (title, body, email, exclude_footer, is_html) => {
     if (!gmail_client) throw Error('Could not authorize gmail')
 

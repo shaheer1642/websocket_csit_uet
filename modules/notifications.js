@@ -1,6 +1,6 @@
 const { db } = require("./db_connection");
 const { FCMNotify } = require("./firebase/FCM");
-const { escapeDBCharacters } = require("./functions");
+const { escapeDBCharacters, convertUpper, msToFullTime } = require("./functions");
 const { sendMail } = require("./gmail_client");
 const { users } = require("./objects/users");
 
@@ -9,6 +9,38 @@ db.on('connected', () => {
         res.rows.forEach(notification => sendNotification(notification))
     }).catch(console.error)
 })
+
+researchNotificationsTimer()
+function researchNotificationsTimer() {
+    console.log('[researchNotificationsTimer] called')
+    const months = [3,6,9,12]
+    const currentMonth = new Date().getMonth() + 1
+    const upcomingMonth = months.find(month => month >= currentMonth)
+    const nextCall = new Date(new Date(new Date().setMonth(upcomingMonth - 1)).setDate(1)).setHours(0,0,0,0)
+    const currentTime = new Date().getTime()
+    const msUntilNextCall = nextCall - currentTime
+    if (msUntilNextCall > 0 && msUntilNextCall < 2147483647) {
+        console.log('[researchNotificationsTimer] executing in',nextCall - currentTime,'ms')
+        setTimeout(() => {
+            console.log('[researchNotificationsTimer] executed')
+            db.query(`
+                SELECT * FROM students_thesis ST
+                JOIN students_batch SB on ST.student_batch_id = SB.student_batch_id
+                JOIN batches B ON B.batch_id = SB.batch_id
+                WHERE SB.admission_cancelled is false AND SB.degree_completed is false AND ST.grade != 'S' AND ST.grade != 'U';
+            `).then(res => {
+                res.rows.forEach(row => {
+                    createNotification(
+                        'Research Reminder',
+                        `This is to remind you that you have ${msToFullTime(Number(row.batch_expiration_timestamp) - new Date().getTime())} remaining until completion of your ${convertUpper(row.degree_type)} research`,
+                        row.student_id,
+                        'user_id'
+                    )
+                })
+            }).catch(console.error)
+        }, nextCall - currentTime);
+    }
+}
 
 function markNotificationAsSent(notification_id,type) {
     db.query(`update notifications set ${type} = true where notification_id = ${notification_id}`).catch(console.error)
