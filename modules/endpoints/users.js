@@ -69,16 +69,28 @@ function usersFCMTokenUpdate(data,callback) {
     const validator = validations.validateRequestData(data,new Users,data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
-    db.query(`
-        UPDATE users SET 
-        fcm_tokens = fcm_tokens || '[${JSON.stringify({timestamp: new Date().getTime(), token: data.fcm_token})}]'
-        WHERE login_token = '${data.login_token}' AND NOT(fcm_tokens @> '[{"token": "${data.fcm_token}"}]');
-    `).then(res => {
-        if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'updated token'})
-        else return callback({ code: 400, status: 'BAD REQUEST', message: 'could not update record in db. maybe token already exists'})
+    db.query(`SELECT * from users WHERE login_token = '${data.login_token}' AND NOT(fcm_tokens @> '[{"token": "${data.fcm_token}"}]');`).then(res => {
+        if (res.rowCount != 1) return callback({ code: 400, status: 'BAD REQUEST', message: 'Either login_token is invalid or the FCM token already exists'})
+        else {
+            const user = res.rows[0]
+            const fcm_tokens = user.fcm_tokens || []
+            fcm_tokens.push({timestamp: new Date().getTime(), token: data.fcm_token})
+            while(fcm_tokens.length > 2) fcm_tokens.shift()
+            db.query(`
+                UPDATE users SET 
+                fcm_tokens = '${JSON.stringify(fcm_tokens)}'
+                WHERE login_token = '${user.login_token}'
+            `).then(res => {
+                if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'updated token'})
+                else return callback({ code: 400, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`})
+            }).catch(err => {
+                console.error(err)
+                return callback(validations.validateDBUpdateQueryError(err));
+            })
+        }
     }).catch(err => {
         console.error(err)
-        return callback(validations.validateDBUpdateQueryError(err));
+        return callback(validations.validateDBSelectQueryError(err));
     })
 }
 
