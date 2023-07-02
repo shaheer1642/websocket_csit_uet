@@ -70,8 +70,8 @@ function teachersCreate(data, callback) {
         }
     } else {
         if (!data.cnic && !data.reg_no) return callback({ code: 400, status: 'BAD REQUEST', message: 'Both CNIC and Reg No cannot be empty' });
-        data.cnic = data.cnic?.toLowerCase()
-        data.reg_no = data.reg_no?.toLowerCase()
+        data.cnic = data.cnic?.toString().toLowerCase()
+        data.reg_no = data.reg_no?.toString().toLowerCase()
         const default_password = generateRandom1000To9999()
         db.query(`
             WITH query_one AS ( 
