@@ -132,16 +132,32 @@ db.on('notification', (notification) => {
     if (notification.channel == 'users_insert') {
         createNotification(
             'Account Credentials',
-            `Your account credentials for MIS login\n\nUsername: ${payload.username}\nPassword: ${payload.password}\n\nIt is recommended to change your password to a secure one after login`,
+            `Your account credentials for MIS login\n\nUsername: ${payload.username}\nPassword: ${payload.default_password}\n\nIt is strongly recommended to change your password to a secure one after login`,
             payload.user_id,
             'user_id'
         )
     }
     if (notification.channel == 'users_update') {
-        if ((payload[0].user_email != payload[1].user_email) || (payload[0].username != payload[1].username) || (payload[0].password != payload[1].password)) {
+        if (payload[0].user_email != payload[1].user_email) {
             createNotification(
-                'Account Credentials',
-                `Your account credentials for MIS login\n\nUsername: ${payload[0].username}\nPassword: ${payload[0].password}`,
+                'Account Update',
+                `Your account email has been updated from ${payload[1].user_email} to ${payload[0].user_email}`,
+                payload[0].user_id,
+                'user_id'
+            )
+        }
+        if (payload[0].username != payload[1].username) {
+            createNotification(
+                'Account Update',
+                `Your account username has been updated from ${payload[1].username} to ${payload[0].username}`,
+                payload[0].user_id,
+                'user_id'
+            )
+        }
+        if (payload[0].password != payload[1].password) {
+            createNotification(
+                'Account Update',
+                `Your account password has been updated. If this was not you, please immediately reset your password or notify the administrator`,
                 payload[0].user_id,
                 'user_id'
             )

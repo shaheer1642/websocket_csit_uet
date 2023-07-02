@@ -4,6 +4,7 @@ const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
 const { emailVerificationCode, verifyVerificationCode } = require('../email_code_verification');
 const { uploadFile } = require('../aws/aws');
+const { hashPassword } = require('../hashing');
 
 class Users {
     name = 'Users';
@@ -159,12 +160,13 @@ function usersChangePassword(data, callback) {
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
     
     db.query(`
-        UPDATE users SET password = '${data.new_password}' WHERE user_id = '${data.user_id}' AND password = '${data.current_password}';
+        UPDATE users SET password = '${hashPassword(data.new_password)}' WHERE user_id = '${data.user_id}' AND password = '${hashPassword(data.current_password)}';
         SELECT * FROM users WHERE user_id = '${data.user_id}';
     `).then(res => {
-        if (res[0].rowCount == 1) return callback({ code: 200, status: 'OK', message: 'password reset successful' });
+        if (res[0].rowCount == 1) 
+            return callback({ code: 200, status: 'OK', message: 'password reset successful' });
         else {
-            if (res[1]?.rows[0]?.password != data.current_password) return callback({ code: 401, status: 'BAD REQUEST', message: `Current password is incorrect` });
+            if (res[1]?.rows[0]?.password != hashPassword(data.current_password)) return callback({ code: 401, status: 'BAD REQUEST', message: `Current password is incorrect` });
             else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res[0].rowCount} rows received while updating record` });
         }
     }).catch(err => {
@@ -181,7 +183,7 @@ function usersResetPassword(data, callback) {
     
     if (verifyVerificationCode(data.user_id,data.email_verification_code)) {
         db.query(`
-            UPDATE users SET password = '${data.new_password}' WHERE user_id = '${data.user_id}';
+            UPDATE users SET password = '${hashPassword(data.new_password)}' WHERE user_id = '${data.user_id}';
         `).then(res => {
             if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'password reset successful' });
             else return callback({ code: 500, status: 'BAD REQUEST', message: 'could not find that record in db'})

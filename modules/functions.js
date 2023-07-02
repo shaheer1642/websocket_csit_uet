@@ -118,6 +118,10 @@ function checkKeysExists(obj, ref_obj, ignore_keys) {
     return valid
 }
 
+function generateRandom1000To9999() {
+    return Math.floor(Math.random() * 9999) + 1000;
+}
+
 const courseIds = {
     'cs': 'CS&IT',
     'bsi': 'BSI',
@@ -162,5 +166,6 @@ module.exports = {
     escapeDBCharacters,
     getDepartmentIdFromCourseId,
     isEmailValid,
-    convertTimestampToSeasonYear
+    convertTimestampToSeasonYear,
+    generateRandom1000To9999
 };

@@ -2,7 +2,9 @@ const {db} = require('../db_connection');
 const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
+const {event_emitter} = require('../event_emitter');
+const { generateRandom1000To9999 } = require('../functions');
+const { hashPassword } = require('../hashing');
 
 class Students {
     name = 'Students';
@@ -85,13 +87,16 @@ function studentsCreate(data, callback) {
         }
     } else {
         if (!data.cnic && !data.reg_no) return callback({ code: 400, status: 'BAD REQUEST', message: 'Both CNIC and Reg No cannot be empty' });
-        data.cnic = data.cnic?.toLowerCase()
-        data.reg_no = data.reg_no?.toLowerCase()
+        data.cnic = data.cnic?.toString().toLowerCase()
+        data.reg_no = data.reg_no?.toString().toLowerCase()
+        const default_password = generateRandom1000To9999()
         db.query(`
             WITH query_one AS ( 
-                INSERT INTO users (username, user_type, user_email) 
+                INSERT INTO users (username, password, default_password, user_type, user_email) 
                 VALUES (
                     '${data.reg_no || data.cnic}',
+                    '${hashPassword(default_password)}',
+                    '${default_password}',
                     'student',
                     ${data.user_email ? `'${data.user_email}'` : null}
                 ) 

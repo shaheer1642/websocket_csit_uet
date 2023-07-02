@@ -3,6 +3,7 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes');
 const { emailVerificationCode } = require('../email_code_verification');
+const { hashPassword } = require('../hashing');
 
 class Login {
     name = 'Login';
@@ -31,7 +32,7 @@ function loginAuth(data, callback) {
         db.query(`
             UPDATE users SET login_token = '${data.login_token}' WHERE 
             username = '${data.username.toLowerCase()}' 
-            AND password = '${data.password}' 
+            AND password = '${hashPassword(data.password)}' 
             ${['admin','pga'].includes(data.username.toLowerCase()) ? '' : `AND user_type = '${data.user_type}'`}
             returning *;
         `).then(res => {

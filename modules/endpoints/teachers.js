@@ -69,21 +69,17 @@ function teachersCreate(data, callback) {
             });
         }
     } else {
-        if (!data.cnic && !data.reg_no) {
-            if (callback) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: 'Both CNIC and Reg No cannot be empty'
-                });
-            }
-            return
-        }
+        if (!data.cnic && !data.reg_no) return callback({ code: 400, status: 'BAD REQUEST', message: 'Both CNIC and Reg No cannot be empty' });
+        data.cnic = data.cnic?.toLowerCase()
+        data.reg_no = data.reg_no?.toLowerCase()
+        const default_password = generateRandom1000To9999()
         db.query(`
             WITH query_one AS ( 
-                INSERT INTO users (username, user_type, user_email) 
+                INSERT INTO users (username, password, default_password, user_type, user_email) 
                 VALUES (
-                    '${data.cnic || data.reg_no}',
+                    '${data.reg_no || data.cnic}',
+                    '${hashPassword(default_password)}',
+                    '${default_password}',
                     'teacher',
                     ${data.user_email ? `'${data.user_email}'` : null}
                 ) 
