@@ -341,6 +341,14 @@ const endpoints = {
             ['admin','pga'],
             students.studentsDelete
         ),
+        completeDegree: new Endpoint(
+            "students/completeDegree",
+            new students.Students(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            students.studentsCompleteDegree
+        ),
         freezeSemester: new Endpoint(
             "students/freezeSemester",
             new students.Students(),

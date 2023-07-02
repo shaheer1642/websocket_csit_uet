@@ -2,7 +2,6 @@ const { db } = require("./db_connection");
 const { FCMNotify } = require("./firebase/FCM");
 const { escapeDBCharacters, convertUpper, msToFullTime } = require("./functions");
 const { sendMail } = require("./gmail_client");
-const { users } = require("./objects/users");
 
 db.on('connected', () => {
     db.query(`SELECT * FROM notifications WHERE email_sent = false OR push_notified = false`).then(res => {

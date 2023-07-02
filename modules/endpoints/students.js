@@ -24,11 +24,12 @@ class Students {
         username: new DataTypes(true).string,
         password: new DataTypes(true).string,
         user_type: new DataTypes(true).string,
-        student_batch_id: new DataTypes(true,['students/freezeSemester']).uuid,
+        student_batch_id: new DataTypes(true,['students/completeDegree','students/freezeSemester','students/cancelAdmission']).uuid,
         batch_id: new DataTypes(true,['students/create','students/update','students/delete'],['students/fetch']).uuid,
         batch_no: new DataTypes(true).string,
         joined_semester: new DataTypes(true).string,
         degree_type: new DataTypes(true).string,
+        degree_completed: new DataTypes(true,['students/completeDegree']).boolean,
         semester_frozen: new DataTypes(true,['students/freezeSemester']).boolean,
         admission_cancelled: new DataTypes(true,['students/cancelAdmission']).boolean,
     }
@@ -247,6 +248,26 @@ function studentsUpdate(data, callback) {
     })
 }
 
+function studentsCompleteDegree(data,callback) {
+    console.log(`[${data.event}] called data received:`,data)
+
+    const validator = validations.validateRequestData(data,new Students,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`
+        UPDATE students_batch SET
+        degree_completed = ${data.degree_completed}
+        WHERE student_batch_id = '${data.student_batch_id}';
+    `).then(res => {
+        if (res.rowCount == 1) callback({ code: 200, status: 'OK', message: `updated record in db` });
+        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` }); 
+        else callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
+    }).catch(err => {
+        console.error(err)
+        callback(validations.validateDBUpdateQueryError(err));
+    })
+}
+
 function studentsFreezeSemester(data,callback) {
     console.log(`[${data.event}] called data received:`,data)
 
@@ -336,6 +357,7 @@ module.exports = {
     studentsCreate,
     studentsDelete,
     studentsUpdate,
+    studentsCompleteDegree,
     studentsFreezeSemester,
     studentsCancelAdmission,
     Students
