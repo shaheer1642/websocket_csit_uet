@@ -16,8 +16,8 @@ class Students {
         reg_no: new DataTypes(true,[],['students/create','students/update'],false,'19pwbcs0000').string,
         student_name: new DataTypes(true,['students/create'],['students/update']).string,
         student_father_name: new DataTypes(true,['students/create'],['students/update']).string,
-        student_gender: new DataTypes(true,['students/create'],['students/update'],false,'male').string,
-        student_admission_status: new DataTypes(true,['students/create'],['students/update'],false,'open_merit').string,
+        student_gender: new DataTypes(true,[],['students/create','students/update'],false,'male').string,
+        student_admission_status: new DataTypes(true,[],['students/create','students/update'],false,'open_merit').string,
         student_contact_no: new DataTypes(true,[],['students/create','students/update'],false,'03123456789').string,
         student_address: new DataTypes(true,[],['students/update','students/create'],false,'street#5, abc road, abc area, xyz city').string,
         student_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
@@ -109,8 +109,8 @@ function studentsCreate(data, callback) {
                     ${data.reg_no ? `'${data.reg_no}'`:null},
                     '${data.student_name}',
                     '${data.student_father_name}',
-                    '${data.student_gender.toLowerCase()}',
-                    '${data.student_admission_status}',
+                    ${data.student_gender ? `'${data.student_gender.toLowerCase()}'` : null},
+                    ${data.student_admission_status ? `'${data.student_admission_status.toLowerCase()}'` : null},
                     ${data.student_address ? `'${data.student_address}'` : null},
                     ${data.student_contact_no ? `'${data.student_contact_no}'` : null}
                 )
@@ -124,7 +124,7 @@ function studentsCreate(data, callback) {
             if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'added record to db' });
             else return callback({ code: 500, status: 'INTERNAL ERROR', message: 'unexpected DB response' });
         }).catch(err => {
-            if (err.code == '23505' && (err.constraint == 'students_cinc_ukey' || err.constraint == 'students_regno_ukey')) {
+            if (err.code == '23505' && (err.constraint == 'students_cnic_ukey' || err.constraint == 'students_reg_no_ukey' || err.constraint == 'users_ukey2')) {
                 db.query(`
                     INSERT INTO students_batch (student_id, batch_id)
                     VALUES (
@@ -193,14 +193,14 @@ function studentsUpdate(data, callback) {
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     var update_clauses = []
+    if (data.reg_no != undefined) update_clauses.push(`reg_no = ${data.reg_no ? `'${data.reg_no}'` : 'NULL'}`)
+    if (data.cnic != undefined) update_clauses.push(`cnic = ${data.cnic ? `'${data.cnic}'` : 'NULL'}`)
     if (data.student_name) update_clauses.push(`student_name = '${data.student_name}'`)
-    if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
-    if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
     if (data.student_father_name) update_clauses.push(`student_father_name = '${data.student_father_name}'`)
-    if (data.student_address) update_clauses.push(`student_address = '${data.student_address}'`)
-    if (data.student_gender) update_clauses.push(`student_gender = '${data.student_gender}'`)
-    if (data.student_admission_status) update_clauses.push(`student_admission_status = '${data.student_admission_status}'`)
-    if (data.student_contact_no) update_clauses.push(`student_contact_no = '${data.student_contact_no}'`)
+    if (data.student_address != undefined) update_clauses.push(`student_address = ${data.student_address ? `'${data.student_address}'` : 'NULL'}`)
+    if (data.student_contact_no != undefined) update_clauses.push(`student_contact_no = ${data.student_contact_no ? `'${data.student_contact_no}'` : 'NULL'}`)
+    if (data.student_gender != undefined) update_clauses.push(`student_gender = ${data.student_gender ? `'${data.student_gender}'` : 'NULL'}`)
+    if (data.student_admission_status != undefined) update_clauses.push(`student_admission_status = ${data.student_admission_status ? `'${data.student_admission_status}'` : 'NULL'}`)
     if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.`, })
 
     db.query(

@@ -17,7 +17,7 @@ class StudentsThesis {
         completion_timestamp: new DataTypes(true,['studentsThesis/updateGrade'],[]).unix_timestamp_milliseconds,
         undertaking_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
 
-        supervisor_id: new DataTypes(true,[],['studentsThesis/update']).uuid,
+        supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/update']).uuid,
         co_supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/update']).uuid,
         internal_examiner: new DataTypes(true,[],['studentsThesis/update']).uuid,
         external_examiner: new DataTypes(true,[],['studentsThesis/update']).uuid,
