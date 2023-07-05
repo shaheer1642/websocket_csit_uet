@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node --trace-warnings -r dotenv/config index.js",
+    "test": "node --trace-warnings -r dotenv/config ./test/test.js",
     "dev": "nodemon -r dotenv/config index.js"
   },
   "author": "shaheer1642",
@@ -20,6 +21,7 @@
     "nodemailer": "^6.9.3",
     "pg": "^8.8.0",
     "socket.io": "^4.5.2",
+    "socket.io-client": "^4.7.1",
     "uuid": "^9.0.0"
   }
 }

@@ -165,7 +165,7 @@ function autocompleteBatchStudents(data, callback) {
             callback({
                 code: 200, 
                 status: 'OK',
-                data: res.rows.map(row => ({id: row.student_batch_id, label: `${row.student_name} (${row.reg_no || row.cnic}) - ${row.degree_type}`}))
+                data: res.rows.map(row => ({id: row.student_batch_id, label: `${row.student_name} SD/o ${row.student_father_name} (${row.reg_no || row.cnic}) - ${convertUpper(row.degree_type)}`}))
             })
         }).catch(err => {
             console.error(err)

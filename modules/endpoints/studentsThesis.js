@@ -4,7 +4,7 @@ const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
 const { documentsCreate, uploadDocumentsFromArray } = require('./documents');
-const { dynamicSortDesc } = require('../functions');
+const { dynamicSortDesc, escapeDBCharacters } = require('../functions');
 
 class StudentsThesis {
     name = 'Students Thesis';
@@ -30,6 +30,7 @@ class StudentsThesis {
 
         boasar_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         qe_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
+        fe_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         rec_notification_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         rec_i_meeting_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
         rec_ii_meeting_timestamp: new DataTypes(true,[],['studentsThesis/update']).unix_timestamp_milliseconds,
@@ -67,8 +68,9 @@ function studentsThesisFetch(data, callback) {
                 ['students_thesis_ms_research','students_thesis_ms_project','students_thesis_phd_research'].map(table => {
                     return `
                         SELECT * FROM ${table} ST
-                        JOIN students S ON S.student_id = (select student_id from students_batch SB where SB.student_batch_id = ST.student_batch_id)
-                        JOIN batches B ON B.batch_id = (select batch_id from students_batch SB where SB.student_batch_id = ST.student_batch_id)
+                        JOIN students_batch SB ON SB.student_batch_id = ST.student_batch_id
+                        JOIN students S ON S.student_id = SB.student_id
+                        JOIN batches B ON B.batch_id = SB.batch_id
                         ${where_clauses.length > 0 ? 'WHERE':''}
                         ${where_clauses.join(' AND ')};
                     `
@@ -78,7 +80,7 @@ function studentsThesisFetch(data, callback) {
             callback({
                 code: 200, 
                 status: 'OK',
-                data: res.reduce((arr,obj) => arr.concat(obj.rows),[]).sort(dynamicSortDesc('undertaking_timestamp'))
+                data: res.reduce((arr,obj) => arr.concat(obj.rows),[]).sort(dynamicSortDesc('batch_expiration_timestamp'))
             })
         }).catch(err => {
             console.error(err)
@@ -132,7 +134,7 @@ function studentsThesisCreate(data, callback) {
                 VALUES (
                     '${data.student_batch_id}',
                     '${data.thesis_type}',
-                    '${data.thesis_title}',
+                    '${escapeDBCharacters(data.thesis_title)}',
                     ${data.supervisor_id ? `'${data.supervisor_id}'`:'NULL'},
                     ${data.co_supervisor_id ? `'${data.co_supervisor_id}'`:'NULL'}
                 );
@@ -178,7 +180,7 @@ async function studentsThesisUpdate(data, callback) {
         var update_clauses = []
 
         if (data.thesis_type) update_clauses.push(`thesis_type = '${data.thesis_type}'`)
-        if (data.thesis_title) update_clauses.push(`thesis_title = '${data.thesis_title}'`)
+        if (data.thesis_title) update_clauses.push(`thesis_title = '${escapeDBCharacters(data.thesis_title)}'`)
         
         if (data.supervisor_id != undefined) update_clauses.push(`supervisor_id = ${data.supervisor_id ? `'${data.supervisor_id}'` : 'NULL'}`)
         if (data.co_supervisor_id != undefined) update_clauses.push(`co_supervisor_id = ${data.co_supervisor_id ? `'${data.co_supervisor_id}'` : 'NULL'}`)
@@ -193,6 +195,7 @@ async function studentsThesisUpdate(data, callback) {
 
         if (data.boasar_notification_timestamp) update_clauses.push(`boasar_notification_timestamp = ${data.boasar_notification_timestamp}`)
         if (data.qe_notification_timestamp) update_clauses.push(`qe_notification_timestamp = ${data.qe_notification_timestamp}`)
+        if (data.fe_notification_timestamp) update_clauses.push(`fe_notification_timestamp = ${data.fe_notification_timestamp}`)
         if (data.rec_notification_timestamp) update_clauses.push(`rec_notification_timestamp = ${data.rec_notification_timestamp}`)
         if (data.rec_i_meeting_timestamp) update_clauses.push(`rec_i_meeting_timestamp = ${data.rec_i_meeting_timestamp}`)
         if (data.rec_ii_meeting_timestamp) update_clauses.push(`rec_ii_meeting_timestamp = ${data.rec_ii_meeting_timestamp}`)
