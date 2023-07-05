@@ -3,7 +3,7 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
-const { generateRandom1000To9999 } = require('../functions');
+const { generateRandom1000To9999, formatCNIC } = require('../functions');
 const { hashPassword } = require('../hashing');
 
 class Students {
@@ -89,6 +89,10 @@ function studentsCreate(data, callback) {
         if (!data.cnic && !data.reg_no) return callback({ code: 400, status: 'BAD REQUEST', message: 'Both CNIC and Reg No cannot be empty' });
         data.cnic = data.cnic?.toString().toLowerCase()
         data.reg_no = data.reg_no?.toString().toLowerCase()
+        if (data.cnic) {
+            data.cnic = formatCNIC(data.cnic)
+            if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' }); 
+        }
         const default_password = generateRandom1000To9999()
         db.query(`
             WITH query_one AS ( 
@@ -192,6 +196,11 @@ function studentsUpdate(data, callback) {
     const validator = validations.validateRequestData(data,new Students,data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
+    if (data.cnic) {
+        data.cnic = formatCNIC(data.cnic)
+        if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' }); 
+    }
+    
     var update_clauses = []
     if (data.reg_no != undefined) update_clauses.push(`reg_no = ${data.reg_no ? `'${data.reg_no}'` : 'NULL'}`)
     if (data.cnic != undefined) update_clauses.push(`cnic = ${data.cnic ? `'${data.cnic}'` : 'NULL'}`)

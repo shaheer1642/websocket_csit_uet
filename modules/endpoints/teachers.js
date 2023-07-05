@@ -5,6 +5,7 @@ const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
 const { uploadDocumentsFromArray } = require('./documents');
 const { uploadFile } = require('../aws/aws');
+const { formatCNIC } = require('../functions');
 
 class Teachers {
     name = 'Teachers';
@@ -72,6 +73,10 @@ function teachersCreate(data, callback) {
         if (!data.cnic && !data.reg_no) return callback({ code: 400, status: 'BAD REQUEST', message: 'Both CNIC and Reg No cannot be empty' });
         data.cnic = data.cnic?.toString().toLowerCase()
         data.reg_no = data.reg_no?.toString().toLowerCase()
+        if (data.cnic) {
+            data.cnic = formatCNIC(data.cnic)
+            if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' }); 
+        }
         const default_password = generateRandom1000To9999()
         db.query(`
             WITH query_one AS ( 
@@ -172,6 +177,11 @@ async function teachersUpdate(data, callback) {
     const validator = validations.validateRequestData(data,new Teachers,data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
+    if (data.cnic) {
+        data.cnic = formatCNIC(data.cnic)
+        if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' }); 
+    }
+    
     var update_clauses = []
     if (data.teacher_name) update_clauses.push(`teacher_name = '${data.teacher_name}'`)
     if (data.teacher_gender) update_clauses.push(`teacher_gender = '${data.teacher_gender}'`)

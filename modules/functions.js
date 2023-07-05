@@ -154,6 +154,12 @@ function convertTimestampToSeasonYear(ts) {
     return `${new Date(ts).getMonth() < 7 ? 'Spring' : 'Fall'} ${new Date(ts).getFullYear()}`
 }
 
+function formatCNIC(str) {
+    str = str.replace(/-/g,'')
+    if (str.length === 13) return str.slice(0, 5) + '-' + str.slice(5, 12) + '-' + str.slice(12);
+    else return undefined
+}
+
 module.exports = {
     dynamicSort,
     dynamicSortDesc,
@@ -167,5 +173,6 @@ module.exports = {
     getDepartmentIdFromCourseId,
     isEmailValid,
     convertTimestampToSeasonYear,
-    generateRandom1000To9999
+    generateRandom1000To9999,
+    formatCNIC
 };
