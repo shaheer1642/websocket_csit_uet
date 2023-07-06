@@ -365,6 +365,14 @@ const endpoints = {
             ['admin','pga'],
             students.studentsCancelAdmission
         ),
+        transcript: new Endpoint(
+            "students/transcript",
+            new students.Students(),
+            `<pre><code>${JSON.stringify({attributes: {}, semestersCourses: {}, gpa: 3.40, thesis: {}},null,4)}</code></pre>`,
+            true,
+            ['ALL'],
+            students.studentsTranscript
+        ),
     },
     teachers: {
         fetch: new Endpoint(

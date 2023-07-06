@@ -7,7 +7,7 @@ db.on('connected',() => {
         res.rows.forEach(row => {
             grades_obj[row.grade] = {
                 ...row,
-                grade_points: row.grade_points.toFixed(2)
+                grade_points: row.grade_points
             }
         })
     }).catch(console.error)
@@ -131,11 +131,67 @@ function calculateAttendancePercentage(attendance) {
                 .reduce((sum, weekClass) => (weekClass.attendance == '' || weekClass.cancelled) ? sum += 0 : sum += 1, 0))) * 100).toFixed(1)) || 0;
 }
 
+function calculateTranscript(courses) {
+    const semestersCourses = {}
+    // handle repeated courses
+    const iterated_courses = []
+    courses.forEach((course,i) => {
+        if (courses.some((i_c,ii) => i_c.course_id == course.course_id && ii != i) && !iterated_courses.includes(course.course_id)) {
+            const all_gpas = []
+            courses.forEach((i_course,i) => {
+                if (i_course.course_id == course.course_id) {
+                    all_gpas.push({
+                        i,
+                        gpa: gradeToGPA(i_course.grade)
+                    })
+                }
+            })
+            all_gpas.sort((a, b) => b.gpa - a.gpa);
+            console.log(all_gpas)
+            all_gpas.forEach(o => {
+                if (o.i != all_gpas[0].i) {
+                    courses[o.i].do_not_count = true
+                }
+            })
+            iterated_courses.push(course.course_id)
+        }
+    })
+    courses.forEach(row => {
+        if (!semestersCourses[row.semester_id]) semestersCourses[row.semester_id] = {result: {}, courses: []}
+        semestersCourses[row.semester_id].courses.push(row)
+    })
+    console.log(Object.values(semestersCourses))
+    var gpa = 0
+    Object.keys(semestersCourses).forEach((semester_id,index) => {
+        const sch = semestersCourses[semester_id].courses.filter(course => !['W','I','N'].includes(course.grade) && !course.do_not_count).reduce((sum, course) => sum += course.credit_hours, 0)
+        const sgp = semestersCourses[semester_id].courses.filter(course => !['W','I','N'].includes(course.grade) && !course.do_not_count).reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
+        const sgpa = sgp / (sch || 1)
+        const cch = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).filter(course => !['W','I','N'].includes(course.grade) && !course.do_not_count).reduce((sum, course) => sum += course.credit_hours, 0)
+        const cgp = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).filter(course => !['W','I','N'].includes(course.grade) && !course.do_not_count).reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
+        const cgpa = cgp / (cch || 1)
+        semestersCourses[semester_id].result = {
+            SCH: sch.toFixed(2),
+            SGP: sgp.toFixed(2),
+            SGPA: sgpa.toFixed(2),
+            CCH: cch.toFixed(2),
+            CGP: cgp.toFixed(2),
+            CGPA: cgpa.toFixed(2),
+        }
+        gpa = cgpa.toFixed(2)
+    })
+    console.log(semestersCourses)
+    return {
+        semestersCourses,
+        gpa
+    }
+}
+
 module.exports = {
     calculateQualityPoints,
     getGradePoints,
     markingEvalutation,
     calculateAttendancePercentage,
     calculateGrade,
-    gradeToGPA
+    gradeToGPA,
+    calculateTranscript
 }

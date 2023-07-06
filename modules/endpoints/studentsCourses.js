@@ -95,7 +95,25 @@ function studentsCoursesAssignStudents(data, callback) {
             const delete_queries = []
             received_students_batch_ids.forEach(student_batch_id => {
                 if (!db_students_batch_ids.includes(student_batch_id)) {
-                    insert_queries.push(`INSERT INTO students_courses (sem_course_id, student_batch_id, marking, attendance) VALUES ('${sem_course_id}','${student_batch_id}','${JSON.stringify({...default_objects.students_courses_marking, student_batch_id: student_batch_id})}','${JSON.stringify({...default_objects.students_courses_attendance, student_batch_id: student_batch_id})}');`)
+                    insert_queries.push(`INSERT INTO students_courses (
+                        sem_course_id, 
+                        student_batch_id, 
+                        is_repeat,
+                        marking, 
+                        attendance
+                    ) 
+                    VALUES (
+                        '${sem_course_id}',
+                        '${student_batch_id}',
+                        (SELECT CASE WHEN (COUNT(SC.student_batch_id) > 0) THEN true ELSE false END AS counted 
+                        FROM students_courses SC 
+                        WHERE SC.student_batch_id = '${student_batch_id}' AND 
+                            SC.sem_course_id IN (SELECT SMC.sem_course_id FROM semesters_courses SMC 
+                            WHERE SMC.course_id = (SELECT course_id FROM semesters_courses WHERE sem_course_id = '${sem_course_id}'))
+                        ),
+                        '${JSON.stringify({...default_objects.students_courses_marking, student_batch_id: student_batch_id})}',
+                        '${JSON.stringify({...default_objects.students_courses_attendance, student_batch_id: student_batch_id})}'
+                    );`)
                 }
             })
             db_students_batch_ids.forEach(student_batch_id => {

@@ -3,8 +3,9 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
-const { generateRandom1000To9999, formatCNIC } = require('../functions');
+const { generateRandom1000To9999, formatCNIC, convertUpper } = require('../functions');
 const { hashPassword } = require('../hashing');
+const { calculateTranscript } = require('../grading_functions');
 
 class Students {
     name = 'Students';
@@ -26,7 +27,7 @@ class Students {
         username: new DataTypes(true).string,
         password: new DataTypes(true).string,
         user_type: new DataTypes(true).string,
-        student_batch_id: new DataTypes(true,['students/completeDegree','students/freezeSemester','students/cancelAdmission']).uuid,
+        student_batch_id: new DataTypes(true,['students/completeDegree','students/transcript','students/freezeSemester','students/cancelAdmission']).uuid,
         batch_id: new DataTypes(true,['students/create','students/update','students/delete'],['students/fetch']).uuid,
         batch_no: new DataTypes(true).string,
         joined_semester: new DataTypes(true).string,
@@ -72,6 +73,56 @@ function studentsFetch(data, callback) {
             callback(validations.validateDBSelectQueryError(err));
         })
     }
+}
+
+function studentsTranscript(data, callback) {
+    console.log(`[${data.event}] called data received:`, data)
+
+    const validator = validations.validateRequestData(data, new Students, data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`
+        SELECT * FROM students_courses SDC
+        JOIN semesters_courses SMC ON SMC.sem_course_id = SDC.sem_course_id
+        JOIN semesters SM ON SM.semester_id = SMC.semester_id
+        JOIN students_batch SDB ON SDB.student_batch_id = SDC.student_batch_id
+        JOIN batches B ON SDB.batch_id = B.batch_id
+        JOIN students S ON S.student_id = SDB.student_id
+        JOIN courses C ON C.course_id = SMC.course_id
+        JOIN grades G ON SDC.grade = G.grade
+        WHERE SDC.student_batch_id = '${data.student_batch_id}'
+        ORDER BY SM.semester_start_timestamp ASC;
+        SELECT * FROM students_thesis WHERE student_batch_id = '${data.student_batch_id}';
+    `).then(res => {
+        if (res[0].rowCount == 0) return callback({ code: 200, data: '<html><body><h4>No courses assigned yet</h4></body></html>' })
+        const courses = res[0].rows
+        const thesis = res[1].rows[0]
+        const data = courses[0]
+        const attributes = {
+            reg_no: data.reg_no,
+            cnic: data.cnic,
+            student_name: data.student_name,
+            student_father_name: data.student_father_name,
+            degree_type: data.degree_type,
+            department: `Computer Science & Information Technology`,
+            specialization: convertUpper(data.batch_stream),
+            thesis_title: data.thesis_title,
+            thesis_grade: data.thesis_grade
+        }
+        const {semestersCourses, gpa} = calculateTranscript(courses)
+        return callback({
+            code: 200,
+            data: {
+                thesis,
+                attributes,
+                semestersCourses,
+                gpa
+            }
+        })
+    }).catch(err => {
+        console.error(err)
+        callback(validations.validateDBSelectQueryError(err));
+    })
 }
 
 function studentsCreate(data, callback) {
@@ -374,5 +425,6 @@ module.exports = {
     studentsCompleteDegree,
     studentsFreezeSemester,
     studentsCancelAdmission,
+    studentsTranscript,
     Students
 }

@@ -2,7 +2,7 @@ const { db } = require('../db_connection');
 const validations = require('../validations');
 const { DataTypes } = require('../classes/DataTypes');
 const { convertUpper, convertTimestampToSeasonYear } = require('../functions');
-const { calculateQualityPoints, getGradePoints, gradeToGPA } = require('../grading_functions');
+const { calculateQualityPoints, getGradePoints, gradeToGPA, calculateTranscript } = require('../grading_functions');
 
 class Forms {
     name = 'Forms';
@@ -345,7 +345,8 @@ function studentTranscript(data, callback) {
             JOIN students S ON S.student_id = SDB.student_id
             JOIN courses C ON C.course_id = SMC.course_id
             JOIN grades G ON SDC.grade = G.grade
-            WHERE SDC.student_batch_id = '${data.student_batch_id}';
+            WHERE SDC.student_batch_id = '${data.student_batch_id}'
+            ORDER BY SM.semester_start_timestamp ASC;
             SELECT * FROM students_thesis WHERE student_batch_id = '${data.student_batch_id}';
         `).then(res => {
             if (res[0].rowCount == 0) return callback({ code: 200, data: '<html><body><h4>No courses assigned yet</h4></body></html>' })
@@ -364,31 +365,7 @@ function studentTranscript(data, callback) {
                 thesis_title: data.thesis_title,
                 thesis_grade: data.thesis_grade
             }
-            const semestersCourses = {}
-            courses.forEach(row => {
-                if (!semestersCourses[row.semester_id]) semestersCourses[row.semester_id] = {result: {}, courses: []}
-                semestersCourses[row.semester_id].courses.push(row)
-            })
-            console.log(Object.values(semestersCourses))
-            var gpa = 0
-            Object.keys(semestersCourses).forEach((semester_id,index) => {
-                const sch = semestersCourses[semester_id].courses.filter(course => !['W','I','N'].includes(course.grade)).reduce((sum, course) => sum += course.credit_hours, 0)
-                const sgp = semestersCourses[semester_id].courses.filter(course => !['W','I','N'].includes(course.grade)).reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
-                const sgpa = sgp / (sch || 1)
-                const cch = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).filter(course => !['W','I','N'].includes(course.grade)).reduce((sum, course) => sum += course.credit_hours, 0)
-                const cgp = Object.values(semestersCourses).filter((v,i) => i <= index).reduce((arr,o) => ([...arr,...o.courses]), []).filter(course => !['W','I','N'].includes(course.grade)).reduce((sum, course) => sum += calculateQualityPoints(course.grade,course.credit_hours), 0)
-                const cgpa = cgp / (cch || 1)
-                semestersCourses[semester_id].result = {
-                    SCH: sch.toFixed(2),
-                    SGP: sgp.toFixed(2),
-                    SGPA: sgpa.toFixed(2),
-                    CCH: cch.toFixed(2),
-                    CGP: cgp.toFixed(2),
-                    CGPA: cgpa.toFixed(2),
-                }
-                gpa = cgpa.toFixed(2)
-            })
-            console.log(semestersCourses)
+            const {semestersCourses, gpa} = calculateTranscript(courses)
             return callback({
                 code: 200,
                 data:
@@ -495,7 +472,7 @@ function studentTranscript(data, callback) {
                     `<tr>
                         <td>${ii == 0 ? `${convertUpper(data.semester_season)} ${data.semester_year}` : ''}</td>
                         <td>${semesterCourse.course_id}</td>
-                        <td>${semesterCourse.course_name}</td>
+                        <td>${semesterCourse.is_repeat ? '*' : ''}${semesterCourse.course_name} ${semesterCourse.is_repeat ? '(RPT)' : ''}</td>
                         <td style="text-align: center;">${semesterCourse.credit_hours}</td>
                         <td style="text-align: center;">${semesterCourse.grade}</td>
                         <td style="text-align: center;">${calculateQualityPoints(semesterCourse.grade,semesterCourse.credit_hours)}</td>
