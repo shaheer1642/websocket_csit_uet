@@ -52,7 +52,7 @@ function studentsFetch(data, callback) {
         var where_clauses = []
         if (data.batch_id) where_clauses.push(`batches.batch_id = '${data.batch_id}'`)
         if (data.student_id) where_clauses.push(`students.student_id = '${data.student_id}'`)
-        if (data.reg_no) where_clauses.push(`students.reg_no = '${data.reg_no}'`)
+        if (data.reg_no) where_clauses.push(`students.reg_no = '${data.reg_no.toLowerCase()}'`)
         if (data.cnic) where_clauses.push(`students.cnic = '${data.cnic}'`)
         
         db.query(`
@@ -253,7 +253,7 @@ function studentsUpdate(data, callback) {
     }
     
     var update_clauses = []
-    if (data.reg_no != undefined) update_clauses.push(`reg_no = ${data.reg_no ? `'${data.reg_no}'` : 'NULL'}`)
+    if (data.reg_no != undefined) update_clauses.push(`reg_no = ${data.reg_no ? `'${data.reg_no.toLowerCase()}'` : 'NULL'}`)
     if (data.cnic != undefined) update_clauses.push(`cnic = ${data.cnic ? `'${data.cnic}'` : 'NULL'}`)
     if (data.student_name) update_clauses.push(`student_name = '${data.student_name}'`)
     if (data.student_father_name) update_clauses.push(`student_father_name = '${data.student_father_name}'`)
