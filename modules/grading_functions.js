@@ -177,13 +177,17 @@ function calculateTranscript(courses) {
             CGP: cgp.toFixed(2),
             CGPA: cgpa.toFixed(2),
         }
-        gpa = cgpa.toFixed(2)
+        gpa = roundUp2Decimals(cgpa)
     })
     console.log(semestersCourses)
     return {
         semestersCourses,
         gpa
     }
+}
+
+function roundUp2Decimals(num) {
+    return (Math.ceil(num * 100) / 100).toFixed(2);
 }
 
 module.exports = {
