@@ -94,7 +94,7 @@ function studentsTranscript(data, callback) {
         ORDER BY SM.semester_start_timestamp ASC;
         SELECT * FROM students_thesis WHERE student_batch_id = '${data.student_batch_id}';
     `).then(res => {
-        if (res[0].rowCount == 0) return callback({ code: 200, data: '<html><body><h4>No courses assigned yet</h4></body></html>' })
+        if (res[0].rowCount == 0) return callback({ code: 200, message: 'No courses assigned yet' })
         const courses = res[0].rows
         const thesis = res[1].rows[0]
         const data = courses[0]
