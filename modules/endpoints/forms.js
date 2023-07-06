@@ -362,8 +362,6 @@ function studentTranscript(data, callback) {
                 department: `Computer Science & Information Technology`,
                 specialization: convertUpper(data.batch_stream),
                 date: new Date().toLocaleDateString('en-UK', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-                thesis_title: data.thesis_title,
-                thesis_grade: data.thesis_grade
             }
             const {semestersCourses, gpa} = calculateTranscript(courses)
             return callback({
