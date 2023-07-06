@@ -5,7 +5,8 @@ const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
 const { uploadDocumentsFromArray } = require('./documents');
 const { uploadFile } = require('../aws/aws');
-const { formatCNIC } = require('../functions');
+const { formatCNIC, generateRandom1000To9999 } = require('../functions');
+const { hashPassword } = require('../hashing');
 
 class Teachers {
     name = 'Teachers';
