@@ -22,6 +22,7 @@ function validateKeyValue(key,value,type) {
         if (typeof value == 'boolean') return { valid: true } 
         else return { valid: false, }
     } else if (type == 'email') {
+        if (value == '') return { valid: true } 
         if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(value)) return { valid: false, } 
         else return { valid: true, }
     } else if (type == 'any') {
