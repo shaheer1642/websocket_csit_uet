@@ -354,7 +354,7 @@ function studentTranscript(data, callback) {
             const thesis = res[1].rows[0]
             const data = courses[0]
             const attributes = {
-                reg_no: data.reg_no,
+                reg_no: data.reg_no?.toUpperCase(),
                 cnic: data.cnic,
                 student_name: data.student_name,
                 student_father_name: data.student_father_name,

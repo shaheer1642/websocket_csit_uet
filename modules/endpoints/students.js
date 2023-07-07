@@ -38,6 +38,7 @@ class Students {
     }
 }
 
+
 function studentsFetch(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     if (!callback) return
@@ -50,16 +51,24 @@ function studentsFetch(data, callback) {
         });
     } else {
         var where_clauses = []
-        if (data.batch_id) where_clauses.push(`batches.batch_id = '${data.batch_id}'`)
-        if (data.student_id) where_clauses.push(`students.student_id = '${data.student_id}'`)
-        if (data.reg_no) where_clauses.push(`students.reg_no = '${data.reg_no.toLowerCase()}'`)
-        if (data.cnic) where_clauses.push(`students.cnic = '${data.cnic}'`)
+        if (data.batch_id) where_clauses.push(`B.batch_id = '${data.batch_id}'`)
+        if (data.student_id) where_clauses.push(`S.student_id = '${data.student_id}'`)
+        if (data.reg_no) where_clauses.push(`S.reg_no = '${data.reg_no.toLowerCase()}'`)
+        if (data.cnic) where_clauses.push(`S.cnic = '${data.cnic}'`)
         
         db.query(`
-            SELECT * FROM students
-            JOIN students_batch on students_batch.student_id = students.student_id
-            JOIN batches on batches.batch_id = students_batch.batch_id
-            JOIN users ON users.user_id = students.student_id
+            SELECT 
+                S.*,
+                SB.*, 
+                B.*, 
+                U.*, 
+                (SELECT SUM(C.credit_hours) FROM students_courses SC JOIN semesters_courses SMC on SMC.sem_course_id = SC.sem_course_id JOIN courses C on C.course_id = SMC.course_id WHERE SC.student_batch_id = SB.student_batch_id AND SC.is_repeat = false) AS total_credit_hours,
+                (SELECT COUNT(C.course_id) FROM students_courses SC JOIN semesters_courses SMC on SMC.sem_course_id = SC.sem_course_id JOIN courses C on C.course_id = SMC.course_id WHERE SC.student_batch_id = SB.student_batch_id AND C.course_type = 'core') AS total_core_courses,
+                (SELECT COUNT(C.course_id) FROM students_courses SC JOIN semesters_courses SMC on SMC.sem_course_id = SC.sem_course_id JOIN courses C on C.course_id = SMC.course_id WHERE SC.student_batch_id = SB.student_batch_id AND C.course_type = 'elective') AS total_elective_courses
+            FROM students S
+            JOIN students_batch SB on SB.student_id = S.student_id
+            JOIN batches B on B.batch_id = SB.batch_id
+            JOIN users U ON U.user_id = S.student_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
