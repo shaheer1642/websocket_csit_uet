@@ -14,7 +14,7 @@ class Semesters {
         semester_start_timestamp: new DataTypes(true,['semesters/create'],['semesters/update']).unix_timestamp_milliseconds,
         semester_end_timestamp: new DataTypes(true,['semesters/create'],['semesters/update']).unix_timestamp_milliseconds,
         semester_coordinator_id: new DataTypes(true,[],['semesters/update','semesters/create']).uuid,
-        student_id: new DataTypes(false,[],['semesters/fetch']).uuid,
+        student_batch_id: new DataTypes(false,[],['semesters/fetch']).uuid,
     }
 }
 
@@ -31,7 +31,7 @@ function semestersFetch(data, callback) {
     } else {
         var where_clauses = []
         if (data.semester_id) where_clauses.push(`S.semester_id = '${data.semester_id}'`)
-        if (data.student_id) where_clauses.push(`S.semester_start_timestamp > (SELECT student_creation_timestamp FROM students WHERE student_id = '${data.student_id}')`)
+        if (data.student_batch_id) where_clauses.push(`S.semester_id IN (SELECT SMC.semester_id FROM students_courses SC JOIN semesters_courses SMC ON SC.sem_course_id = SMC.sem_course_id WHERE SC.student_batch_id = '${data.student_batch_id}')`)
         db.query(`
             SELECT S.*,(SELECT count(course_id) AS offered_courses FROM semesters_courses SC WHERE SC.semester_id = S.semester_id) FROM semesters S
             ${where_clauses.length > 0 ? 'WHERE':''}

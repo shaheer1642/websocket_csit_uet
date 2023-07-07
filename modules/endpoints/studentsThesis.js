@@ -17,7 +17,7 @@ class StudentsThesis {
         completion_timestamp: new DataTypes(true,['studentsThesis/updateGrade'],[]).unix_timestamp_milliseconds,
         undertaking_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
 
-        supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/update']).uuid,
+        supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/fetch','studentsThesis/update']).uuid,
         co_supervisor_id: new DataTypes(true,[],['studentsThesis/create','studentsThesis/update']).uuid,
         internal_examiner: new DataTypes(true,[],['studentsThesis/update']).uuid,
         external_examiner: new DataTypes(true,[],['studentsThesis/update']).uuid,
@@ -63,6 +63,7 @@ function studentsThesisFetch(data, callback) {
         if (data.student_batch_id) where_clauses.push(`ST.student_batch_id = '${data.student_batch_id}'`)
         if (data.grade) where_clauses.push(`ST.grade = '${data.grade}'`)
         if (data.thesis_type) where_clauses.push(`ST.thesis_type = '${data.thesis_type}'`)
+        if (data.supervisor_id) where_clauses.push(`ST.supervisor_id = '${data.supervisor_id}'`)
         db.query(`
             ${
                 ['students_thesis_ms_research','students_thesis_ms_project','students_thesis_phd_research'].map(table => {

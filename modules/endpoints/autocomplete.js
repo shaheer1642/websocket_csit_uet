@@ -137,6 +137,22 @@ function autocompleteCourses(data, callback) {
     }
 }
 
+function autocompleteDepartments(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+
+    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+        
+    db.query(`
+        SELECT * FROM departments;
+    `).then(res => {
+        return callback({ code: 200, status: 'OK', data: res.rows.map(row => ({id: row.department_id, label: `${row.department_name}`})) })
+    }).catch(err => {
+        console.error(err)
+        callback(validations.validateDBSelectQueryError(err));
+    })
+}
+
 function autocompleteBatchStudents(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     if (!callback) return
@@ -192,7 +208,10 @@ function autocompleteStudentsThesisExaminers(data, callback) {
         return callback({
             code: 200, 
             status: 'OK',
-            data: res.rows.map(row => ({id: row.examiner_id, label: `${row.examiner_name} - ${row.examiner_designation} @ ${row.examiner_university}`}))
+            data: res.rows.map(row => ({
+                id: row.examiner_id, 
+                label: `${row.examiner_name} (${row.examiner_designation ? row.examiner_designation + ' @ ' : ''}${row.examiner_university || ''})`
+            }))
         })
     }).catch(err => {
         console.error(err)
@@ -224,5 +243,6 @@ module.exports = {
     autocompleteBatchStudents,
     autocompleteStudentsThesisExaminers,
     autocompleteAreasOfInterest,
+    autocompleteDepartments,
     Autocomplete
 }

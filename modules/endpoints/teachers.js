@@ -15,9 +15,10 @@ class Teachers {
         teacher_id: new DataTypes(true,['teachers/update','teachers/delete'],['teachers/fetch']).uuid,
         cnic: new DataTypes(true,[],['teachers/create','teachers/update'],false,'1730155555555').string,
         teacher_name: new DataTypes(true,['teachers/create'],['teachers/update']).string,
-        teacher_gender: new DataTypes(true,['teachers/create'],['teachers/update'],false,'male').string,
+        teacher_gender: new DataTypes(true,[],['teachers/create','teachers/update'],false,'male').string,
         digital_signature: new DataTypes(true,[],['teachers/update'],false,'image-buffer').any,
         areas_of_interest: new DataTypes(true,[],['teachers/update']).array,
+        teacher_department_id: new DataTypes(true,['teachers/create'],['teachers/update']).string,
         teacher_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
         user_id: new DataTypes(true).uuid,
         username: new DataTypes(true).string,
@@ -30,33 +31,33 @@ class Teachers {
 function teachersFetch(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     if (!callback) return
+
     const validator = validations.validateRequestData(data,new Teachers,data.event)
-    if (!validator.valid) {
-        callback({
-            code: 400, 
-            status: 'BAD REQUEST',
-            message: validator.reason
-        });
-    } else {
-        var where_clauses = []
-        if (data.teacher_id)
-            where_clauses.push(`teachers.teacher_id = '${data.teacher_id}'`)
-        db.query(`
-            SELECT * FROM teachers
-            JOIN users ON users.user_id = teachers.teacher_id
-            ${where_clauses.length > 0 ? 'WHERE':''}
-            ${where_clauses.join(' AND ')}
-        `).then(res => {
-            callback({
-                code: 200, 
-                status: 'OK',
-                data: res.rows
-            })
-        }).catch(err => {
-            console.error(err)
-            callback(validations.validateDBSelectQueryError(err));
-        })
-    }
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    var where_clauses = []
+    if (data.teacher_id) where_clauses.push(`T.teacher_id = '${data.teacher_id}'`)
+
+    db.query(`
+        SELECT 
+            T.*, 
+            U.*,
+            (SELECT count(SC.sem_course_id) FROM semesters_courses SC WHERE SC.teacher_id = T.teacher_id) AS courses_taught,
+            (SELECT count(ST.student_batch_id) FROM students_thesis ST JOIN students_batch SB ON SB.student_batch_id = ST.student_batch_id JOIN batches B ON B.batch_id = SB.batch_id WHERE ST.supervisor_id = T.teacher_id AND ST.grade NOT IN ('N','I') AND B.degree_type = 'ms') AS ms_students_supervised,
+            (SELECT count(ST.student_batch_id) FROM students_thesis ST JOIN students_batch SB ON SB.student_batch_id = ST.student_batch_id JOIN batches B ON B.batch_id = SB.batch_id WHERE ST.supervisor_id = T.teacher_id AND ST.grade NOT IN ('N','I') AND B.degree_type = 'phd') AS phd_students_supervised,
+            (SELECT count(ST.student_batch_id) FROM students_thesis ST JOIN students_batch SB ON SB.student_batch_id = ST.student_batch_id JOIN batches B ON B.batch_id = SB.batch_id WHERE ST.supervisor_id = T.teacher_id AND ST.grade IN ('N','I') AND B.degree_type = 'ms') AS ms_students_under_supervision,
+            (SELECT count(ST.student_batch_id) FROM students_thesis ST JOIN students_batch SB ON SB.student_batch_id = ST.student_batch_id JOIN batches B ON B.batch_id = SB.batch_id WHERE ST.supervisor_id = T.teacher_id AND ST.grade IN ('N','I') AND B.degree_type = 'phd') AS phd_students_under_supervision
+        FROM teachers T
+        JOIN users U ON U.user_id = T.teacher_id
+        ${where_clauses.length > 0 ? 'WHERE':''}
+        ${where_clauses.join(' AND ')}
+        ORDER BY T.teacher_name ASC;
+    `).then(res => {
+        return callback({ code: 200, status: 'OK', data: res.rows })
+    }).catch(err => {
+        console.error(err)
+        return callback(validations.validateDBSelectQueryError(err));
+    })
 }
 
 function teachersCreate(data, callback) {
@@ -91,13 +92,14 @@ function teachersCreate(data, callback) {
                 ) 
                 RETURNING user_id 
             )
-            INSERT INTO teachers (teacher_id, cnic, reg_no, teacher_name, teacher_gender) 
+            INSERT INTO teachers (teacher_id, cnic, reg_no, teacher_name, teacher_gender, teacher_department_id) 
             VALUES (
                 ( select user_id from query_one ),
                 ${data.cnic ? `'${data.cnic}'`:null},
                 ${data.reg_no ? `'${data.reg_no}'`:null},
                 '${data.teacher_name}',
-                '${data.teacher_gender}'
+                ${data.teacher_gender ? `'${data.teacher_gender}'` : null},
+                '${data.teacher_department_id}'
             );
         `).then(res => {
             if (!callback) return
@@ -189,6 +191,7 @@ async function teachersUpdate(data, callback) {
     if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
     if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
     if (data.areas_of_interest) update_clauses.push(`areas_of_interest = '${JSON.stringify(data.areas_of_interest)}'`)
+    if (data.teacher_department_id) update_clauses.push(`teacher_department_id = '${data.teacher_department_id}'`)
     if (data.digital_signature) {
         console.log('digital_signature detected')
         const fileUrl = await uploadFile('digital_signature', data.digital_signature).catch(console.error)

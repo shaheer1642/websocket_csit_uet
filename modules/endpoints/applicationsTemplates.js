@@ -34,9 +34,9 @@ function applicationsTemplatesFetch(data, callback) {
         ${where_clauses.join(' AND ')}
         ORDER BY application_title;
     `).then(res => {
-        const user = res[0].rows[0]
+        const user = res[0].rows
         var templates = res[1].rows
-        if (user) templates = templates.filter(template => !template.degree_type || template.degree_type == user.degree_type)
+        if (user.length > 0) templates = templates.filter(template => !template.degree_type || user.some(batch => template.degree_type == batch.degree_type))
         return callback({code: 200, status: 'OK', data: templates})
     }).catch(err => {
         console.error(err)
