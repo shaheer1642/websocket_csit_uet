@@ -63,8 +63,8 @@ function studentsFetch(data, callback) {
                 B.*, 
                 U.*, 
                 (SELECT SUM(C.credit_hours) FROM students_courses SC JOIN semesters_courses SMC on SMC.sem_course_id = SC.sem_course_id JOIN courses C on C.course_id = SMC.course_id WHERE SC.student_batch_id = SB.student_batch_id AND SC.is_repeat = false) AS total_credit_hours,
-                (SELECT COUNT(C.course_id) FROM students_courses SC JOIN semesters_courses SMC on SMC.sem_course_id = SC.sem_course_id JOIN courses C on C.course_id = SMC.course_id WHERE SC.student_batch_id = SB.student_batch_id AND C.course_type = 'core') AS total_core_courses,
-                (SELECT COUNT(C.course_id) FROM students_courses SC JOIN semesters_courses SMC on SMC.sem_course_id = SC.sem_course_id JOIN courses C on C.course_id = SMC.course_id WHERE SC.student_batch_id = SB.student_batch_id AND C.course_type = 'elective') AS total_elective_courses
+                (SELECT COUNT(C.course_id) FROM students_courses SC JOIN semesters_courses SMC on SMC.sem_course_id = SC.sem_course_id JOIN courses C on C.course_id = SMC.course_id WHERE SC.student_batch_id = SB.student_batch_id AND SC.is_repeat = false AND C.course_type = 'core') AS total_core_courses,
+                (SELECT COUNT(C.course_id) FROM students_courses SC JOIN semesters_courses SMC on SMC.sem_course_id = SC.sem_course_id JOIN courses C on C.course_id = SMC.course_id WHERE SC.student_batch_id = SB.student_batch_id AND SC.is_repeat = false AND C.course_type = 'elective') AS total_elective_courses
             FROM students S
             JOIN students_batch SB on SB.student_id = S.student_id
             JOIN batches B on B.batch_id = SB.batch_id
