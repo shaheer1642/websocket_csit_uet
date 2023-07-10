@@ -177,7 +177,7 @@ function calculateTranscript(courses) {
             CGP: cgp.toFixed(2),
             CGPA: cgpa.toFixed(2),
         }
-        gpa = roundUp2Decimals(cgpa)
+        gpa =  cgpa.toFixed(2) // roundUp2Decimals(cgpa)
     })
     console.log(semestersCourses)
     return {

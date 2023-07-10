@@ -469,7 +469,7 @@ function studentTranscript(data, callback) {
                 return semestersCourses[semester_id].courses.map((semesterCourse,ii) => 
                     `<tr>
                         <td>${ii == 0 ? `${convertUpper(data.semester_season)} ${data.semester_year}` : ''}</td>
-                        <td>${semesterCourse.course_id}</td>
+                        <td>${semesterCourse.course_id.split('-')[0]}-${semesterCourse.course_id.split('-')[1]}</td>
                         <td>${semesterCourse.is_repeat ? '*' : ''}${semesterCourse.course_name} ${semesterCourse.is_repeat ? '(RPT)' : ''}</td>
                         <td style="text-align: center;">${semesterCourse.credit_hours}</td>
                         <td style="text-align: center;">${semesterCourse.grade}</td>
@@ -490,7 +490,7 @@ function studentTranscript(data, callback) {
 
         <p style="font-size: 10px">Errors and omissions are subject to subsequent rectification</p>
         <p>Grade Point Average = <b><u>${gpa}</u></b></p>
-        <p>Thesis Title ${htmlFunctions.formatUnderlined(thesis?.thesis_title || 'N/A')}</p>
+        <p>Thesis Title ${htmlFunctions.formatUnderlined(`"${thesis?.thesis_title || 'N/A'}"`)}</p>
         <p>Transcript Prepared By: ${htmlFunctions.formatUnderlined('')}</p>
         <p>Transcript Checked By: ${htmlFunctions.formatUnderlined('')}</p>
         <p>Date of issue: ${htmlFunctions.formatUnderlined(attributes.date)}</p>
