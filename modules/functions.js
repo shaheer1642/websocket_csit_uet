@@ -1,3 +1,6 @@
+const { db } = require("./db_connection");
+const { event_emitter } = require("./event_emitter");
+
 function dynamicSort(property) {
     var sortOrder = 1;
     if(property[0] === "-") {
@@ -153,9 +156,26 @@ function isEmailValid(value) {
     else return true
 }
 
+var semesters_array = []
+
+db.on('connected', fetchSemesters)
+event_emitter.on('notifyAll', (e) => e.event == 'semesters/listener/insert' ? fetchSemesters() : null)
+event_emitter.on('notifyAll', (e) => e.event == 'semesters/listener/update' ? fetchSemesters() : null)
+event_emitter.on('notifyAll', (e) => e.event == 'semesters/listener/delete' ? fetchSemesters() : null)
+function fetchSemesters() {
+    console.log('[Functions.js] fetchSemesters called')
+    db.query('SELECT * from semesters').then(res => {
+        semesters_array = res.rows
+    }).catch(console.error)
+}
 function convertTimestampToSeasonYear(ts) {
     ts = Number(ts)
-    return `${new Date(ts).getMonth() < 7 ? 'Spring' : 'Fall'} ${new Date(ts).getFullYear()}`
+    for (const semester of semesters_array) {
+        if (ts >= semester.semester_start_timestamp && ts <= semester.semester_end_timestamp) 
+            return `${convertUpper(semester.semester_season)} ${semester.semester_year}`
+    }
+    const season = new Date(ts).getMonth() < 2 || new Date(ts).getMonth() > 8 ? 'Fall' : 'Spring'
+    return `${season} ${new Date(ts).getFullYear() + (new Date(ts).getMonth() < 2 ? 1 : 0)}`
 }
 
 function formatCNIC(str) {
