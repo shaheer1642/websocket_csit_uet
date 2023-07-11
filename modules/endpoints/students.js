@@ -27,8 +27,10 @@ class Students {
         username: new DataTypes(true).string,
         password: new DataTypes(true).string,
         user_type: new DataTypes(true).string,
-        student_batch_id: new DataTypes(true,['students/completeDegree','students/transcript','students/freezeSemester','students/cancelAdmission']).uuid,
+        student_batch_id: new DataTypes(true,['students/completeDegree','students/extendDegreeTime','students/transcript','students/freezeSemester','students/cancelAdmission']).uuid,
         batch_id: new DataTypes(true,['students/create','students/update','students/delete'],['students/fetch']).uuid,
+        degree_extension_periods: new DataTypes(true,[],[]).array,
+        degree_extension_period: new DataTypes(false,[],['students/extendDegreeTime'],false,`{period: 'number in milliseconds', reason: 'string'}`).json,
         batch_no: new DataTypes(true).string,
         joined_semester: new DataTypes(true).string,
         degree_type: new DataTypes(true).string,
@@ -342,6 +344,30 @@ function studentsCompleteDegree(data,callback) {
     })
 }
 
+function studentsExtendDegreeTime(data,callback) {
+    console.log(`[${data.event}] called data received:`,data)
+
+    const validator = validations.validateRequestData(data,new Students,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    if (!data.degree_extension_period.period && !data.degree_extension_period.reason ) return callback({ code: 400, status: 'BAD REQUEST', message: 'Missing period or reason' });
+    data.degree_extension_period.period = Number(data.degree_extension_period.period)
+    if (!data.degree_extension_period.period) return callback({ code: 400, status: 'BAD REQUEST', message: 'Invalid type for period' });
+
+    db.query(`
+        UPDATE students_batch SET
+        degree_extension_periods = degree_extension_periods || '${JSON.stringify(data.degree_extension_period)}'
+        WHERE student_batch_id = '${data.student_batch_id}';
+    `).then(res => {
+        if (res.rowCount == 1) callback({ code: 200, status: 'OK', message: `updated record in db` });
+        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` }); 
+        else callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
+    }).catch(err => {
+        console.error(err)
+        callback(validations.validateDBUpdateQueryError(err));
+    })
+}
+
 function studentsFreezeSemester(data,callback) {
     console.log(`[${data.event}] called data received:`,data)
 
@@ -435,5 +461,6 @@ module.exports = {
     studentsFreezeSemester,
     studentsCancelAdmission,
     studentsTranscript,
+    studentsExtendDegreeTime,
     Students
 }

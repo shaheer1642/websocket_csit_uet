@@ -141,7 +141,11 @@ function getDepartmentIdFromCourseId(course_id) {
 }
 
 function escapeDBCharacters(str) {
-    return str.replace(/'/g,`''`).replace(/\\/g,`\\\\`).replace(/\"/g,`\\"`).replace(/\r\n/g,`\\n`).replace(/\n/g,`\\r\\n`)
+    return str.replace(/'/g,`''`).replace(/\"/g,`\"`)
+}
+
+function removeNewLines(str) {
+    return str.replace(/\r\n/g,' ').replace(/\r/g,' ').replace(/\n/g,' ')
 }
 
 function isEmailValid(value) {
@@ -170,6 +174,7 @@ module.exports = {
     convertUpper,
     checkKeysExists,
     escapeDBCharacters,
+    removeNewLines,
     getDepartmentIdFromCourseId,
     isEmailValid,
     convertTimestampToSeasonYear,

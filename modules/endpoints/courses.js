@@ -3,7 +3,7 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
-const { getDepartmentIdFromCourseId } = require('../functions');
+const { getDepartmentIdFromCourseId, escapeDBCharacters, removeNewLines } = require('../functions');
 
 class Courses {
     name = 'Courses';
@@ -11,6 +11,7 @@ class Courses {
     data_types = {
         course_id: new DataTypes(true,['courses/create','courses/update','courses/delete'],['courses/fetch'],false,'CS-103').string,
         course_name: new DataTypes(true,['courses/create'],['courses/update'],false,'Algorithms').string,
+        course_description: new DataTypes(true,[],['courses/create','courses/update'],true).string,
         department_id: new DataTypes(true,[],[],false,'CS&IT').string,
         course_type: new DataTypes(true,['courses/create'],['courses/update'],false,'core').string,
         credit_hours: new DataTypes(true,['courses/create'],['courses/update'],false,3).number,
@@ -63,10 +64,11 @@ function coursesCreate(data, callback) {
         }
     } else {
         db.query(`
-            INSERT INTO courses (course_id,course_name, department_id, course_type, credit_hours) 
+            INSERT INTO courses (course_id,course_name,course_description,department_id, course_type, credit_hours) 
             VALUES (
                 '${data.course_id.toUpperCase()}',
                 '${data.course_name}',
+                ${data.course_description ? `'${escapeDBCharacters(data.course_description)}'` : 'NULL'},
                 '${getDepartmentIdFromCourseId(data.course_id)}',
                 '${data.course_type}',
                 ${data.credit_hours}
@@ -146,68 +148,29 @@ function coursesDelete(data, callback) {
 
 function coursesUpdate(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
+
     const validator = validations.validateRequestData(data,new Courses,data.event)
-    if (!validator.valid) {
-        if (callback) {
-            callback({
-                code: 400, 
-                status: 'BAD REQUEST',
-                message: validator.reason
-            });
-        }
-        return
-    } else {
-        var update_clauses = []
-        if (data.course_name) update_clauses.push(`course_name = '${data.course_name}'`)
-        if (data.course_type) update_clauses.push(`course_type = '${data.course_type}'`)
-        if (data.credit_hours) update_clauses.push(`credit_hours = ${data.credit_hours}`)
-        if (update_clauses.length == 0) {
-            if (callback) {
-                callback({
-                    code: 400, 
-                    status: 'BAD REQUEST',
-                    message: `No valid parameters found in requested data.`,
-                });
-            }
-            return
-        }
-        db.query(`
-            UPDATE courses SET
-            ${update_clauses.join(',')}
-            WHERE course_id = '${data.course_id}';
-        `).then(res => {
-            if (res.rowCount == 1) {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: `updated ${data.course_id} record in db`
-                    });
-                }
-            } else if (res.rowCount == 0) {
-                if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `record ${data.course_id} does not exist`
-                    });
-                }
-            } else {
-                if (callback) {
-                    callback({
-                        code: 500, 
-                        status: 'INTERNAL ERROR',
-                        message: `${res.rowCount} rows updated`
-                    });
-                }
-            }
-        }).catch(err => {
-            console.error(err)
-            if (callback) {
-                callback(validations.validateDBUpdateQueryError(err));
-            }
-        })
-    }
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+    
+    var update_clauses = []
+    if (data.course_name) update_clauses.push(`course_name = '${data.course_name}'`)
+    if (data.course_description) update_clauses.push(`course_description = '${escapeDBCharacters(data.course_description)}'`)
+    if (data.course_type) update_clauses.push(`course_type = '${data.course_type}'`)
+    if (data.credit_hours) update_clauses.push(`credit_hours = ${data.credit_hours}`)
+    if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.`, });
+
+    db.query(`
+        UPDATE courses SET
+        ${update_clauses.join(',')}
+        WHERE course_id = '${data.course_id}';
+    `).then(res => {
+        if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated ${data.course_id} record in db` });
+        else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.course_id} does not exist` });
+        else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
+    }).catch(err => {
+        console.error(err)
+        return callback(validations.validateDBUpdateQueryError(err));
+    })
 }
 
 db.on('notification', (notification) => {
