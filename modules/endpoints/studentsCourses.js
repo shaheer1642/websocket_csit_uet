@@ -166,13 +166,13 @@ function studentsCoursesUpdateGrade(data, callback) {
         if (semester_course.grades_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
 
         db.query(`
-            UPDATE students_courses SET
+            UPDATE students_courses SC SET
             grade = '${data.grade}',
             grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
-            WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${data.student_batch_id}';
+            WHERE SC.sem_course_id = '${data.sem_course_id}' AND SC.student_batch_id = '${data.student_batch_id}' AND SC.grade != 'W' AND NOT (SELECT grades_locked FROM semesters_courses SMC WHERE SMC.sem_course_id = SC.sem_course_id);
         `).then(res => {
             if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} record in db` });
-            else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} does not exist` });
+            else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `grade may no longer be assignable for this student` });
             else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
         }).catch(err => {
             console.error(err)
@@ -182,7 +182,6 @@ function studentsCoursesUpdateGrade(data, callback) {
         console.error(err)
         callback(validations.validateDBSelectQueryError(err));
     })
-
 }
 
 function studentsCoursesUpdateMarkings(data, callback) {
@@ -193,7 +192,7 @@ function studentsCoursesUpdateMarkings(data, callback) {
     
     db.query(`
         SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}';
-        SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}';
+        SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}' AND grade != 'W';
     `).then(res => {
         if (res[0].rowCount != 1) return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find course = ${data.sem_course_id}` })
 

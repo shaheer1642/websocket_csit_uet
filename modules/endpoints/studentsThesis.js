@@ -81,7 +81,7 @@ function studentsThesisFetch(data, callback) {
             callback({
                 code: 200, 
                 status: 'OK',
-                data: res.reduce((arr,obj) => arr.concat(obj.rows),[]).sort(dynamicSortDesc('batch_expiration_timestamp'))
+                data: res.reduce((arr,obj) => arr.concat(obj.rows),[]).sort(dynamicSortDesc('batch_no'))
             })
         }).catch(err => {
             console.error(err)

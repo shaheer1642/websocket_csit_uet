@@ -533,6 +533,14 @@ const endpoints = {
             ['teacher'],
             semestersCourses.semestersCoursesLockGrades
         ),
+        unlockGrades: new Endpoint(
+            "semestersCourses/unlockGrades",
+            new semestersCourses.SemestersCourses(),
+            `<pre><code>${JSON.stringify({code: 200, status: 'OK', message: `updated caa1534e-da15-41b6-8110-cc3fcffb14ed record in db`},null,4)}</code></pre>`,
+            true,
+            ['admin','pga'],
+            semestersCourses.semestersCoursesUnlockGrades
+        ),
         updateGradeDistribution: new Endpoint(
             "semestersCourses/updateGradeDistribution",
             new semestersCourses.SemestersCourses(),

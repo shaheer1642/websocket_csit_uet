@@ -10,7 +10,7 @@ class SemestersCourses {
     name = 'Semesters Courses';
     description = 'Endpoints for creating semester courses'
     data_types = {
-        sem_course_id: new DataTypes(true,['semestersCourses/updateTeacher','semestersCourses/updateGradeDistribution','semestersCourses/delete','semestersCourses/lockChanges','semestersCourses/lockGrades'],['semestersCourses/fetch']).uuid,
+        sem_course_id: new DataTypes(true,['semestersCourses/updateTeacher','semestersCourses/updateGradeDistribution','semestersCourses/delete','semestersCourses/lockChanges','semestersCourses/lockGrades','semestersCourses/unlockGrades'],['semestersCourses/fetch']).uuid,
         course_id: new DataTypes(true,['semestersCourses/create'],['semestersCourses/fetch'],false,'CS-103').string,
         teacher_id: new DataTypes(true,['semestersCourses/create','semestersCourses/updateTeacher'],['semestersCourses/fetch']).uuid,
         semester_id: new DataTypes(true,['semestersCourses/create'],['semestersCourses/fetch']).uuid,
@@ -239,6 +239,24 @@ function semestersCoursesLockChanges(data, callback) {
     }
 }
 
+function semestersCoursesUnlockGrades(data, callback) {
+    console.log(`[${data.event}] called data received:`,data)
+
+    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
+    db.query(`
+        UPDATE semesters_courses SET grades_locked = false
+        WHERE sem_course_id = '${data.sem_course_id}';
+    `).then(res => {
+        if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'added record to db' });
+        else return callback({ code: 500, status: 'INTERNAL ERROR', message: 'unexpected DB response' });
+    }).catch(err => {
+        console.error(err)
+        return callback(validations.validateDBInsertQueryError(err));
+    })
+}
+
 function semestersCoursesLockGrades(data, callback) {
     console.log(`[${data.event}] called data received:`,data)
     
@@ -253,20 +271,19 @@ function semestersCoursesLockGrades(data, callback) {
         const studentsCourses = res.rows
         if (studentsCourses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: 'Could not find required info' });
         db.query('BEGIN;').then(() => {
-            Promise.all(studentsCourses.map(studentCourse => {
+            Promise.all(studentsCourses.filter(sc => sc.grade != 'W').map(studentCourse => {
                 return new Promise((resolve,reject) => {
                     studentsCoursesUpdateGrade({
+                        event: 'studentsCourses/updateGrade',
                         user_id: data.user_id,
                         sem_course_id: studentCourse.sem_course_id,
                         student_batch_id: studentCourse.student_batch_id,
                         grade: studentCourse.marking?.result[studentCourse?.grade_distribution?.marking?.type]?.grade,
-                        event: 'studentsCourses/updateGrade'
                     },(res) => {
                         res.code == 200 ? resolve(res) : reject(res)
                     })
                 })
             })).then((responses) => {
-                console.log(responses)
                 db.query(`
                     UPDATE semesters_courses SET grades_locked = true
                     WHERE sem_course_id = '${data.sem_course_id}';
@@ -456,5 +473,6 @@ module.exports = {
     semestersCoursesUpdateGradeDistribution,
     semestersCoursesLockChanges,
     semestersCoursesLockGrades,
+    semestersCoursesUnlockGrades,
     SemestersCourses
 }

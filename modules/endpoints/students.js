@@ -27,7 +27,7 @@ class Students {
         username: new DataTypes(true).string,
         password: new DataTypes(true).string,
         user_type: new DataTypes(true).string,
-        student_batch_id: new DataTypes(true,['students/completeDegree','students/extendDegreeTime','students/transcript','students/freezeSemester','students/cancelAdmission']).uuid,
+        student_batch_id: new DataTypes(true,['students/completeDegree','students/extendDegreeTime','students/transcript','students/freezeSemester','students/cancelAdmission'],['students/fetch']).uuid,
         batch_id: new DataTypes(true,['students/create','students/update','students/delete'],['students/fetch']).uuid,
         degree_extension_periods: new DataTypes(true,[],[]).array,
         degree_extension_period: new DataTypes(false,[],['students/extendDegreeTime'],false,`{period: 'number in milliseconds', reason: 'string'}`).json,
@@ -53,6 +53,7 @@ function studentsFetch(data, callback) {
         });
     } else {
         var where_clauses = []
+        if (data.student_batch_id) where_clauses.push(`SB.student_batch_id = '${data.student_batch_id}'`)
         if (data.batch_id) where_clauses.push(`B.batch_id = '${data.batch_id}'`)
         if (data.student_id) where_clauses.push(`S.student_id = '${data.student_id}'`)
         if (data.reg_no) where_clauses.push(`S.reg_no = '${data.reg_no.toLowerCase()}'`)
@@ -73,6 +74,7 @@ function studentsFetch(data, callback) {
             JOIN users U ON U.user_id = S.student_id
             ${where_clauses.length > 0 ? 'WHERE':''}
             ${where_clauses.join(' AND ')}
+            ORDER BY B.batch_no DESC;
         `).then(res => {
             callback({
                 code: 200, 
