@@ -5,7 +5,7 @@ const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
 const { uploadDocumentsFromArray } = require('./documents');
 const { uploadFile } = require('../aws/aws');
-const { formatCNIC, generateRandom1000To9999 } = require('../functions');
+const { formatCNIC, generateRandom1000To9999, escapeDBCharacters } = require('../functions');
 const { hashPassword } = require('../hashing');
 
 class Teachers {
@@ -19,6 +19,8 @@ class Teachers {
         digital_signature: new DataTypes(true,[],['teachers/update'],false,'image-buffer').any,
         areas_of_interest: new DataTypes(true,[],['teachers/update']).array,
         teacher_department_id: new DataTypes(true,['teachers/create'],['teachers/update']).string,
+        qualification: new DataTypes(true,[],['teachers/create','teachers/update'],false,'male').string,
+        designation: new DataTypes(true,[],['teachers/create','teachers/update'],false,'male').string,
         teacher_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
         user_id: new DataTypes(true).uuid,
         username: new DataTypes(true).string,
@@ -92,13 +94,15 @@ function teachersCreate(data, callback) {
                 ) 
                 RETURNING user_id 
             )
-            INSERT INTO teachers (teacher_id, cnic, reg_no, teacher_name, teacher_gender, teacher_department_id) 
+            INSERT INTO teachers (teacher_id, cnic, reg_no, teacher_name, teacher_gender, qualification, designation, teacher_department_id) 
             VALUES (
                 ( select user_id from query_one ),
                 ${data.cnic ? `'${data.cnic}'`:null},
                 ${data.reg_no ? `'${data.reg_no}'`:null},
                 '${data.teacher_name}',
                 ${data.teacher_gender ? `'${data.teacher_gender}'` : null},
+                ${data.qualification ? `'${escapeDBCharacters(data.qualification)}'` : null},
+                ${data.designation ? `'${data.designation}'` : null},
                 '${data.teacher_department_id}'
             );
         `).then(res => {
@@ -188,6 +192,8 @@ async function teachersUpdate(data, callback) {
     var update_clauses = []
     if (data.teacher_name) update_clauses.push(`teacher_name = '${data.teacher_name}'`)
     if (data.teacher_gender) update_clauses.push(`teacher_gender = '${data.teacher_gender}'`)
+    if (data.qualification) update_clauses.push(`qualification = '${escapeDBCharacters(data.qualification)}'`)
+    if (data.designation) update_clauses.push(`designation = '${data.designation}'`)
     if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
     if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
     if (data.areas_of_interest) update_clauses.push(`areas_of_interest = '${JSON.stringify(data.areas_of_interest)}'`)

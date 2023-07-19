@@ -147,6 +147,10 @@ function escapeDBCharacters(str) {
     return str.replace(/'/g,`''`).replace(/\"/g,`\"`)
 }
 
+function escapeDBJSONCharacters(str) {
+    return str.replace(/'/g,`''`).replace(/\\/g,`\\\\`).replace(/\"/g,`\\"`).replace(/\r\n/g,`\\n`).replace(/\n/g,`\\r\\n`)
+}
+
 function removeNewLines(str) {
     return str.replace(/\r\n/g,' ').replace(/\r/g,' ').replace(/\n/g,' ')
 }
@@ -198,6 +202,7 @@ module.exports = {
     getDepartmentIdFromCourseId,
     isEmailValid,
     convertTimestampToSeasonYear,
+    escapeDBJSONCharacters,
     generateRandom1000To9999,
     formatCNIC
 };

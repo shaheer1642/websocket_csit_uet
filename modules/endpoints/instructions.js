@@ -3,7 +3,7 @@ const uuid = require('uuid');
 const validations = require('../validations');
 const {DataTypes} = require('../classes/DataTypes')
 const {event_emitter} = require('../event_emitter');
-const { escapeDBCharacters } = require('../functions');
+const { escapeDBCharacters, escapeDBJSONCharacters } = require('../functions');
 
 class Instructions {
     name = 'Instructions';
@@ -61,7 +61,7 @@ function instructionsUpdate(data, callback) {
     } else {
         db.query(`
             UPDATE instructions SET
-            detail = jsonb_set(detail, '{${data.instruction_detail_key}}', '"${escapeDBCharacters(data.instruction)}"', true)
+            detail = jsonb_set(detail, '{${data.instruction_detail_key}}', '"${escapeDBJSONCharacters(data.instruction)}"', true)
             WHERE instruction_id = ${data.instruction_id};
         `).then(res => {
             if (res.rowCount == 1) {
