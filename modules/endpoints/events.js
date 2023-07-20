@@ -13,7 +13,7 @@ class Events {
         title: new DataTypes(true,['events/create'],['events/update']).string,
         body: new DataTypes(true,['events/create'],['events/update'],true).string,
         event_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
-        event_expiry_timestamp: new DataTypes(true,['events/create'],['events/update']).unix_timestamp_milliseconds,
+        event_expiry_timestamp: new DataTypes(true,[],['events/create','events/update']).unix_timestamp_milliseconds,
         record_limit: new DataTypes(false, [], ['events/fetch']).number
     }
 }
@@ -72,7 +72,7 @@ function eventsCreate(data, callback) {
         ) VALUES (
             '${data.title}',
             '${data.body}',
-            ${data.event_expiry_timestamp}
+            ${data.event_expiry_timestamp ? `${data.event_expiry_timestamp}` : null}
         )
         `).then(res => {
             if (callback) {
@@ -154,12 +154,9 @@ function eventsUpdate(data, callback) {
         }
     } else {
         var update_clauses = []
-        if (data.title)
-            update_clauses.push(`title = '${data.title}'`)
-        if (data.body)
-            update_clauses.push(`body = '${data.body}'`)
-        if (data.event_expiry_timestamp)
-            update_clauses.push(`event_expiry_timestamp = ${data.event_expiry_timestamp}`)
+        if (data.title) update_clauses.push(`title = '${data.title}'`)
+        if (data.body) update_clauses.push(`body = '${data.body}'`)
+        if (data.event_expiry_timestamp) update_clauses.push(`event_expiry_timestamp = ${data.event_expiry_timestamp}`)
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({
