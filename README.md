@@ -10,4 +10,4 @@ API and WebSocket source code for the departmental MIS website for CS&IT, UET, P
 
 # Running the code
 - First install the node modules using the command: `npm install`
-- Run the website using: `npm start`
+- Run the server using: `npm start`
