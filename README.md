@@ -1,13 +1,13 @@
-# websocket_csit_uet
+# About
+API and WebSocket source code for the departmental MIS website for CS&IT, UET, Peshawar. 
 
-# Server Address
-https://wsscsituet.up.railway.app/
- 
-# Running Locally
+# Technologies
+- Express
+- Socket.io
+- AWS-sdk
+- Googleapis
+- PostgreSQL
 
-Make sure to have nodejs installed: https://nodejs.org/en/download/
-
-Acquire the `.env` file from project administrator and copy it in the root directory
-
-Run the local server using cmd with command
-`npm start`
+# Running the code
+- First install the node modules using the command: `npm install`
+- Run the website using: `npm start`
