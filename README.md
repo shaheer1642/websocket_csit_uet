@@ -1,13 +1,15 @@
-# About
+# API/WebSocket (MIS CS&IT, UETP)
+
+## About
 API and WebSocket source code for the departmental MIS website for CS&IT, UET, Peshawar. 
 
-# Technologies
+## Technologies
 - Express
 - Socket.io
 - AWS-sdk
 - Googleapis
 - PostgreSQL
 
-# Running the code
+## Running the code
 - First install the node modules using the command: `npm install`
 - Run the server using: `npm start`
