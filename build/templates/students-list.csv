@@ -1,0 +1,4 @@
+reg_no*,cnic*,student_name*,father_name*,gender,admission_status,email,contact_no,address
+00pwmcs0000,12345-6789012-3,ali babar,babar khan,male,open,test@gmail.com,3340123456,"ABC colony, Saddar, Peshawar"
+00pwmcs0000,12345-6789012-3,sana babar,babar khan,female,rationalized,test@gmail.com,3340123456,"ABC colony, Saddar, Peshawar"
+00pwmcs0000,12345-6789012-3,zaid babar,babar khan,m,afghan,test@gmail.com,3340123456,"ABC colony, Saddar, Peshawar"
