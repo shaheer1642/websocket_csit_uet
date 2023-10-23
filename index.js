@@ -36,12 +36,6 @@ app.get('/endpoints', (req, res) => {
   res.send(getEndpoints());
 });
 
-app.use(express.static(path.join(__dirname, 'build')))
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'))
-});
-
 /* Assign API Endpoints */
 for (const key in endpoints) {
   const ev1 = key
@@ -80,6 +74,12 @@ app.get('/api/', (req, res) => {
     code: 400,
     message: 'Invalid endpoint',
   })
+});
+
+app.use(express.static(path.join(__dirname, 'build')))
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'))
 });
 
 function removeSensitiveInfo(res, callback) {
