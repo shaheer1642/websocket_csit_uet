@@ -11,3 +11,5 @@ RUN echo "REACT_APP_ENV=production" >> .env
 RUN npm install
 
 RUN npm run build
+
+WORKDIR /
