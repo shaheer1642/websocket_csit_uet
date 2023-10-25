@@ -36,10 +36,10 @@ app.get('/endpoints', (req, res) => {
   res.send(getEndpoints());
 });
 
-app.use(express.static(path.join(__dirname, 'build')))
+app.use(express.static(path.join(__dirname, 'front_end', 'build')))
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'))
+  res.sendFile(path.join(__dirname, 'front_end', 'build', 'index.html'))
 });
 
 /* Assign API Endpoints */
