@@ -82,15 +82,15 @@ db.on('error', err => {
 })
 
 db.on('notification', (notification) => {
-    console.log('[DB Notification]',notification.channel)
+    console.log('[DB Notification]', notification.channel)
 })
 
 setInterval(() => {
     db.query(`SELECT * FROM events`).then(res => {
-        console.log('Pinged the DB. Received rows:',res.rowCount)
+        console.log('Pinged the DB. Received rows:', res.rowCount)
     }).catch(console.error)
 }, 900000);
 
-db.setMaxListeners(15)
+db.setMaxListeners(20)
 
-module.exports = {db};
+module.exports = { db };
