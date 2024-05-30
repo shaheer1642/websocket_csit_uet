@@ -16,4 +16,8 @@ RUN npm run build
 
 WORKDIR /
 
-# RUN npm install
+RUN npm install
+
+# RUN sleep 3
+
+CMD sleep 3 && npm run deploy
