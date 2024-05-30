@@ -16,4 +16,4 @@ RUN npm run build
 
 WORKDIR /
 
-RUN npm install
+# RUN npm install
