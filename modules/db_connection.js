@@ -1,96 +1,112 @@
-const DB = require('pg');
+const { Client, Pool } = require('pg');
 
-const db = new DB.Client({
+const config = {
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    },
     keepAlive: true
-})
+};
 
-db.connect().then(async res => {
-    db.emit('connected')
-    console.log('DB Connection established.')
+const initClient = new Client(config)
+const publicPool = new Pool({ connectionString: process.env.DATABASE_PUBLIC_URL })
 
-    db.query(`
-        LISTEN events_insert;
-        LISTEN events_update;
-        LISTEN events_delete;
+// ping DB
+publicPool.query(`SELECT * FROM users LIMIT 1`).catch(console.error)
 
-        LISTEN batches_insert;
-        LISTEN batches_update;
-        LISTEN batches_delete;
-
-        LISTEN users_insert;
-        LISTEN users_update;
-        LISTEN users_delete;
-
-        LISTEN students_insert;
-        LISTEN students_update;
-        LISTEN students_delete;
-
-        LISTEN students_batch_insert;
-        LISTEN students_batch_update;
-        LISTEN students_batch_delete;
-
-        LISTEN teachers_insert;
-        LISTEN teachers_update;
-        LISTEN teachers_delete;
-
-        LISTEN courses_insert;
-        LISTEN courses_update;
-        LISTEN courses_delete;
-
-        LISTEN semesters_insert;
-        LISTEN semesters_update;
-        LISTEN semesters_delete;
-
-        LISTEN semesters_courses_insert;
-        LISTEN semesters_courses_update;
-        LISTEN semesters_courses_delete;
-
-        LISTEN students_courses_insert;
-        LISTEN students_courses_update;
-        LISTEN students_courses_delete;
-
-        LISTEN students_thesis_insert;
-        LISTEN students_thesis_update;
-        LISTEN students_thesis_delete;
-
-        LISTEN documents_insert;
-        LISTEN documents_update;
-        LISTEN documents_delete;
-
-        LISTEN applications_insert;
-        LISTEN applications_update;
-        LISTEN applications_delete;
-
-        LISTEN applications_templates_insert;
-        LISTEN applications_templates_update;
-        LISTEN applications_templates_delete;
-
-        LISTEN notifications_insert;
-    `).catch(console.error)
-}).catch(err => {
-    console.log('DB Connection failure.\n' + err)
-});
-
-db.on('error', err => {
-    console.log('=============== DB Connection error. ==============')
-    console.error(err)
-    process.exit()
-})
-
-db.on('notification', (notification) => {
-    console.log('[DB Notification]', notification.channel)
-})
-
+// keep DB awake. ping every 15 minutes
 setInterval(() => {
-    db.query(`SELECT * FROM events`).then(res => {
-        console.log('Pinged the DB. Received rows:', res.rowCount)
-    }).catch(console.error)
+    publicPool.query(`SELECT * FROM users LIMIT 1`).catch(console.error)
 }, 900000);
 
-db.setMaxListeners(20)
+
+const db = {
+    client: initClient,
+    query: (queryText, values, callback) => {
+        return initClient.query(queryText, values, callback)
+    },
+    listeners: {
+        connect: [],
+        reconnect: [],
+        notification: [],
+    },
+};
+
+async function connectToDB() {
+    attachListeners(db.client);
+
+    try {
+        await db.client.connect();
+        console.log('Connected to the database');
+        emitEvent('connect');
+    } catch (err) {
+        console.error('Connection error:', err);
+
+        // Attempt to reconnect after a delay
+        await reconnectToDB().then(() => {
+            emitEvent('connect')
+        }).catch(console.error);
+    }
+}
+
+async function reconnectToDB() {
+    console.log('Attempting to reconnect to the database...');
+
+    // ping DB
+    await publicPool.query(`SELECT * FROM users LIMIT 1`).catch(console.error)
+
+    // Delay before attempting to reconnect
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    removeExistingListeners(db.client);
+
+    // Create a new client and attempt to connect
+    db.client = new Client(config);
+    db.query = (queryText, values, callback) => {
+        return db.client.query(queryText, values, callback)
+    }
+
+    attachListeners(db.client);
+
+    try {
+        await db.client.connect();
+        console.log('Reconnected to the database');
+    } catch (err) {
+        console.error('Reconnection attempt failed:', err);
+
+        // Attempt to reconnect again after a delay
+        await reconnectToDB();
+    }
+}
+
+function attachListeners(client) {
+    client.on('error', async (err) => {
+        console.error('Database error:', err);
+        await reconnectToDB().then(() => {
+            emitEvent('reconnect')
+        }).catch(console.error);
+    });
+
+    client.on('notification', (msg) => {
+        emitEvent('notification', msg);
+    });
+}
+
+function removeExistingListeners(client) {
+    client.removeAllListeners();
+}
+
+function emitEvent(event, ...args) {
+    if (db.listeners[event]) {
+        db.listeners[event].forEach((listener) => listener(...args));
+    }
+}
+
+db.on = (event, listener) => {
+    if (!db.listeners[event]) {
+        db.listeners[event] = [];
+    }
+    db.listeners[event].push(listener);
+};
+
+// Initialize the first connection
+connectToDB();
 
 module.exports = { db };

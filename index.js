@@ -187,6 +187,131 @@ function authorizeEvent(login_token, permission_level) {
   })
 }
 
+
+db.on('connect', () => {
+  db.query(`
+    LISTEN events_insert;
+    LISTEN events_update;
+    LISTEN events_delete;
+
+    LISTEN batches_insert;
+    LISTEN batches_update;
+    LISTEN batches_delete;
+
+    LISTEN users_insert;
+    LISTEN users_update;
+    LISTEN users_delete;
+
+    LISTEN students_insert;
+    LISTEN students_update;
+    LISTEN students_delete;
+
+    LISTEN students_batch_insert;
+    LISTEN students_batch_update;
+    LISTEN students_batch_delete;
+
+    LISTEN teachers_insert;
+    LISTEN teachers_update;
+    LISTEN teachers_delete;
+
+    LISTEN courses_insert;
+    LISTEN courses_update;
+    LISTEN courses_delete;
+
+    LISTEN semesters_insert;
+    LISTEN semesters_update;
+    LISTEN semesters_delete;
+
+    LISTEN semesters_courses_insert;
+    LISTEN semesters_courses_update;
+    LISTEN semesters_courses_delete;
+
+    LISTEN students_courses_insert;
+    LISTEN students_courses_update;
+    LISTEN students_courses_delete;
+
+    LISTEN students_thesis_insert;
+    LISTEN students_thesis_update;
+    LISTEN students_thesis_delete;
+
+    LISTEN documents_insert;
+    LISTEN documents_update;
+    LISTEN documents_delete;
+
+    LISTEN applications_insert;
+    LISTEN applications_update;
+    LISTEN applications_delete;
+
+    LISTEN applications_templates_insert;
+    LISTEN applications_templates_update;
+    LISTEN applications_templates_delete;
+
+    LISTEN notifications_insert;
+  `).catch(console.error)
+})
+
+db.on('reconnect', () => {
+  db.query(`
+    LISTEN events_insert;
+    LISTEN events_update;
+    LISTEN events_delete;
+
+    LISTEN batches_insert;
+    LISTEN batches_update;
+    LISTEN batches_delete;
+
+    LISTEN users_insert;
+    LISTEN users_update;
+    LISTEN users_delete;
+
+    LISTEN students_insert;
+    LISTEN students_update;
+    LISTEN students_delete;
+
+    LISTEN students_batch_insert;
+    LISTEN students_batch_update;
+    LISTEN students_batch_delete;
+
+    LISTEN teachers_insert;
+    LISTEN teachers_update;
+    LISTEN teachers_delete;
+
+    LISTEN courses_insert;
+    LISTEN courses_update;
+    LISTEN courses_delete;
+
+    LISTEN semesters_insert;
+    LISTEN semesters_update;
+    LISTEN semesters_delete;
+
+    LISTEN semesters_courses_insert;
+    LISTEN semesters_courses_update;
+    LISTEN semesters_courses_delete;
+
+    LISTEN students_courses_insert;
+    LISTEN students_courses_update;
+    LISTEN students_courses_delete;
+
+    LISTEN students_thesis_insert;
+    LISTEN students_thesis_update;
+    LISTEN students_thesis_delete;
+
+    LISTEN documents_insert;
+    LISTEN documents_update;
+    LISTEN documents_delete;
+
+    LISTEN applications_insert;
+    LISTEN applications_update;
+    LISTEN applications_delete;
+
+    LISTEN applications_templates_insert;
+    LISTEN applications_templates_update;
+    LISTEN applications_templates_delete;
+
+    LISTEN notifications_insert;
+  `).catch(console.error)
+})
+
 event_emitter.on('notifyAll', (e) => {
   console.log('[io.emit]', e.event)
   io.emit(e.event, e.data)
