@@ -79,7 +79,8 @@ app.get('/api/', (req, res) => {
 app.use(express.static(path.join(__dirname, 'front_end', 'build')))
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, 'front_end', 'build', 'index.html'))
+  res.send('<h3>The website is currently under maintenance. For any query, please contact +92 348 8947255</h3>')
+  // res.sendFile(path.join(__dirname, 'front_end', 'build', 'index.html'))
 });
 
 function removeSensitiveInfo(res, callback) {
@@ -317,7 +318,8 @@ event_emitter.on('notifyAll', (e) => {
   io.emit(e.event, e.data)
 })
 
+const PORT = process.env.PORT || 4000
 
-server.listen(process.env.PORT, () => {
-  console.log('Server is listening to port', process.env.PORT);
+server.listen(PORT, () => {
+  console.log('Server is listening to port', PORT);
 });
