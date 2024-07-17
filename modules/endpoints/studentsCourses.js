@@ -1,8 +1,8 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter');
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter');
 const { markingEvalutation, calculateAttendancePercentage } = require('../grading_functions');
 const { default_objects } = require('../default_objects');
 
@@ -11,32 +11,32 @@ class StudentsCourses {
     description = 'Endpoints for assigning courses to students'
     data_types = {
         sem_course_id: new DataTypes(true,
-            ['studentsCourses/updateGrade','studentsCourses/assignStudents','studentsCourses/updateMarkings','studentsCourses/updateAttendances'],
+            ['studentsCourses/updateGrade', 'studentsCourses/assignStudents', 'studentsCourses/updateMarkings', 'studentsCourses/updateAttendances'],
             ['studentsCourses/fetch']).uuid,
         student_batch_id: new DataTypes(true,
             ['studentsCourses/updateGrade'],
             ['studentsCourses/fetch']).uuid,
         student_batch_ids: new DataTypes(false,
             ['studentsCourses/assignStudents'],
-            [],false,'["caa1534e-da15-41b6-8110-cc3fcffb14ed"]').array,
+            [], false, '["caa1534e-da15-41b6-8110-cc3fcffb14ed"]').array,
         grade: new DataTypes(true,
             ['studentsCourses/updateGrade'],
-            ['studentsCourses/fetch'],false,'B').string,
-        grade_change_logs: new DataTypes(true,[],[],false,'["timestamp user_id grade"]').array,
+            ['studentsCourses/fetch'], false, 'B').string,
+        grade_change_logs: new DataTypes(true, [], [], false, '["timestamp user_id grade"]').array,
         marking: new DataTypes(true).json,
-        markings: new DataTypes(true,['studentsCourses/updateMarkings']).array,
+        markings: new DataTypes(true, ['studentsCourses/updateMarkings']).array,
         attendance: new DataTypes(true).json,
-        attendances: new DataTypes(true,['studentsCourses/updateAttendances']).array,
+        attendances: new DataTypes(true, ['studentsCourses/updateAttendances']).array,
     }
 }
 
 function studentsCoursesFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
+    const validator = validations.validateRequestData(data, new StudentsCourses, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -54,12 +54,12 @@ function studentsCoursesFetch(data, callback) {
             JOIN semesters SM ON SM.semester_id = SMC.semester_id
             JOIN teachers T ON SMC.teacher_id = T.teacher_id
             JOIN students S ON S.student_id = (select student_id from students_batch where student_batch_id = SC.student_batch_id)
-            ${where_clauses.length > 0 ? 'WHERE':''}
+            ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
             ORDER BY SC.enrollment_timestamp ASC
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
                 data: res.rows
             })
@@ -71,12 +71,12 @@ function studentsCoursesFetch(data, callback) {
 }
 
 function studentsCoursesAssignStudents(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new StudentsCourses, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -111,8 +111,8 @@ function studentsCoursesAssignStudents(data, callback) {
                             SC.sem_course_id IN (SELECT SMC.sem_course_id FROM semesters_courses SMC 
                             WHERE SMC.course_id = (SELECT course_id FROM semesters_courses WHERE sem_course_id = '${sem_course_id}'))
                         ),
-                        '${JSON.stringify({...default_objects.students_courses_marking, student_batch_id: student_batch_id})}',
-                        '${JSON.stringify({...default_objects.students_courses_attendance, student_batch_id: student_batch_id})}'
+                        '${JSON.stringify({ ...default_objects.students_courses_marking, student_batch_id: student_batch_id })}',
+                        '${JSON.stringify({ ...default_objects.students_courses_attendance, student_batch_id: student_batch_id })}'
                     );`)
                 }
             })
@@ -122,11 +122,11 @@ function studentsCoursesAssignStudents(data, callback) {
                 }
             })
             if (insert_queries.length == 0 && delete_queries.length == 0) {
-                return callback? callback({
-                    code: 400, 
+                return callback ? callback({
+                    code: 400,
                     status: 'BAD REQUEST',
                     message: 'No changes were made'
-                }):null
+                }) : null
             }
             db.query(`
                 BEGIN;
@@ -135,14 +135,14 @@ function studentsCoursesAssignStudents(data, callback) {
                 COMMIT;
             `).then(res => {
                 console.log(res)
-                callback? callback({
-                    code: 200, 
+                callback ? callback({
+                    code: 200,
                     status: 'OK',
                     message: 'updated records in db'
-                }):null
+                }) : null
             }).catch(err => {
                 console.error(err)
-                callback? callback(validations.validateDBInsertQueryError(err)) : null
+                callback ? callback(validations.validateDBInsertQueryError(err)) : null
                 db.query(`ROLLBACK;`).catch(console.error);
             })
         }).catch(err => {
@@ -153,43 +153,43 @@ function studentsCoursesAssignStudents(data, callback) {
 }
 
 function studentsCoursesUpdateGrade(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
-    if(!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+    console.log(`[${data.event}] called data received:`, data)
+
+    const validator = validations.validateRequestData(data, new StudentsCourses, data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}'`)
-    .then(res => {
-        if (res.rowCount != 1) return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find course = ${data.sem_course_id}` })
-        
-        const semester_course = res.rows[0];
-        if (semester_course.grades_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
+        .then(res => {
+            if (res.rowCount != 1) return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find course = ${data.sem_course_id}` })
 
-        db.query(`
+            const semester_course = res.rows[0];
+            if (semester_course.grades_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
+
+            db.query(`
             UPDATE students_courses SC SET
             grade = '${data.grade}',
             grade_change_logs = grade_change_logs || '"${new Date().getTime()} ${data.user_id} ${data.grade}"'
             WHERE SC.sem_course_id = '${data.sem_course_id}' AND SC.student_batch_id = '${data.student_batch_id}' AND SC.grade != 'W' AND NOT (SELECT grades_locked FROM semesters_courses SMC WHERE SMC.sem_course_id = SC.sem_course_id);
         `).then(res => {
-            if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} record in db` });
-            else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `grade may no longer be assignable for this student` });
-            else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
+                if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated sem_course=${data.sem_course_id} student_batch_id=${data.student_batch_id} record in db` });
+                else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `grade may no longer be assignable for this student` });
+                else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
+            }).catch(err => {
+                console.error(err)
+                return callback(validations.validateDBUpdateQueryError(err));
+            })
         }).catch(err => {
             console.error(err)
-            return callback(validations.validateDBUpdateQueryError(err));
+            callback(validations.validateDBSelectQueryError(err));
         })
-    }).catch(err => {
-        console.error(err)
-        callback(validations.validateDBSelectQueryError(err));
-    })
 }
 
 function studentsCoursesUpdateMarkings(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
+    const validator = validations.validateRequestData(data, new StudentsCourses, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
-    
+
     db.query(`
         SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}';
         SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}' AND grade != 'W';
@@ -227,62 +227,62 @@ function studentsCoursesUpdateMarkings(data, callback) {
 }
 
 function studentsCoursesUpdateAttendances(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new StudentsCourses,data.event)
+    const validator = validations.validateRequestData(data, new StudentsCourses, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`SELECT * FROM semesters_courses WHERE sem_course_id = '${data.sem_course_id}'`)
-    .then(res => {
-        if (res.rowCount != 1) return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find course = ${data.sem_course_id}` })
-        
-        const semester_course = res.rows[0];
-        const grade_distribution = semester_course.grade_distribution
+        .then(res => {
+            if (res.rowCount != 1) return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find course = ${data.sem_course_id}` })
 
-        if (semester_course.grades_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
+            const semester_course = res.rows[0];
+            const grade_distribution = semester_course.grade_distribution
 
-        const update_queries = []
-        data.attendances.forEach(attendance => {
-            const percentage = calculateAttendancePercentage(attendance)
-            attendance = {
-                ...attendance,
-                percentage: percentage
-            }
-            update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${Number((percentage/100*(grade_distribution.sessional.division.attendance.total_marks)).toFixed(1))}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${attendance.student_batch_id}';`)
-        })
-        if (update_queries.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: 'No changes were made' })
+            if (semester_course.grades_locked) return callback({ code: 400, status: 'BAD REQUEST', message: 'The course is locked from changes' })
 
-        db.query(`
+            const update_queries = []
+            data.attendances.forEach(attendance => {
+                const percentage = calculateAttendancePercentage(attendance)
+                attendance = {
+                    ...attendance,
+                    percentage: percentage
+                }
+                update_queries.push(`UPDATE students_courses SET attendance = '${JSON.stringify(attendance)}', marking = marking || '{"attendance": ${Number((percentage / 100 * (grade_distribution.sessional.division.attendance.total_marks)).toFixed(1))}}' WHERE sem_course_id = '${data.sem_course_id}' AND student_batch_id = '${attendance.student_batch_id}';`)
+            })
+            if (update_queries.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: 'No changes were made' })
+
+            db.query(`
             BEGIN;
             ${update_queries.join('\n')}
             COMMIT;
         `).then(res => {
-            return callback({ code: 200, status: 'OK', message: 'updated records in db' })
+                return callback({ code: 200, status: 'OK', message: 'updated records in db' })
+            }).catch(err => {
+                console.error(err)
+                callback(validations.validateDBUpdateQueryError(err));
+                db.query(`ROLLBACK;`).catch(console.error);;
+            })
         }).catch(err => {
             console.error(err)
-            callback(validations.validateDBUpdateQueryError(err));
-            db.query(`ROLLBACK;`).catch(console.error);;
+            callback(validations.validateDBSelectQueryError(err));
         })
-    }).catch(err => {
-        console.error(err)
-        callback(validations.validateDBSelectQueryError(err));
-    })
 }
 
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
-    
-    if (['students_courses_insert','students_courses_update'].includes(notification.channel)) {
+
+    if (['students_courses_insert', 'students_courses_update'].includes(notification.channel)) {
         db.query(`SELECT * FROM students_courses WHERE sem_course_id='${payload.sem_course_id}' AND student_batch_id='${payload.student_batch_id}'`)
-        .then(res => {
-            if (res.rowCount == 1) {
-                event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/changed', data: res.rows[0]})
-            }
-        }).catch(console.error)
+            .then(res => {
+                if (res.rowCount == 1) {
+                    event_emitter.emit('notifyAll', { event: 'studentsCourses/listener/changed', data: res.rows[0] })
+                }
+            }).catch(console.error)
     }
-    
+
     if (['students_courses_delete'].includes(notification.channel)) {
-        event_emitter.emit('notifyAll', {event: 'studentsCourses/listener/changed', data: payload[0] || payload})
+        event_emitter.emit('notifyAll', { event: 'studentsCourses/listener/changed', data: payload[0] || payload })
     }
 })
 

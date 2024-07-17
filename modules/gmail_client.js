@@ -1,7 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
-const { db } = require('./db_connection');
+const db = require('./db');
 const MailComposer = require('nodemailer/lib/mail-composer');
 
 // If modifying these scopes, delete gmail_token.json.

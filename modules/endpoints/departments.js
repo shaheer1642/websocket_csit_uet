@@ -1,27 +1,27 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
+const { DataTypes } = require('../classes/DataTypes')
 
 class Departments {
     name = 'Departments';
     description = 'Endpoints for creating student batches'
     data_types = {
         serial: new DataTypes(true).autonumber,
-        department_id: new DataTypes(true,['departments/updateChairman'],['departments/fetch'],false,'CS&IT').string,
-        department_name: new DataTypes(true,[],[],false,'Computer Science & Information Technology').string,
-        chairman_id: new DataTypes(true,['departments/updateChairman'],[]).uuid,
+        department_id: new DataTypes(true, ['departments/updateChairman'], ['departments/fetch'], false, 'CS&IT').string,
+        department_name: new DataTypes(true, [], [], false, 'Computer Science & Information Technology').string,
+        chairman_id: new DataTypes(true, ['departments/updateChairman'], []).uuid,
     }
 }
 
 function departmentsFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Departments,data.event)
+    const validator = validations.validateRequestData(data, new Departments, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
         SELECT * FROM departments
-        ${data.department_id ? ` WHERE department_id = '${data.department_id}'`:''}
+        ${data.department_id ? ` WHERE department_id = '${data.department_id}'` : ''}
         ORDER BY serial ASC;
     `).then(res => {
         return callback({ code: 200, status: 'OK', data: res.rows })
@@ -32,9 +32,9 @@ function departmentsFetch(data, callback) {
 }
 
 function departmentsUpdateChairman(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Departments,data.event)
+    const validator = validations.validateRequestData(data, new Departments, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`

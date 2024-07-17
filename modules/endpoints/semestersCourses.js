@@ -1,32 +1,32 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
-const {studentsCoursesUpdateMarkings, studentsCoursesUpdateAttendances, studentsCoursesUpdateGrade} = require('./studentsCourses')
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter')
+const { studentsCoursesUpdateMarkings, studentsCoursesUpdateAttendances, studentsCoursesUpdateGrade } = require('./studentsCourses')
 const { checkKeysExists } = require('../functions')
 
 class SemestersCourses {
     name = 'Semesters Courses';
     description = 'Endpoints for creating semester courses'
     data_types = {
-        sem_course_id: new DataTypes(true,['semestersCourses/updateTeacher','semestersCourses/updateGradeDistribution','semestersCourses/delete','semestersCourses/lockChanges','semestersCourses/lockGrades','semestersCourses/unlockGrades'],['semestersCourses/fetch']).uuid,
-        course_id: new DataTypes(true,['semestersCourses/create'],['semestersCourses/fetch'],false,'CS-103').string,
-        teacher_id: new DataTypes(true,['semestersCourses/create','semestersCourses/updateTeacher'],['semestersCourses/fetch']).uuid,
-        semester_id: new DataTypes(true,['semestersCourses/create'],['semestersCourses/fetch']).uuid,
-        grade_distribution: new DataTypes(true,['semestersCourses/updateGradeDistribution'],[], false, '{"finals": 50, "mids": 30, "sessional": 20, "assignments_distribution": [5,5,5], "quizzes_distribution": [5,5,5], "mini_project_distribution": 0}').json,
-        changes_locked: new DataTypes(true,[],[]).boolean,
-        grades_locked: new DataTypes(true,[],[]).boolean,
+        sem_course_id: new DataTypes(true, ['semestersCourses/updateTeacher', 'semestersCourses/updateGradeDistribution', 'semestersCourses/delete', 'semestersCourses/lockChanges', 'semestersCourses/lockGrades', 'semestersCourses/unlockGrades'], ['semestersCourses/fetch']).uuid,
+        course_id: new DataTypes(true, ['semestersCourses/create'], ['semestersCourses/fetch'], false, 'CS-103').string,
+        teacher_id: new DataTypes(true, ['semestersCourses/create', 'semestersCourses/updateTeacher'], ['semestersCourses/fetch']).uuid,
+        semester_id: new DataTypes(true, ['semestersCourses/create'], ['semestersCourses/fetch']).uuid,
+        grade_distribution: new DataTypes(true, ['semestersCourses/updateGradeDistribution'], [], false, '{"finals": 50, "mids": 30, "sessional": 20, "assignments_distribution": [5,5,5], "quizzes_distribution": [5,5,5], "mini_project_distribution": 0}').json,
+        changes_locked: new DataTypes(true, [], []).boolean,
+        grades_locked: new DataTypes(true, [], []).boolean,
     }
 }
 
 function semestersCoursesFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    const validator = validations.validateRequestData(data, new SemestersCourses, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -42,11 +42,11 @@ function semestersCoursesFetch(data, callback) {
             JOIN departments D ON D.department_id = C.department_id
             JOIN teachers T ON T.teacher_id = SC.teacher_id
             JOIN semesters S ON S.semester_id = SC.semester_id
-            ${where_clauses.length > 0 ? 'WHERE':''}
+            ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
                 data: res.rows
             })
@@ -58,12 +58,12 @@ function semestersCoursesFetch(data, callback) {
 }
 
 function semestersCoursesCreate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new SemestersCourses, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -80,13 +80,13 @@ function semestersCoursesCreate(data, callback) {
             if (!callback) return
             if (res.rowCount == 1) {
                 callback({
-                    code: 200, 
+                    code: 200,
                     status: 'OK',
                     message: 'added record to db'
                 });
             } else {
                 callback({
-                    code: 500, 
+                    code: 500,
                     status: 'INTERNAL ERROR',
                     message: 'unexpected DB response'
                 });
@@ -101,12 +101,12 @@ function semestersCoursesCreate(data, callback) {
 }
 
 function semestersCoursesDelete(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new SemestersCourses, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -118,7 +118,7 @@ function semestersCoursesDelete(data, callback) {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
-                        code: 200, 
+                        code: 200,
                         status: 'OK',
                         message: `deleted ${data.sem_course_id} record from db`
                     });
@@ -126,7 +126,7 @@ function semestersCoursesDelete(data, callback) {
             } else if (res.rowCount == 0) {
                 if (callback) {
                     callback({
-                        code: 400, 
+                        code: 400,
                         status: 'BAD REQUEST',
                         message: `record ${data.sem_course_id} does not exist`
                     });
@@ -134,7 +134,7 @@ function semestersCoursesDelete(data, callback) {
             } else {
                 if (callback) {
                     callback({
-                        code: 500, 
+                        code: 500,
                         status: 'INTERNAL ERROR',
                         message: `${res.rowCount} rows deleted`
                     });
@@ -150,12 +150,12 @@ function semestersCoursesDelete(data, callback) {
 }
 
 function semestersCoursesUpdateTeacher(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new SemestersCourses, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -169,7 +169,7 @@ function semestersCoursesUpdateTeacher(data, callback) {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
-                        code: 200, 
+                        code: 200,
                         status: 'OK',
                         message: `updated ${data.sem_course_id} record in db`
                     });
@@ -177,7 +177,7 @@ function semestersCoursesUpdateTeacher(data, callback) {
             } else if (res.rowCount == 0) {
                 if (callback) {
                     callback({
-                        code: 400, 
+                        code: 400,
                         status: 'BAD REQUEST',
                         message: `record ${data.sem_course_id} does not exist`
                     });
@@ -185,7 +185,7 @@ function semestersCoursesUpdateTeacher(data, callback) {
             } else {
                 if (callback) {
                     callback({
-                        code: 500, 
+                        code: 500,
                         status: 'INTERNAL ERROR',
                         message: `${res.rowCount} rows updated`
                     });
@@ -201,12 +201,12 @@ function semestersCoursesUpdateTeacher(data, callback) {
 }
 
 function semestersCoursesLockChanges(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new SemestersCourses, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -219,13 +219,13 @@ function semestersCoursesLockChanges(data, callback) {
             if (!callback) return
             if (res.rowCount == 1) {
                 callback({
-                    code: 200, 
+                    code: 200,
                     status: 'OK',
                     message: 'added record to db'
                 });
             } else {
                 callback({
-                    code: 500, 
+                    code: 500,
                     status: 'INTERNAL ERROR',
                     message: 'unexpected DB response'
                 });
@@ -240,9 +240,9 @@ function semestersCoursesLockChanges(data, callback) {
 }
 
 function semestersCoursesUnlockGrades(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    const validator = validations.validateRequestData(data, new SemestersCourses, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
@@ -258,9 +258,9 @@ function semestersCoursesUnlockGrades(data, callback) {
 }
 
 function semestersCoursesLockGrades(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    
-    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+
+    const validator = validations.validateRequestData(data, new SemestersCourses, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
@@ -272,14 +272,14 @@ function semestersCoursesLockGrades(data, callback) {
         if (studentsCourses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: 'Could not find required info' });
         db.query('BEGIN;').then(() => {
             Promise.all(studentsCourses.filter(sc => sc.grade != 'W').map(studentCourse => {
-                return new Promise((resolve,reject) => {
+                return new Promise((resolve, reject) => {
                     studentsCoursesUpdateGrade({
                         event: 'studentsCourses/updateGrade',
                         user_id: data.user_id,
                         sem_course_id: studentCourse.sem_course_id,
                         student_batch_id: studentCourse.student_batch_id,
                         grade: studentCourse.marking?.result[studentCourse?.grade_distribution?.marking?.type]?.grade,
-                    },(res) => {
+                    }, (res) => {
                         res.code == 200 ? resolve(res) : reject(res)
                     })
                 })
@@ -309,7 +309,7 @@ function semestersCoursesLockGrades(data, callback) {
 }
 
 function validateGradeDistribution(grade_distribution) {
-    const template =  {
+    const template = {
         marking: {
             type: 'relative',
             average_top: 10
@@ -362,8 +362,8 @@ function validateGradeDistribution(grade_distribution) {
             }
         }
     }
-    
-    if (!checkKeysExists(grade_distribution,template)) {
+
+    if (!checkKeysExists(grade_distribution, template)) {
         return {
             valid: false,
             reason: `Invalid parameter type for attribute grade_distribution`
@@ -381,12 +381,12 @@ function validateGradeDistribution(grade_distribution) {
 }
 
 function semestersCoursesUpdateGradeDistribution(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new SemestersCourses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new SemestersCourses, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -398,7 +398,7 @@ function semestersCoursesUpdateGradeDistribution(data, callback) {
         if (!validation.valid) {
             console.log(validation)
             return callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validation.reason
             });
@@ -415,14 +415,14 @@ function semestersCoursesUpdateGradeDistribution(data, callback) {
                         SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}'
                     `).then(res => {
                         const attendances = res.rows.map(row => Object.keys(row.attendance).length > 0 ? row.attendance : null).filter(o => o != null)
-                        studentsCoursesUpdateAttendances({sem_course_id: data.sem_course_id, attendances: attendances, event: 'studentsCourses/updateAttendances'}, (res) => {
+                        studentsCoursesUpdateAttendances({ sem_course_id: data.sem_course_id, attendances: attendances, event: 'studentsCourses/updateAttendances' }, (res) => {
                             db.query(`
                                 SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}'
                             `).then(res => {
                                 const markings = res.rows.map(row => Object.keys(row.marking).length > 0 ? row.marking : null).filter(o => o != null)
-                                studentsCoursesUpdateMarkings({sem_course_id: data.sem_course_id, markings: markings, event: 'studentsCourses/updateMarkings'}, (res) => {
+                                studentsCoursesUpdateMarkings({ sem_course_id: data.sem_course_id, markings: markings, event: 'studentsCourses/updateMarkings' }, (res) => {
                                     return callback ? callback({
-                                        code: 200, 
+                                        code: 200,
                                         status: 'OK',
                                         message: `updated ${data.sem_course_id} record in db`
                                     }) : null;
@@ -434,7 +434,7 @@ function semestersCoursesUpdateGradeDistribution(data, callback) {
             } else if (res.rowCount == 0) {
                 if (callback) {
                     callback({
-                        code: 400, 
+                        code: 400,
                         status: 'BAD REQUEST',
                         message: `record ${data.sem_course_id} does not exist`
                     });
@@ -442,7 +442,7 @@ function semestersCoursesUpdateGradeDistribution(data, callback) {
             } else {
                 if (callback) {
                     callback({
-                        code: 500, 
+                        code: 500,
                         status: 'INTERNAL ERROR',
                         message: `${res.rowCount} rows updated`
                     });
@@ -460,8 +460,8 @@ function semestersCoursesUpdateGradeDistribution(data, callback) {
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
 
-    if (['semesters_courses_insert','semesters_courses_update','semesters_courses_delete'].includes(notification.channel)) {
-        event_emitter.emit('notifyAll', {event: 'semestersCourses/listener/changed', data: payload[0] || payload})
+    if (['semesters_courses_insert', 'semesters_courses_update', 'semesters_courses_delete'].includes(notification.channel)) {
+        event_emitter.emit('notifyAll', { event: 'semestersCourses/listener/changed', data: payload[0] || payload })
     }
 })
 

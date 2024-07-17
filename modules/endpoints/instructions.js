@@ -1,28 +1,28 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter');
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter');
 const { escapeDBCharacters, escapeDBJSONCharacters } = require('../functions');
 
 class Instructions {
     name = 'Instructions';
     description = 'Endpoints for fetching/updating instructions'
     data_types = {
-        instruction_id: new DataTypes(true,['instructions/update'],['instructions/fetch'],false,3).number,
-        instruction_detail_key: new DataTypes(true,['instructions/update'],[]).string,
-        instruction: new DataTypes(true,['instructions/update'],[],true).string,
-        detail: new DataTypes(true,[],[]).json,
+        instruction_id: new DataTypes(true, ['instructions/update'], ['instructions/fetch'], false, 3).number,
+        instruction_detail_key: new DataTypes(true, ['instructions/update'], []).string,
+        instruction: new DataTypes(true, ['instructions/update'], [], true).string,
+        detail: new DataTypes(true, [], []).json,
     }
 }
 
 function instructionsFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Instructions,data.event)
+    const validator = validations.validateRequestData(data, new Instructions, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -31,11 +31,11 @@ function instructionsFetch(data, callback) {
         if (data.instruction_id) where_clauses.push(`instruction_id = ${data.instruction_id}`)
         db.query(`
             SELECT * from instructions
-            ${where_clauses.length > 0 ? 'WHERE':''}
+            ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
                 data: res.rows
             })
@@ -47,12 +47,12 @@ function instructionsFetch(data, callback) {
 }
 
 function instructionsUpdate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Instructions,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Instructions, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -67,7 +67,7 @@ function instructionsUpdate(data, callback) {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
-                        code: 200, 
+                        code: 200,
                         status: 'OK',
                         message: `updated ${data.instruction_id} record in db`
                     });
@@ -75,7 +75,7 @@ function instructionsUpdate(data, callback) {
             } else if (res.rowCount == 0) {
                 if (callback) {
                     callback({
-                        code: 400, 
+                        code: 400,
                         status: 'BAD REQUEST',
                         message: `record ${data.instruction_id} does not exist`
                     });
@@ -83,7 +83,7 @@ function instructionsUpdate(data, callback) {
             } else {
                 if (callback) {
                     callback({
-                        code: 500, 
+                        code: 500,
                         status: 'INTERNAL ERROR',
                         message: `${res.rowCount} rows updated`
                     });

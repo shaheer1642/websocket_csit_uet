@@ -1,13 +1,13 @@
-const { db } = require("./db_connection");
+const db = require("./db");
 const { event_emitter } = require("./event_emitter");
 
 function dynamicSort(property) {
     var sortOrder = 1;
-    if(property[0] === "-") {
+    if (property[0] === "-") {
         sortOrder = -1;
         property = property.substr(1);
     }
-    return function (a,b) {
+    return function (a, b) {
         /* next line works with strings and numbers, 
          * and you may want to customize it to your needs
          */
@@ -18,11 +18,11 @@ function dynamicSort(property) {
 
 function dynamicSortDesc(property) {
     var sortOrder = 1;
-    if(property[0] === "-") {
+    if (property[0] === "-") {
         sortOrder = -1;
         property = property.substr(1);
     }
-    return function (a,b) {
+    return function (a, b) {
         /* next line works with strings and numbers, 
          * and you may want to customize it to your needs
          */
@@ -35,19 +35,19 @@ function msToTime(s) {
 
     // Pad to 2 or 3 digits, default is 2
     function pad(n, z) {
-      z = z || 2;
-      return ('00' + n).slice(-z);
+        z = z || 2;
+        return ('00' + n).slice(-z);
     }
-  
+
     var ms = s % 1000;
     s = (s - ms) / 1000;
     var secs = s % 60;
     s = (s - secs) / 60;
     var mins = s % 60;
     var hrs = (s - mins) / 60;
-  
+
     if (hrs != 0)
-        return pad(hrs,hrs>99? 3:2) + ' hours ' + pad(mins) + ' minutes ' + pad(secs) + ' seconds';
+        return pad(hrs, hrs > 99 ? 3 : 2) + ' hours ' + pad(mins) + ' minutes ' + pad(secs) + ' seconds';
     if (mins != 0)
         return pad(mins) + ' minutes ' + pad(secs) + ' seconds';
     return pad(secs) + ' seconds';
@@ -55,11 +55,11 @@ function msToTime(s) {
 
 function msToFullTime(ms) {
     var seconds = ms > 0 ? Math.floor(ms / 1000) : Math.ceil(ms / 1000),
-    minutes = seconds > 0 ? Math.floor(seconds / 60) : Math.ceil(seconds / 60),
-    hours   = minutes > 0 ? Math.floor(minutes / 60) : Math.ceil(minutes / 60),
-    days    = hours > 0 ? Math.floor(hours / 24) : Math.ceil(hours / 24),
-    months  = days > 0 ? Math.floor(days / 30) : Math.ceil(days / 30),
-    years   = days > 0 ? Math.floor(days / 365) : Math.ceil(days / 365);
+        minutes = seconds > 0 ? Math.floor(seconds / 60) : Math.ceil(seconds / 60),
+        hours = minutes > 0 ? Math.floor(minutes / 60) : Math.ceil(minutes / 60),
+        days = hours > 0 ? Math.floor(hours / 24) : Math.ceil(hours / 24),
+        months = days > 0 ? Math.floor(days / 30) : Math.ceil(days / 30),
+        years = days > 0 ? Math.floor(days / 365) : Math.ceil(days / 365);
     seconds %= 60;
     minutes %= 60;
     hours %= 24;
@@ -92,13 +92,13 @@ function getRandomColor() {
     var letters = '0123456789abcdef';
     var color = '#';
     for (var i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
+        color += letters[Math.floor(Math.random() * 16)];
     }
     return color;
 }
 
 function embedScore(text) {
-    return text.replaceAll('_','\\_')
+    return text.replaceAll('_', '\\_')
 }
 
 function convertUpper(str) {
@@ -144,15 +144,15 @@ function getDepartmentIdFromCourseId(course_id) {
 }
 
 function escapeDBCharacters(str) {
-    return str.replace(/'/g,`''`).replace(/\"/g,`\"`)
+    return str.replace(/'/g, `''`).replace(/\"/g, `\"`)
 }
 
 function escapeDBJSONCharacters(str) {
-    return str.replace(/'/g,`''`).replace(/\\/g,`\\\\`).replace(/\"/g,`\\"`).replace(/\r\n/g,`\\n`).replace(/\n/g,`\\r\\n`)
+    return str.replace(/'/g, `''`).replace(/\\/g, `\\\\`).replace(/\"/g, `\\"`).replace(/\r\n/g, `\\n`).replace(/\n/g, `\\r\\n`)
 }
 
 function removeNewLines(str) {
-    return str.replace(/\r\n/g,' ').replace(/\r/g,' ').replace(/\n/g,' ')
+    return str.replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ')
 }
 
 function isEmailValid(value) {
@@ -175,7 +175,7 @@ function fetchSemesters() {
 function convertTimestampToSeasonYear(ts) {
     ts = Number(ts)
     for (const semester of semesters_array) {
-        if (ts >= semester.semester_start_timestamp && ts <= semester.semester_end_timestamp) 
+        if (ts >= semester.semester_start_timestamp && ts <= semester.semester_end_timestamp)
             return `${convertUpper(semester.semester_season)} ${semester.semester_year}`
     }
     const season = new Date(ts).getMonth() < 2 || new Date(ts).getMonth() > 8 ? 'Fall' : 'Spring'
@@ -183,7 +183,7 @@ function convertTimestampToSeasonYear(ts) {
 }
 
 function formatCNIC(str) {
-    str = str.replace(/-/g,'')
+    str = str.replace(/-/g, '')
     if (str.length === 13) return str.slice(0, 5) + '-' + str.slice(5, 12) + '-' + str.slice(12);
     else return undefined
 }

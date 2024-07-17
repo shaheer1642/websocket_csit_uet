@@ -1,33 +1,33 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter')
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter')
 
 class Batches {
     name = 'Batches';
     description = 'Endpoints for creating student batches'
     data_types = {
         serial: new DataTypes(true).autonumber,
-        batch_id: new DataTypes(true,['batches/update','batches/delete'],['batches/fetch']).uuid,
-        batch_advisor_id: new DataTypes(true,[],['batches/create','batches/update']).uuid,
-        batch_no: new DataTypes(true,['batches/create'],['batches/update'],false,3).number,
-        batch_stream: new DataTypes(true,['batches/create'],['batches/update'],false,3).string,
-        enrollment_year: new DataTypes(true,['batches/create'],['batches/update'],false,2022).number,
-        enrollment_season: new DataTypes(true,['batches/create'],['batches/update'],false,'spring').string,
-        degree_type: new DataTypes(true,['batches/create'],['batches/update'],false,'msc').string,
+        batch_id: new DataTypes(true, ['batches/update', 'batches/delete'], ['batches/fetch']).uuid,
+        batch_advisor_id: new DataTypes(true, [], ['batches/create', 'batches/update']).uuid,
+        batch_no: new DataTypes(true, ['batches/create'], ['batches/update'], false, 3).number,
+        batch_stream: new DataTypes(true, ['batches/create'], ['batches/update'], false, 3).string,
+        enrollment_year: new DataTypes(true, ['batches/create'], ['batches/update'], false, 2022).number,
+        enrollment_season: new DataTypes(true, ['batches/create'], ['batches/update'], false, 'spring').string,
+        degree_type: new DataTypes(true, ['batches/create'], ['batches/update'], false, 'msc').string,
         batch_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
-        batch_expiration_timestamp: new DataTypes(true,['batches/create'],['batches/update']).unix_timestamp_milliseconds,
+        batch_expiration_timestamp: new DataTypes(true, ['batches/create'], ['batches/update']).unix_timestamp_milliseconds,
     }
 }
 
 function batchesFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Batches,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Batches, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -40,12 +40,12 @@ function batchesFetch(data, callback) {
                 (SELECT count(student_id) FROM students_batch SB WHERE SB.batch_id = B.batch_id) AS registered_students
             FROM batches B
             JOIN departments D ON D.department_id = B.department_id
-            ${data.batch_id ? ` WHERE B.batch_id = '${data.batch_id}'`:''}
+            ${data.batch_id ? ` WHERE B.batch_id = '${data.batch_id}'` : ''}
             ORDER BY B.batch_creation_timestamp DESC
         `).then(res => {
             if (callback) {
                 callback({
-                    code: 200, 
+                    code: 200,
                     status: 'OK',
                     data: res.rows
                 })
@@ -60,12 +60,12 @@ function batchesFetch(data, callback) {
 }
 
 function batchesCreate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Batches,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Batches, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -85,13 +85,13 @@ function batchesCreate(data, callback) {
             ${data.enrollment_year},
             '${data.enrollment_season}',
             '${data.degree_type}',
-            ${data.batch_advisor_id ? `,'${data.batch_advisor_id}'`:'NULL'},
+            ${data.batch_advisor_id ? `,'${data.batch_advisor_id}'` : 'NULL'},
             ${data.batch_expiration_timestamp}
         )
         `).then(res => {
             if (callback) {
                 callback({
-                    code: 200, 
+                    code: 200,
                     status: 'OK',
                     message: 'added record to db'
                 });
@@ -106,12 +106,12 @@ function batchesCreate(data, callback) {
 }
 
 function batchesDelete(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Batches,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Batches, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -132,48 +132,48 @@ function batchesDelete(data, callback) {
             )
             DELETE FROM batches WHERE batch_id = '${data.batch_id}';
         `)
-        .then(res => {
-            if (res.rowCount == 1) {
-                if (callback) {
-                    callback({
-                        code: 200, 
-                        status: 'OK',
-                        message: `deleted ${data.batch_id} record from db`
-                    });
+            .then(res => {
+                if (res.rowCount == 1) {
+                    if (callback) {
+                        callback({
+                            code: 200,
+                            status: 'OK',
+                            message: `deleted ${data.batch_id} record from db`
+                        });
+                    }
+                } else if (res.rowCount == 0) {
+                    if (callback) {
+                        callback({
+                            code: 400,
+                            status: 'BAD REQUEST',
+                            message: `record ${data.batch_id} does not exist`
+                        });
+                    }
+                } else {
+                    if (callback) {
+                        callback({
+                            code: 500,
+                            status: 'INTERNAL ERROR',
+                            message: `${res.rowCount} rows deleted`
+                        });
+                    }
                 }
-            } else if (res.rowCount == 0) {
+            }).catch(err => {
+                console.error(err)
                 if (callback) {
-                    callback({
-                        code: 400, 
-                        status: 'BAD REQUEST',
-                        message: `record ${data.batch_id} does not exist`
-                    });
+                    callback(validations.validateDBDeleteQueryError(err));
                 }
-            } else {
-                if (callback) {
-                    callback({
-                        code: 500, 
-                        status: 'INTERNAL ERROR',
-                        message: `${res.rowCount} rows deleted`
-                    });
-                }
-            }
-        }).catch(err => {
-            console.error(err)
-            if (callback) {
-                callback(validations.validateDBDeleteQueryError(err));
-            }
-        })
+            })
     }
 }
 
 function batchesUpdate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Batches,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Batches, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -191,7 +191,7 @@ function batchesUpdate(data, callback) {
         if (update_clauses.length == 0) {
             if (callback) {
                 callback({
-                    code: 400, 
+                    code: 400,
                     status: 'BAD REQUEST',
                     message: `No valid parameters found in requested data.`,
                 });
@@ -206,7 +206,7 @@ function batchesUpdate(data, callback) {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
-                        code: 200, 
+                        code: 200,
                         status: 'OK',
                         message: `updated ${data.batch_id} record in db`
                     });
@@ -214,7 +214,7 @@ function batchesUpdate(data, callback) {
             } else if (res.rowCount == 0) {
                 if (callback) {
                     callback({
-                        code: 400, 
+                        code: 400,
                         status: 'BAD REQUEST',
                         message: `record ${data.batch_id} does not exist`
                     });
@@ -222,7 +222,7 @@ function batchesUpdate(data, callback) {
             } else {
                 if (callback) {
                     callback({
-                        code: 500, 
+                        code: 500,
                         status: 'INTERNAL ERROR',
                         message: `${res.rowCount} rows updated`
                     });
@@ -239,15 +239,15 @@ function batchesUpdate(data, callback) {
 
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
-    
+
     if (notification.channel == 'batches_insert') {
-        event_emitter.emit('notifyAll', {event: 'batches/listener/insert', data: payload})
+        event_emitter.emit('notifyAll', { event: 'batches/listener/insert', data: payload })
     }
     if (notification.channel == 'batches_update') {
-        event_emitter.emit('notifyAll', {event: 'batches/listener/update', data: payload[0]})
+        event_emitter.emit('notifyAll', { event: 'batches/listener/update', data: payload[0] })
     }
     if (notification.channel == 'batches_delete') {
-        event_emitter.emit('notifyAll', {event: 'batches/listener/delete', data: payload})
+        event_emitter.emit('notifyAll', { event: 'batches/listener/delete', data: payload })
     }
 })
 

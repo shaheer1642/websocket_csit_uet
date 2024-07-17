@@ -109,4 +109,4 @@ db.on = (event, listener) => {
 // Initialize the first connection
 connectToDB();
 
-module.exports = { db };
+module.exports = db;

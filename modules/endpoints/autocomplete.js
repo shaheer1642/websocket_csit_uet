@@ -1,25 +1,25 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter');
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter');
 const { convertUpper } = require('../functions');
 
 class Autocomplete {
     name = 'Autocomplete';
     description = 'Endpoints for fetching data such as for select menus. The parameters and the data are very dynamic, and will change from time to time. Best to consult the back-end developer for any ambiguity or try testing by calling the endpoint'
     data_types = {
-        exclude_user_types: new DataTypes(false,[],['autocomplete/users'],false,JSON.stringify(['admin','teacher'])).array,
-        exclude_user_ids: new DataTypes(false,[],['autocomplete/users'],false,JSON.stringify(['e670c3ea-f740-11ed-a9d6-0242ac110032','7bce48da-f5c1-11ed-b0ba-0242ac110032'])).array,
-        include_roles: new DataTypes(false,[],['autocomplete/teachers'],false,JSON.stringify(['chairman','semester_coordinator','batch_advisor'])).array,
-        examiner_type: new DataTypes(false,[],['autocomplete/studentsThesisExaminers'],false,'internal_examiner').string,
+        exclude_user_types: new DataTypes(false, [], ['autocomplete/users'], false, JSON.stringify(['admin', 'teacher'])).array,
+        exclude_user_ids: new DataTypes(false, [], ['autocomplete/users'], false, JSON.stringify(['e670c3ea-f740-11ed-a9d6-0242ac110032', '7bce48da-f5c1-11ed-b0ba-0242ac110032'])).array,
+        include_roles: new DataTypes(false, [], ['autocomplete/teachers'], false, JSON.stringify(['chairman', 'semester_coordinator', 'batch_advisor'])).array,
+        examiner_type: new DataTypes(false, [], ['autocomplete/studentsThesisExaminers'], false, 'internal_examiner').string,
     }
 }
 
 function autocompleteUsers(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    const validator = validations.validateRequestData(data, new Autocomplete, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
@@ -32,18 +32,18 @@ function autocompleteUsers(data, callback) {
         res[0].rows.concat(res[1].rows.concat(res[2].rows)).forEach(user => {
             users_list.push({
                 user_id: user.user_id,
-                name:  user.student_name || user.teacher_name || user.user_type,
+                name: user.student_name || user.teacher_name || user.user_type,
                 user_type: user.user_type
             })
         })
 
-        if (data.exclude_user_types)  users_list = users_list.filter(user => !data.exclude_user_types.includes(user.user_type))
+        if (data.exclude_user_types) users_list = users_list.filter(user => !data.exclude_user_types.includes(user.user_type))
         if (data.exclude_user_ids) users_list = users_list.filter(user => !data.exclude_user_ids.includes(user.user_id))
 
-        return callback({ 
-            code: 200, 
-            status: 'OK', 
-            data: users_list.map(user => ({id: user.user_id, label: user.name})) 
+        return callback({
+            code: 200,
+            status: 'OK',
+            data: users_list.map(user => ({ id: user.user_id, label: user.name }))
         })
     }).catch(err => {
         console.error(err)
@@ -52,12 +52,12 @@ function autocompleteUsers(data, callback) {
 }
 
 function autocompleteTeachers(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    const validator = validations.validateRequestData(data, new Autocomplete, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -71,11 +71,11 @@ function autocompleteTeachers(data, callback) {
             FROM teachers T;
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
                 data: res.rows.map(row => ({
-                    id: row.teacher_id, 
-                    label: `${row.teacher_name}${row.chairman && data.include_roles?.includes('chairman') ? ` (Chairman - ${row.chairman})`:''}${row.batch_advisor && data.include_roles?.includes('batch_advisor') ? ` (Batch Advisor - ${row.batch_advisor.split(' ').map(str => convertUpper(str)).join(' ')})`:''}${row.semester_coordinator && data.include_roles?.includes('semester_coordinator') ? ` (Semester Coordinator - ${row.semester_coordinator.split(' ').map(str => convertUpper(str)).join(' ')})`:''}`
+                    id: row.teacher_id,
+                    label: `${row.teacher_name}${row.chairman && data.include_roles?.includes('chairman') ? ` (Chairman - ${row.chairman})` : ''}${row.batch_advisor && data.include_roles?.includes('batch_advisor') ? ` (Batch Advisor - ${row.batch_advisor.split(' ').map(str => convertUpper(str)).join(' ')})` : ''}${row.semester_coordinator && data.include_roles?.includes('semester_coordinator') ? ` (Semester Coordinator - ${row.semester_coordinator.split(' ').map(str => convertUpper(str)).join(' ')})` : ''}`
                 }))
             })
         }).catch(err => {
@@ -86,12 +86,12 @@ function autocompleteTeachers(data, callback) {
 }
 
 function autocompleteFaculty(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    const validator = validations.validateRequestData(data, new Autocomplete, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -100,9 +100,9 @@ function autocompleteFaculty(data, callback) {
             SELECT * FROM users WHERE username = 'admin' OR username = 'pga';
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
-                data: [...res.rows.map(row => ({id: row.user_id, label: row.username}))]
+                data: [...res.rows.map(row => ({ id: row.user_id, label: row.username }))]
             })
         }).catch(err => {
             console.error(err)
@@ -112,12 +112,12 @@ function autocompleteFaculty(data, callback) {
 }
 
 function autocompleteCourses(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    const validator = validations.validateRequestData(data, new Autocomplete, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -126,9 +126,9 @@ function autocompleteCourses(data, callback) {
             SELECT * FROM courses;
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
-                data: res.rows.map(row => ({id: row.course_id, label: `${row.course_id} ${row.course_name}`}))
+                data: res.rows.map(row => ({ id: row.course_id, label: `${row.course_id} ${row.course_name}` }))
             })
         }).catch(err => {
             console.error(err)
@@ -138,15 +138,15 @@ function autocompleteCourses(data, callback) {
 }
 
 function autocompleteDepartments(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    const validator = validations.validateRequestData(data, new Autocomplete, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
-        
+
     db.query(`
         SELECT * FROM departments;
     `).then(res => {
-        return callback({ code: 200, status: 'OK', data: res.rows.map(row => ({id: row.department_id, label: `${row.department_name}`})) })
+        return callback({ code: 200, status: 'OK', data: res.rows.map(row => ({ id: row.department_id, label: `${row.department_name}` })) })
     }).catch(err => {
         console.error(err)
         callback(validations.validateDBSelectQueryError(err));
@@ -154,12 +154,12 @@ function autocompleteDepartments(data, callback) {
 }
 
 function autocompleteBatchStudents(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    const validator = validations.validateRequestData(data, new Autocomplete, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -167,21 +167,21 @@ function autocompleteBatchStudents(data, callback) {
         const where_clauses = []
         if (data.batch_id) where_clauses.push(`SB.batch_id = '${data.batch_id}'`)
         if (data.constraints) {
-            if (data.constraints.includes('exclude_thesis_students')) 
+            if (data.constraints.includes('exclude_thesis_students'))
                 where_clauses.push('SB.student_batch_id NOT IN (select student_batch_id from students_thesis)')
         }
         db.query(`
             SELECT * FROM students_batch SB
             JOIN students S ON S.student_id = SB.student_id
             JOIN batches B ON B.batch_id = SB.batch_id
-            ${where_clauses.length > 0 ? `WHERE `:''}
+            ${where_clauses.length > 0 ? `WHERE ` : ''}
             ${where_clauses.join(' AND ')}
             ORDER BY S.student_name;
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
-                data: res.rows.map(row => ({id: row.student_batch_id, label: `${row.student_name} SD/o ${row.student_father_name} (${row.reg_no || row.cnic}) - ${convertUpper(row.degree_type)}`}))
+                data: res.rows.map(row => ({ id: row.student_batch_id, label: `${row.student_name} SD/o ${row.student_father_name} (${row.reg_no || row.cnic}) - ${convertUpper(row.degree_type)}` }))
             })
         }).catch(err => {
             console.error(err)
@@ -191,9 +191,9 @@ function autocompleteBatchStudents(data, callback) {
 }
 
 function autocompleteStudentsThesisExaminers(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    const validator = validations.validateRequestData(data, new Autocomplete, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     const where_clauses = []
@@ -201,15 +201,15 @@ function autocompleteStudentsThesisExaminers(data, callback) {
 
     db.query(`
         SELECT * FROM students_thesis_examiners
-        ${where_clauses.length > 0 ? `WHERE `:''}
+        ${where_clauses.length > 0 ? `WHERE ` : ''}
         ${where_clauses.join(' AND ')}
         ORDER BY examiner_creation_timestamp;
     `).then(res => {
         return callback({
-            code: 200, 
+            code: 200,
             status: 'OK',
             data: res.rows.map(row => ({
-                id: row.examiner_id, 
+                id: row.examiner_id,
                 label: `${row.examiner_name} (${row.examiner_designation ? row.examiner_designation + ' @ ' : ''}${row.examiner_university || ''})`
             }))
         })
@@ -220,15 +220,15 @@ function autocompleteStudentsThesisExaminers(data, callback) {
 }
 
 function autocompleteAreasOfInterest(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Autocomplete,data.event)
+    const validator = validations.validateRequestData(data, new Autocomplete, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
         SELECT * FROM teachers WHERE jsonb_array_length(areas_of_interest) > 0;
     `).then(res => {
-        return callback({ code: 200, status: 'OK', data: res.rows.reduce((arr,row) => ([...arr, ...row.areas_of_interest.filter(o => !arr.includes(o))]), [])})
+        return callback({ code: 200, status: 'OK', data: res.rows.reduce((arr, row) => ([...arr, ...row.areas_of_interest.filter(o => !arr.includes(o))]), []) })
     }).catch(err => {
         console.error(err)
         callback(validations.validateDBSelectQueryError(err));

@@ -1,31 +1,31 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter');
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter');
 const { getDepartmentIdFromCourseId, escapeDBCharacters, removeNewLines } = require('../functions');
 
 class Courses {
     name = 'Courses';
     description = 'Endpoints for creating courses'
     data_types = {
-        course_id: new DataTypes(true,['courses/create','courses/update','courses/delete'],['courses/fetch'],false,'CS-103').string,
-        course_name: new DataTypes(true,['courses/create'],['courses/update'],false,'Algorithms').string,
-        course_description: new DataTypes(true,[],['courses/create','courses/update'],true).string,
-        department_id: new DataTypes(true,[],[],false,'CS&IT').string,
-        course_type: new DataTypes(true,['courses/create'],['courses/update'],false,'core').string,
-        credit_hours: new DataTypes(true,['courses/create'],['courses/update'],false,3).number,
+        course_id: new DataTypes(true, ['courses/create', 'courses/update', 'courses/delete'], ['courses/fetch'], false, 'CS-103').string,
+        course_name: new DataTypes(true, ['courses/create'], ['courses/update'], false, 'Algorithms').string,
+        course_description: new DataTypes(true, [], ['courses/create', 'courses/update'], true).string,
+        department_id: new DataTypes(true, [], [], false, 'CS&IT').string,
+        course_type: new DataTypes(true, ['courses/create'], ['courses/update'], false, 'core').string,
+        credit_hours: new DataTypes(true, ['courses/create'], ['courses/update'], false, 3).number,
         course_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
 }
 
 function coursesFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    const validator = validations.validateRequestData(data, new Courses, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -36,11 +36,11 @@ function coursesFetch(data, callback) {
         db.query(`
             SELECT * FROM courses
             JOIN departments ON departments.department_id = courses.department_id
-            ${where_clauses.length > 0 ? 'WHERE':''}
+            ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
                 data: res.rows
             })
@@ -52,12 +52,12 @@ function coursesFetch(data, callback) {
 }
 
 function coursesCreate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Courses, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -77,13 +77,13 @@ function coursesCreate(data, callback) {
             if (!callback) return
             if (res.rowCount == 1) {
                 callback({
-                    code: 200, 
+                    code: 200,
                     status: 'OK',
                     message: 'added record to db'
                 });
             } else {
                 callback({
-                    code: 500, 
+                    code: 500,
                     status: 'INTERNAL ERROR',
                     message: 'unexpected DB response'
                 });
@@ -98,12 +98,12 @@ function coursesCreate(data, callback) {
 }
 
 function coursesDelete(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Courses, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -115,7 +115,7 @@ function coursesDelete(data, callback) {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
-                        code: 200, 
+                        code: 200,
                         status: 'OK',
                         message: `deleted ${data.course_id} record from db`
                     });
@@ -123,7 +123,7 @@ function coursesDelete(data, callback) {
             } else if (res.rowCount == 0) {
                 if (callback) {
                     callback({
-                        code: 400, 
+                        code: 400,
                         status: 'BAD REQUEST',
                         message: `record ${data.course_id} does not exist`
                     });
@@ -131,7 +131,7 @@ function coursesDelete(data, callback) {
             } else {
                 if (callback) {
                     callback({
-                        code: 500, 
+                        code: 500,
                         status: 'INTERNAL ERROR',
                         message: `${res.rowCount} rows deleted`
                     });
@@ -147,11 +147,11 @@ function coursesDelete(data, callback) {
 }
 
 function coursesUpdate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Courses,data.event)
+    const validator = validations.validateRequestData(data, new Courses, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
-    
+
     var update_clauses = []
     if (data.course_name) update_clauses.push(`course_name = '${data.course_name}'`)
     if (data.course_description) update_clauses.push(`course_description = '${escapeDBCharacters(data.course_description)}'`)
@@ -175,15 +175,15 @@ function coursesUpdate(data, callback) {
 
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
-    
+
     if (notification.channel == 'courses_insert') {
-        event_emitter.emit('notifyAll', {event: 'courses/listener/insert', data: payload})
+        event_emitter.emit('notifyAll', { event: 'courses/listener/insert', data: payload })
     }
     if (notification.channel == 'courses_update') {
-        event_emitter.emit('notifyAll', {event: 'courses/listener/update', data: payload[0]})
+        event_emitter.emit('notifyAll', { event: 'courses/listener/update', data: payload[0] })
     }
     if (notification.channel == 'courses_delete') {
-        event_emitter.emit('notifyAll', {event: 'courses/listener/delete', data: payload})
+        event_emitter.emit('notifyAll', { event: 'courses/listener/delete', data: payload })
     }
 })
 

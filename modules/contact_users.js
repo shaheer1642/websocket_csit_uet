@@ -1,9 +1,9 @@
-const { db } = require("./db_connection");
+const db = require("./db");
 const { sendMail } = require("./gmail_client");
 
 
-const email_body = 
-`<p>Greetings
+const email_body =
+    `<p>Greetings
 
 This email is about requesting some important information regarding your MS and/or PhD program in University of Engineering & Technology, Peshawar. This information is to be included in the Managment Information System application that is being developed for the postgraduate MS & PhD programs in CSIT UET. The system development has been undertaken as the bachelors final year project by me, REDACTED, and my team members REDACTED and REDACTED (REDACTED Semester CSIT Dept.) which is under supervision of REDACTED.
 
@@ -35,7 +35,7 @@ async function sendEmails() {
     console.log('sendEmails called')
     db.query(`SELECT * FROM contact_users WHERE information_request = false`).then(async res => {
         const emails = res.rows.map(row => row.email)
-        console.log('sending email to',emails.length,'users')
+        console.log('sending email to', emails.length, 'users')
         for (const email of emails) {
             await sendMail(
                 'Information Request for MIS Application (UET)',
@@ -44,13 +44,13 @@ async function sendEmails() {
                 true,
                 true
             ).then(res => {
-                console.log('Sent email to',email)
+                console.log('Sent email to', email)
                 db.query(`UPDATE contact_users SET information_request = true WHERE email = '${email}'`)
-                .catch((err) => {
-                    console.error('Error updating DB for email',email,':', err.message || err.stack || err)
-                })
+                    .catch((err) => {
+                        console.error('Error updating DB for email', email, ':', err.message || err.stack || err)
+                    })
             }).catch(err => {
-                console.error('Error sending email to',email,':', err.message || err.stack || err)
+                console.error('Error sending email to', email, ':', err.message || err.stack || err)
             })
         }
     }).catch(err => {
@@ -66,6 +66,6 @@ function insertEmails() {
     db.query(`
         ${emails.split('\n').map(email => `INSERT INTO contact_users (email) VALUES ('${email.trim()}');`).join('\n')}
     `).then(res => {
-        console.log(res.length,'rows inserted')
+        console.log(res.length, 'rows inserted')
     }).catch(console.error)
 }

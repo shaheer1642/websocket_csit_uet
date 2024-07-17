@@ -1,4 +1,4 @@
-const { db } = require('../db_connection');
+const db = require('../db');
 const validations = require('../validations');
 const { DataTypes } = require('../classes/DataTypes');
 const { convertUpper, convertTimestampToSeasonYear } = require('../functions');
@@ -112,14 +112,14 @@ function resultFormG2A(data, callback) {
                 </tr>`
                     }).join('\n')}
         </table>
-        <p style="text-align:left; ${attributes.digital_signature ? 'position: relative; padding-top: 25px; padding-bottom: 25px;' : '' }">
+        <p style="text-align:left; ${attributes.digital_signature ? 'position: relative; padding-top: 25px; padding-bottom: 25px;' : ''}">
             DATE ${htmlFunctions.formatUnderlined(attributes.date)}
             <span style="float:right;">
                 SIGNATURE ${htmlFunctions.formatUnderlined(attributes.signature)}
             </span>
             ${attributes.digital_signature ? `
                 <img style="position: absolute; right: 50; top: 0" src='${attributes.digital_signature}' width="40px"/>
-            `:''}
+            `: ''}
         </p>
         <p align="right">
             ${htmlFunctions.formatUnderlined(attributes.instructor_name, { bold: true })}
@@ -284,14 +284,14 @@ function resultFormG2B(data, callback) {
                 </tr>`
                     }).join('\n')}
         </table>
-        <p style="text-align:left; ${attributes.digital_signature ? 'position: relative; padding-top: 25px; padding-bottom: 25px;' : '' }">
+        <p style="text-align:left; ${attributes.digital_signature ? 'position: relative; padding-top: 25px; padding-bottom: 25px;' : ''}">
             Signature of Instructor ${'. '.repeat(10)}
             <span style="float:right;">
                 Name of Instructor: <b><u>${attributes.instructor_name}</u></b>
             </span>
             ${attributes.digital_signature ? `
                 <img style="position: absolute; left: 170; top: 0" src='${attributes.digital_signature}' width="40px"/>
-            `:''}
+            `: ''}
         </p>
         <p style="text-align:left;">
             Department <u>CS & IT</u>
@@ -363,7 +363,7 @@ function studentTranscript(data, callback) {
                 specialization: convertUpper(data.batch_stream),
                 date: new Date().toLocaleDateString('en-UK', { year: 'numeric', month: '2-digit', day: '2-digit' }),
             }
-            const {semestersCourses, gpa} = calculateTranscript(courses)
+            const { semestersCourses, gpa } = calculateTranscript(courses)
             return callback({
                 code: 200,
                 data:
@@ -430,27 +430,27 @@ function studentTranscript(data, callback) {
         <table style="border: none;">
             <tr style="border: none;">
                 <td style="border: none;">Student's Name</td>
-                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.student_name,{bold: true, line_length: 60})}</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.student_name, { bold: true, line_length: 60 })}</td>
             </tr>
             <tr style="border: none;">
                 <td style="border: none;">Father's Name</td>
-                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.student_father_name,{bold: true, line_length: 60})}</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.student_father_name, { bold: true, line_length: 60 })}</td>
             </tr>
             <tr style="border: none;">
                 <td style="border: none;">National Identity Card No.</td>
-                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.cnic || 'N/A',{bold: true, line_length: 60})}</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.cnic || 'N/A', { bold: true, line_length: 60 })}</td>
             </tr>
             <tr style="border: none;">
                 <td style="border: none;">Department</td>
-                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.department,{bold: true, line_length: 60})}</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.department, { bold: true, line_length: 60 })}</td>
             </tr>
             <tr style="border: none;">
                 <td style="border: none;">Specialization</td>
-                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.specialization,{bold: true, line_length: 60})}</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.specialization, { bold: true, line_length: 60 })}</td>
             </tr>
             <tr style="border: none;">
                 <td style="border: none;">Registration Number</td>
-                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.reg_no || 'N/A',{bold: true, line_length: 60})}</td>
+                <td style="border: none;">${htmlFunctions.formatUnderlined(attributes.reg_no || 'N/A', { bold: true, line_length: 60 })}</td>
             </tr>
         </table>
 
@@ -463,22 +463,22 @@ function studentTranscript(data, callback) {
                 <th style="text-align: center">Grade</th>
                 <th style="text-align: center">Quality Points</th>
             </tr>
-            ${Object.keys(semestersCourses).map((semester_id,oi) => {
-                const data = semestersCourses[semester_id].courses[0]
-                const result = semestersCourses[semester_id].result
-                return semestersCourses[semester_id].courses.map((semesterCourse,ii) => 
-                    `<tr>
+            ${Object.keys(semestersCourses).map((semester_id, oi) => {
+                        const data = semestersCourses[semester_id].courses[0]
+                        const result = semestersCourses[semester_id].result
+                        return semestersCourses[semester_id].courses.map((semesterCourse, ii) =>
+                            `<tr>
                         <td>${ii == 0 ? `${convertUpper(data.semester_season)} ${data.semester_year}` : ''}</td>
                         <td>${semesterCourse.course_id.split('-')[0]}-${semesterCourse.course_id.split('-')[1]}</td>
                         <td>${semesterCourse.is_repeat ? '*' : ''}${semesterCourse.course_name} ${semesterCourse.is_repeat ? '(RPT)' : ''}</td>
                         <td style="text-align: center;">${semesterCourse.credit_hours}</td>
                         <td style="text-align: center;">${semesterCourse.grade}</td>
-                        <td style="text-align: center;">${calculateQualityPoints(semesterCourse.grade,semesterCourse.credit_hours)}</td>
+                        <td style="text-align: center;">${calculateQualityPoints(semesterCourse.grade, semesterCourse.credit_hours)}</td>
                     </tr>`
-                ).join('\n')
-            }).join('\n')}
-            ${attributes.degree_type == 'ms' ? 
-            `<tr>
+                        ).join('\n')
+                    }).join('\n')}
+            ${attributes.degree_type == 'ms' ?
+                        `<tr>
                 <td>${thesis?.completion_timestamp ? convertTimestampToSeasonYear(thesis.completion_timestamp) : ''}</td>
                 <td>CS-5199</td>
                 <td>Master's Thesis</td>
@@ -506,7 +506,7 @@ function studentTranscript(data, callback) {
 }
 
 const htmlFunctions = {
-    formatUnderlined: (str, options = { uppercase: undefined, bold: undefined, line_length: undefined }) => 
+    formatUnderlined: (str, options = { uppercase: undefined, bold: undefined, line_length: undefined }) =>
         `${options.bold ? '<b>' : ''}<u>${'&nbsp;'.repeat(options.line_length ? options.line_length - str.length : 10)}${options.uppercase ? convertUpper(str) : str}${'&nbsp;'.repeat(options.line_length ? options.line_length - str.length : 10)}</u>${options.bold ? '</b>' : ''}`
 }
 

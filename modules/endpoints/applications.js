@@ -1,8 +1,8 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter');
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter');
 const { template_applications_forwarded_to } = require('../object_templates');
 const { checkKeysExists } = require('../functions');
 
@@ -10,24 +10,24 @@ class Applications {
     name = 'Applications';
     description = 'Endpoints for creating/forwarding applications'
     data_types = {
-        application_id: new DataTypes(true,['applications/forward','applications/updateStatus'],['applications/fetch']).uuid,
-        application_title: new DataTypes(true,['applications/create'],[]).string,
-        submitted_by: new DataTypes(true,[],['applications/fetch']).uuid,
-        submitted_to: new DataTypes(true,['applications/create'],['applications/fetch']).uuid,
-        forwarded_to: new DataTypes(true,[],[]).array,
-        forward_to: new DataTypes(false,['applications/forward'],[]).uuid,
-        status: new DataTypes(true,[],['applications/updateStatus']).string,
-        detail_structure: new DataTypes(true,['applications/create'],[]).json,
-        remarks: new DataTypes(true,['applications/updateStatus','applications/forward'],[]).string,
+        application_id: new DataTypes(true, ['applications/forward', 'applications/updateStatus'], ['applications/fetch']).uuid,
+        application_title: new DataTypes(true, ['applications/create'], []).string,
+        submitted_by: new DataTypes(true, [], ['applications/fetch']).uuid,
+        submitted_to: new DataTypes(true, ['applications/create'], ['applications/fetch']).uuid,
+        forwarded_to: new DataTypes(true, [], []).array,
+        forward_to: new DataTypes(false, ['applications/forward'], []).uuid,
+        status: new DataTypes(true, [], ['applications/updateStatus']).string,
+        detail_structure: new DataTypes(true, ['applications/create'], []).json,
+        remarks: new DataTypes(true, ['applications/updateStatus', 'applications/forward'], []).string,
         application_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
     }
 }
 
 function applicationsFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Applications,data.event)
-    if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
+    const validator = validations.validateRequestData(data, new Applications, data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     var where_clauses = []
     if (data.application_id) where_clauses.push(`application_id = '${data.application_id}'`)
@@ -35,7 +35,7 @@ function applicationsFetch(data, callback) {
 
     db.query(`
         SELECT * from applications
-        ${where_clauses.length > 0 ? 'WHERE':''}
+        ${where_clauses.length > 0 ? 'WHERE' : ''}
         ${where_clauses.join(' AND ')}
         ORDER BY application_creation_timestamp DESC;
         SELECT * FROM teachers t JOIN users u on u.user_id = t.teacher_id WHERE t.teacher_id IN (SELECT submitted_by FROM applications);
@@ -49,17 +49,17 @@ function applicationsFetch(data, callback) {
                 user.user_type != 'student' && user.user_type != 'teacher' ? {
                     name: user.user_type,
                     user_id: user.user_id
-                } : user.user_type == 'student' ? 
-                    Object.fromEntries(Object.entries(user).filter(([key]) => key == 'user_id' || key == 'student_name' ||  key == 'student_father_name' ||  key == 'student_gender' ||  key == 'reg_no' || key == 'batch_no' || key == 'degree_type'))
-                : user.user_type == 'teacher' ? 
-                    Object.fromEntries(Object.entries(user).filter(([key]) => key == 'user_id' || key == 'teacher_name' ||  key == 'teacher_gender' ||  key == 'reg_no')) : {}
+                } : user.user_type == 'student' ?
+                    Object.fromEntries(Object.entries(user).filter(([key]) => key == 'user_id' || key == 'student_name' || key == 'student_father_name' || key == 'student_gender' || key == 'reg_no' || key == 'batch_no' || key == 'degree_type'))
+                    : user.user_type == 'teacher' ?
+                        Object.fromEntries(Object.entries(user).filter(([key]) => key == 'user_id' || key == 'teacher_name' || key == 'teacher_gender' || key == 'reg_no')) : {}
             )
         })
         console.log(users_list)
-        applications.map((application,index) => {
+        applications.map((application, index) => {
             applications[index].applicant_detail = users_list.filter(user => user.user_id == application.submitted_by)
         })
-        return callback({code: 200, status: 'OK', data: applications})
+        return callback({ code: 200, status: 'OK', data: applications })
     }).catch(err => {
         console.error(err)
         return callback(validations.validateDBSelectQueryError(err));
@@ -67,13 +67,13 @@ function applicationsFetch(data, callback) {
 }
 
 function applicationsCreate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Applications,data.event)
+    const validator = validations.validateRequestData(data, new Applications, data.event)
     console.log(validator)
-    if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
-    const detailStructureValidator = validations.validateApplicationTemplateDetailStructure(data.detail_structure, {field_value_not_empty: true})
-    if (!detailStructureValidator.valid) return callback({code: 400, status: 'BAD REQUEST', message: detailStructureValidator.message});
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+    const detailStructureValidator = validations.validateApplicationTemplateDetailStructure(data.detail_structure, { field_value_not_empty: true })
+    if (!detailStructureValidator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: detailStructureValidator.message });
 
     db.query(`
         INSERT INTO applications (
@@ -88,8 +88,8 @@ function applicationsCreate(data, callback) {
             '${JSON.stringify(data.detail_structure)}'
         )`
     ).then(res => {
-        if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: 'added record to db'});
-        else return callback({code: 500, status: 'INTERNAL ERROR', message: 'database could not add record'});
+        if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: 'added record to db' });
+        else return callback({ code: 500, status: 'INTERNAL ERROR', message: 'database could not add record' });
     }).catch(err => {
         console.error(err)
         return callback(validations.validateDBInsertQueryError(err));
@@ -97,15 +97,15 @@ function applicationsCreate(data, callback) {
 }
 
 function applicationsUpdateStatus(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Applications,data.event)
-    if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
+    const validator = validations.validateRequestData(data, new Applications, data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
         SELECT * FROM applications WHERE application_id = '${data.application_id}';
     `).then(res => {
-        if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
+        if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist` });
 
         const application = res.rows[0]
 
@@ -117,9 +117,9 @@ function applicationsUpdateStatus(data, callback) {
                 application_completion_timestamp = ${new Date().getTime()}
                 WHERE application_id = '${data.application_id}';
             `).then(res => {
-                if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: `updated ${data.application_id} record in db`});
-                else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
-                else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
+                if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated ${data.application_id} record in db` });
+                else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist` });
+                else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
             }).catch(err => {
                 console.error(err)
                 return callback(validations.validateDBUpdateQueryError(err));
@@ -134,20 +134,20 @@ function applicationsUpdateStatus(data, callback) {
                     prev_forwarder.completion_timestamp = new Date().getTime()
                     application.forwarded_to.push(prev_forwarder)
                 } else {
-                    return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+                    return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request` });
                 }
             } else {
-                return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+                return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request` });
             }
-    
+
             db.query(`
                 UPDATE applications SET
                 forwarded_to = '${JSON.stringify(application.forwarded_to)}'
                 WHERE application_id = '${data.application_id}';
             `).then(res => {
-                if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: `updated ${data.application_id} record in db`});
-                else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
-                else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
+                if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated ${data.application_id} record in db` });
+                else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist` });
+                else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
             }).catch(err => {
                 console.error(err)
                 return callback(validations.validateDBUpdateQueryError(err));
@@ -161,15 +161,15 @@ function applicationsUpdateStatus(data, callback) {
 }
 
 function applicationsForward(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Applications,data.event)
-    if (!validator.valid) return callback({code: 400, status: 'BAD REQUEST', message: validator.reason});
-    
+    const validator = validations.validateRequestData(data, new Applications, data.event)
+    if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
+
     db.query(`
         SELECT * FROM applications WHERE application_id = '${data.application_id}';
     `).then(res => {
-        if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
+        if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist` });
 
         const application = res.rows[0]
 
@@ -181,13 +181,13 @@ function applicationsForward(data, callback) {
                 application.forwarded_to.push(prev_forwarder)
             } else {
                 if (application.submitted_to != data.user_id) {
-                    return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+                    return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request` });
                 }
                 application.forwarded_to.push(prev_forwarder)
             }
         } else {
             if (application.submitted_to != data.user_id) {
-                return callback({code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request`});
+                return callback({ code: 500, status: 'INTERNAL ERROR', message: `Could not find a matching record of your request` });
             }
         }
 
@@ -204,9 +204,9 @@ function applicationsForward(data, callback) {
             forwarded_to = '${JSON.stringify(application.forwarded_to)}'
             WHERE application_id = '${data.application_id}';
         `).then(res => {
-            if (res.rowCount == 1) return callback({code: 200, status: 'OK', message: `updated ${data.application_id} record in db`});
-            else if (res.rowCount == 0) return callback({code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist`});
-            else return callback({code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated`});
+            if (res.rowCount == 1) return callback({ code: 200, status: 'OK', message: `updated ${data.application_id} record in db` });
+            else if (res.rowCount == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `record ${data.application_id} does not exist` });
+            else return callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
         }).catch(err => {
             console.error(err)
             return callback(validations.validateDBUpdateQueryError(err));
@@ -219,15 +219,15 @@ function applicationsForward(data, callback) {
 
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
-    
+
     if (notification.channel == 'applications_insert') {
-        event_emitter.emit('notifyAll', {event: 'applications/listener/insert', data: payload})
+        event_emitter.emit('notifyAll', { event: 'applications/listener/insert', data: payload })
     }
     if (notification.channel == 'applications_update') {
-        event_emitter.emit('notifyAll', {event: 'applications/listener/update', data: payload[0]})
+        event_emitter.emit('notifyAll', { event: 'applications/listener/update', data: payload[0] })
     }
     if (notification.channel == 'applications_delete') {
-        event_emitter.emit('notifyAll', {event: 'applications/listener/delete', data: payload})
+        event_emitter.emit('notifyAll', { event: 'applications/listener/delete', data: payload })
     }
 })
 

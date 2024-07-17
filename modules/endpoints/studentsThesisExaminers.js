@@ -1,33 +1,33 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
+const { DataTypes } = require('../classes/DataTypes')
 
 class StudentsThesisExaminers {
     name = 'Students Thesis Examiners';
     description = 'Endpoints for managing students thesis examiners'
     data_types = {
-        examiner_id: new DataTypes(true,['studentsThesisExaminers/update','studentsThesisExaminers/delete'],['studentsThesisExaminers/fetch']).uuid,
-        examiner_name: new DataTypes(true,['studentsThesisExaminers/create'],[]).string,
-        examiner_university: new DataTypes(true,[],['studentsThesisExaminers/create','studentsThesisExaminers/update']).string,
-        examiner_designation: new DataTypes(true,[],['studentsThesisExaminers/create','studentsThesisExaminers/update']).string,
-        examiner_type: new DataTypes(true,['studentsThesisExaminers/create'],['studentsThesisExaminers/fetch']).string,
-        examiner_creation_timestamp: new DataTypes(true,[],[]).string,
+        examiner_id: new DataTypes(true, ['studentsThesisExaminers/update', 'studentsThesisExaminers/delete'], ['studentsThesisExaminers/fetch']).uuid,
+        examiner_name: new DataTypes(true, ['studentsThesisExaminers/create'], []).string,
+        examiner_university: new DataTypes(true, [], ['studentsThesisExaminers/create', 'studentsThesisExaminers/update']).string,
+        examiner_designation: new DataTypes(true, [], ['studentsThesisExaminers/create', 'studentsThesisExaminers/update']).string,
+        examiner_type: new DataTypes(true, ['studentsThesisExaminers/create'], ['studentsThesisExaminers/fetch']).string,
+        examiner_creation_timestamp: new DataTypes(true, [], []).string,
     }
 }
 
 function studentsThesisExaminersFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    
-    const validator = validations.validateRequestData(data,new StudentsThesisExaminers,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+
+    const validator = validations.validateRequestData(data, new StudentsThesisExaminers, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
-        
+
     var where_clauses = []
     if (data.examiner_id) where_clauses.push(`STE.examiner_id = '${data.examiner_id}'`)
     if (data.examiner_type) where_clauses.push(`STE.examiner_type = '${data.examiner_type}'`)
 
     db.query(`
         SELECT * FROM students_thesis_examiners STE
-        ${where_clauses.length > 0 ? 'WHERE':''}
+        ${where_clauses.length > 0 ? 'WHERE' : ''}
         ${where_clauses.join(' AND ')}
         ORDER BY STE.examiner_creation_timestamp DESC;
     `).then(res => {
@@ -39,9 +39,9 @@ function studentsThesisExaminersFetch(data, callback) {
 }
 
 function studentsThesisExaminersCreate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new StudentsThesisExaminers,data.event)
+    const validator = validations.validateRequestData(data, new StudentsThesisExaminers, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
@@ -62,16 +62,16 @@ function studentsThesisExaminersCreate(data, callback) {
 }
 
 function studentsThesisExaminersUpdate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new StudentsThesisExaminers,data.event)
+    const validator = validations.validateRequestData(data, new StudentsThesisExaminers, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     var update_clauses = []
     if (data.examiner_designation) update_clauses.push(`examiner_designation = '${data.examiner_designation}'`)
     if (data.examiner_university) update_clauses.push(`examiner_university = '${data.examiner_university}'`)
     if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.` });
-        
+
     db.query(`
         UPDATE students_thesis_examiners SET
         ${update_clauses.join(',')}
@@ -87,9 +87,9 @@ function studentsThesisExaminersUpdate(data, callback) {
 }
 
 function studentsThesisExaminersDelete(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new StudentsThesisExaminers,data.event)
+    const validator = validations.validateRequestData(data, new StudentsThesisExaminers, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`

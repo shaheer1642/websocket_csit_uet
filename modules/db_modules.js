@@ -1,4 +1,4 @@
-const {db} = require('./db_connection')
+const db = require('./db')
 const axios = require('axios')
 
 module.exports = {};

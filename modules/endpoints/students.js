@@ -1,8 +1,8 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter');
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter');
 const { generateRandom1000To9999, formatCNIC, convertUpper } = require('../functions');
 const { hashPassword } = require('../hashing');
 const { calculateTranscript } = require('../grading_functions');
@@ -12,42 +12,42 @@ class Students {
     description = 'Endpoints for creating student'
     data_types = {
         serial: new DataTypes(true).autonumber,
-        student_id: new DataTypes(true,['students/update','students/delete'],['students/fetch']).uuid,
-        cnic: new DataTypes(true,[],['students/create','students/update'],false,'1730155555555').string,
-        reg_no: new DataTypes(true,[],['students/create','students/update'],false,'19pwbcs0000').string,
-        student_name: new DataTypes(true,['students/create'],['students/update']).string,
-        student_father_name: new DataTypes(true,['students/create'],['students/update']).string,
-        student_gender: new DataTypes(true,[],['students/create','students/update'],false,'male').string,
-        student_admission_status: new DataTypes(true,[],['students/create','students/update'],false,'open_merit').string,
-        student_contact_no: new DataTypes(true,[],['students/create','students/update'],false,'03123456789').string,
-        student_address: new DataTypes(true,[],['students/update','students/create'],false,'street#5, abc road, abc area, xyz city').string,
+        student_id: new DataTypes(true, ['students/update', 'students/delete'], ['students/fetch']).uuid,
+        cnic: new DataTypes(true, [], ['students/create', 'students/update'], false, '1730155555555').string,
+        reg_no: new DataTypes(true, [], ['students/create', 'students/update'], false, '19pwbcs0000').string,
+        student_name: new DataTypes(true, ['students/create'], ['students/update']).string,
+        student_father_name: new DataTypes(true, ['students/create'], ['students/update']).string,
+        student_gender: new DataTypes(true, [], ['students/create', 'students/update'], false, 'male').string,
+        student_admission_status: new DataTypes(true, [], ['students/create', 'students/update'], false, 'open_merit').string,
+        student_contact_no: new DataTypes(true, [], ['students/create', 'students/update'], false, '03123456789').string,
+        student_address: new DataTypes(true, [], ['students/update', 'students/create'], false, 'street#5, abc road, abc area, xyz city').string,
         student_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
-        user_email: new DataTypes(true,[],['students/update','students/create']).email,
+        user_email: new DataTypes(true, [], ['students/update', 'students/create']).email,
         user_id: new DataTypes(true).uuid,
         username: new DataTypes(true).string,
         password: new DataTypes(true).string,
         user_type: new DataTypes(true).string,
-        student_batch_id: new DataTypes(true,['students/completeDegree','students/extendDegreeTime','students/transcript','students/freezeSemester','students/cancelAdmission'],['students/fetch']).uuid,
-        batch_id: new DataTypes(true,['students/create','students/update','students/delete'],['students/fetch']).uuid,
-        degree_extension_periods: new DataTypes(true,[],[]).array,
-        degree_extension_period: new DataTypes(false,[],['students/extendDegreeTime'],false,`{period: 'number in milliseconds', reason: 'string'}`).json,
+        student_batch_id: new DataTypes(true, ['students/completeDegree', 'students/extendDegreeTime', 'students/transcript', 'students/freezeSemester', 'students/cancelAdmission'], ['students/fetch']).uuid,
+        batch_id: new DataTypes(true, ['students/create', 'students/update', 'students/delete'], ['students/fetch']).uuid,
+        degree_extension_periods: new DataTypes(true, [], []).array,
+        degree_extension_period: new DataTypes(false, [], ['students/extendDegreeTime'], false, `{period: 'number in milliseconds', reason: 'string'}`).json,
         batch_no: new DataTypes(true).string,
         joined_semester: new DataTypes(true).string,
         degree_type: new DataTypes(true).string,
-        degree_completed: new DataTypes(true,['students/completeDegree']).boolean,
-        semester_frozen: new DataTypes(true,['students/freezeSemester']).boolean,
-        admission_cancelled: new DataTypes(true,['students/cancelAdmission']).boolean,
+        degree_completed: new DataTypes(true, ['students/completeDegree']).boolean,
+        semester_frozen: new DataTypes(true, ['students/freezeSemester']).boolean,
+        admission_cancelled: new DataTypes(true, ['students/cancelAdmission']).boolean,
     }
 }
 
 
 function studentsFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Students,data.event)
+    const validator = validations.validateRequestData(data, new Students, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -58,7 +58,7 @@ function studentsFetch(data, callback) {
         if (data.student_id) where_clauses.push(`S.student_id = '${data.student_id}'`)
         if (data.reg_no) where_clauses.push(`S.reg_no = '${data.reg_no.toLowerCase()}'`)
         if (data.cnic) where_clauses.push(`S.cnic = '${data.cnic}'`)
-        
+
         db.query(`
             SELECT 
                 S.*,
@@ -72,12 +72,12 @@ function studentsFetch(data, callback) {
             JOIN students_batch SB on SB.student_id = S.student_id
             JOIN batches B on B.batch_id = SB.batch_id
             JOIN users U ON U.user_id = S.student_id
-            ${where_clauses.length > 0 ? 'WHERE':''}
+            ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
             ORDER BY B.batch_no DESC;
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
                 data: res.rows
             })
@@ -122,7 +122,7 @@ function studentsTranscript(data, callback) {
             thesis_title: data.thesis_title,
             thesis_grade: data.thesis_grade
         }
-        const {semestersCourses, gpa} = calculateTranscript(courses)
+        const { semestersCourses, gpa } = calculateTranscript(courses)
         return callback({
             code: 200,
             data: {
@@ -139,12 +139,12 @@ function studentsTranscript(data, callback) {
 }
 
 function studentsCreate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Students,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Students, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -155,7 +155,7 @@ function studentsCreate(data, callback) {
         data.reg_no = data.reg_no?.toString().toLowerCase()
         if (data.cnic) {
             data.cnic = formatCNIC(data.cnic)
-            if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' }); 
+            if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' });
         }
         const default_password = generateRandom1000To9999()
         db.query(`
@@ -173,8 +173,8 @@ function studentsCreate(data, callback) {
                 INSERT INTO students (student_id, cnic, reg_no, student_name, student_father_name, student_gender, student_admission_status, student_address, student_contact_no) 
                 VALUES (
                     ( select user_id from query_one ),
-                    ${data.cnic ? `'${data.cnic}'`:null},
-                    ${data.reg_no ? `'${data.reg_no}'`:null},
+                    ${data.cnic ? `'${data.cnic}'` : null},
+                    ${data.reg_no ? `'${data.reg_no}'` : null},
                     '${data.student_name}',
                     '${data.student_father_name}',
                     ${data.student_gender ? `'${data.student_gender.toLowerCase()}'` : null},
@@ -215,9 +215,9 @@ function studentsCreate(data, callback) {
 }
 
 function studentsDelete(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Students,data.event)
+    const validator = validations.validateRequestData(data, new Students, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
@@ -255,16 +255,16 @@ function studentsDelete(data, callback) {
 }
 
 function studentsUpdate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Students,data.event)
+    const validator = validations.validateRequestData(data, new Students, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     if (data.cnic) {
         data.cnic = formatCNIC(data.cnic)
-        if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' }); 
+        if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' });
     }
-    
+
     var update_clauses = []
     if (data.reg_no != undefined) update_clauses.push(`reg_no = ${data.reg_no ? `'${data.reg_no.toLowerCase()}'` : 'NULL'}`)
     if (data.cnic != undefined) update_clauses.push(`cnic = ${data.cnic ? `'${data.cnic}'` : 'NULL'}`)
@@ -278,7 +278,7 @@ function studentsUpdate(data, callback) {
 
     db.query(
         data.cnic || data.reg_no ?
-        `WITH query_one AS ( 
+            `WITH query_one AS ( 
             UPDATE students SET
             ${update_clauses.join(',')}
             WHERE student_id = '${data.student_id}'
@@ -286,17 +286,17 @@ function studentsUpdate(data, callback) {
         )
         UPDATE users SET 
         username = ( select COALESCE(reg_no, cnic) from query_one ) 
-        ${data.user_email ? `,user_email = '${data.user_email}'`:''} 
+        ${data.user_email ? `,user_email = '${data.user_email}'` : ''} 
         WHERE user_id = '${data.student_id}';`
-        :
-        `UPDATE students SET
+            :
+            `UPDATE students SET
         ${update_clauses.join(',')}
         WHERE student_id = '${data.student_id}';`
     ).then(res => {
         if (res.rowCount == 1) {
             if (callback) {
                 callback({
-                    code: 200, 
+                    code: 200,
                     status: 'OK',
                     message: `updated ${data.student_id} record in db`
                 });
@@ -304,7 +304,7 @@ function studentsUpdate(data, callback) {
         } else if (res.rowCount == 0) {
             if (callback) {
                 callback({
-                    code: 400, 
+                    code: 400,
                     status: 'BAD REQUEST',
                     message: `record ${data.student_id} does not exist`
                 });
@@ -312,7 +312,7 @@ function studentsUpdate(data, callback) {
         } else {
             if (callback) {
                 callback({
-                    code: 500, 
+                    code: 500,
                     status: 'INTERNAL ERROR',
                     message: `${res.rowCount} rows updated`
                 });
@@ -326,10 +326,10 @@ function studentsUpdate(data, callback) {
     })
 }
 
-function studentsCompleteDegree(data,callback) {
-    console.log(`[${data.event}] called data received:`,data)
+function studentsCompleteDegree(data, callback) {
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Students,data.event)
+    const validator = validations.validateRequestData(data, new Students, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
@@ -338,7 +338,7 @@ function studentsCompleteDegree(data,callback) {
         WHERE student_batch_id = '${data.student_batch_id}';
     `).then(res => {
         if (res.rowCount == 1) callback({ code: 200, status: 'OK', message: `updated record in db` });
-        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` }); 
+        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` });
         else callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
     }).catch(err => {
         console.error(err)
@@ -346,13 +346,13 @@ function studentsCompleteDegree(data,callback) {
     })
 }
 
-function studentsExtendDegreeTime(data,callback) {
-    console.log(`[${data.event}] called data received:`,data)
+function studentsExtendDegreeTime(data, callback) {
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Students,data.event)
+    const validator = validations.validateRequestData(data, new Students, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
-    if (!data.degree_extension_period.period && !data.degree_extension_period.reason ) return callback({ code: 400, status: 'BAD REQUEST', message: 'Missing period or reason' });
+    if (!data.degree_extension_period.period && !data.degree_extension_period.reason) return callback({ code: 400, status: 'BAD REQUEST', message: 'Missing period or reason' });
     data.degree_extension_period.period = Number(data.degree_extension_period.period)
     if (!data.degree_extension_period.period) return callback({ code: 400, status: 'BAD REQUEST', message: 'Invalid type for period' });
 
@@ -362,7 +362,7 @@ function studentsExtendDegreeTime(data,callback) {
         WHERE student_batch_id = '${data.student_batch_id}';
     `).then(res => {
         if (res.rowCount == 1) callback({ code: 200, status: 'OK', message: `updated record in db` });
-        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` }); 
+        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` });
         else callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
     }).catch(err => {
         console.error(err)
@@ -370,10 +370,10 @@ function studentsExtendDegreeTime(data,callback) {
     })
 }
 
-function studentsFreezeSemester(data,callback) {
-    console.log(`[${data.event}] called data received:`,data)
+function studentsFreezeSemester(data, callback) {
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Students,data.event)
+    const validator = validations.validateRequestData(data, new Students, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
@@ -382,7 +382,7 @@ function studentsFreezeSemester(data,callback) {
         WHERE student_batch_id = '${data.student_batch_id}';
     `).then(res => {
         if (res.rowCount == 1) callback({ code: 200, status: 'OK', message: `updated record in db` });
-        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` }); 
+        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` });
         else callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
     }).catch(err => {
         console.error(err)
@@ -390,10 +390,10 @@ function studentsFreezeSemester(data,callback) {
     })
 }
 
-function studentsCancelAdmission(data,callback) {
-    console.log(`[${data.event}] called data received:`,data)
+function studentsCancelAdmission(data, callback) {
+    console.log(`[${data.event}] called data received:`, data)
 
-    const validator = validations.validateRequestData(data,new Students,data.event)
+    const validator = validations.validateRequestData(data, new Students, data.event)
     if (!validator.valid) return callback({ code: 400, status: 'BAD REQUEST', message: validator.reason });
 
     db.query(`
@@ -402,7 +402,7 @@ function studentsCancelAdmission(data,callback) {
         WHERE student_batch_id = '${data.student_batch_id}';
     `).then(res => {
         if (res.rowCount == 1) callback({ code: 200, status: 'OK', message: `updated record in db` });
-        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` }); 
+        else if (res.rowCount == 0) callback({ code: 400, status: 'BAD REQUEST', message: `record does not exist` });
         else callback({ code: 500, status: 'INTERNAL ERROR', message: `${res.rowCount} rows updated` });
     }).catch(err => {
         console.error(err)
@@ -412,7 +412,7 @@ function studentsCancelAdmission(data,callback) {
 
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
-    
+
     if (notification.channel == 'students_insert') {
         db.query(`
             SELECT * FROM students
@@ -422,7 +422,7 @@ db.on('notification', (notification) => {
             WHERE students.student_id = '${payload.student_id}'
         `).then(res => {
             if (res.rowCount == 1) {
-                event_emitter.emit('notifyAll', {event: 'students/listener/insert', data: res.rows[0]})
+                event_emitter.emit('notifyAll', { event: 'students/listener/insert', data: res.rows[0] })
             }
         }).catch(console.error)
     }
@@ -435,22 +435,22 @@ db.on('notification', (notification) => {
             WHERE students.student_id = '${payload[0].student_id}'
         `).then(res => {
             if (res.rowCount == 1) {
-                event_emitter.emit('notifyAll', {event: 'students/listener/update', data: res.rows[0]})
+                event_emitter.emit('notifyAll', { event: 'students/listener/update', data: res.rows[0] })
             }
         }).catch(console.error)
     }
     if (notification.channel == 'students_delete') {
-        event_emitter.emit('notifyAll', {event: 'students/listener/delete', data: payload})
+        event_emitter.emit('notifyAll', { event: 'students/listener/delete', data: payload })
     }
 
     if (notification.channel == 'students_batch_insert') {
-        event_emitter.emit('notifyAll', {event: 'studentsBatch/listener/insert', data: payload})
+        event_emitter.emit('notifyAll', { event: 'studentsBatch/listener/insert', data: payload })
     }
     if (notification.channel == 'students_batch_update') {
-        event_emitter.emit('notifyAll', {event: 'studentsBatch/listener/update', data: payload[0]})
+        event_emitter.emit('notifyAll', { event: 'studentsBatch/listener/update', data: payload[0] })
     }
     if (notification.channel == 'students_batch_delete') {
-        event_emitter.emit('notifyAll', {event: 'studentsBatch/listener/delete', data: payload})
+        event_emitter.emit('notifyAll', { event: 'studentsBatch/listener/delete', data: payload })
     }
 })
 

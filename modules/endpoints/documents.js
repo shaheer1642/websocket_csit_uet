@@ -1,29 +1,29 @@
-const {db} = require('../db_connection');
+const db = require('../db');
 const uuid = require('uuid');
 const validations = require('../validations');
-const {DataTypes} = require('../classes/DataTypes')
-const {event_emitter} = require('../event_emitter');
+const { DataTypes } = require('../classes/DataTypes')
+const { event_emitter } = require('../event_emitter');
 const { uploadFile } = require('../aws/aws');
 
 class Documents {
     name = 'Documents';
     description = 'Endpoints for fetching/creating/deleting documents'
     data_types = {
-        document: new DataTypes(false,['documents/create'],[],false,'file-buffer-string').string,
-        document_id: new DataTypes(true,['documents/delete'],['documents/fetch']).uuid,
-        document_name: new DataTypes(true,['documents/create'],[]).string,
-        document_url: new DataTypes(true,[],[]).string,
-        document_creation_timestamp: new DataTypes(true,[],[]).unix_timestamp_milliseconds,
+        document: new DataTypes(false, ['documents/create'], [], false, 'file-buffer-string').string,
+        document_id: new DataTypes(true, ['documents/delete'], ['documents/fetch']).uuid,
+        document_name: new DataTypes(true, ['documents/create'], []).string,
+        document_url: new DataTypes(true, [], []).string,
+        document_creation_timestamp: new DataTypes(true, [], []).unix_timestamp_milliseconds,
     }
 }
 
 function documentsFetch(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
+    console.log(`[${data.event}] called data received:`, data)
     if (!callback) return
-    const validator = validations.validateRequestData(data,new Documents,data.event)
+    const validator = validations.validateRequestData(data, new Documents, data.event)
     if (!validator.valid) {
         callback({
-            code: 400, 
+            code: 400,
             status: 'BAD REQUEST',
             message: validator.reason
         });
@@ -33,12 +33,12 @@ function documentsFetch(data, callback) {
             where_clauses.push(`document_id = '${data.document_id}'`)
         db.query(`
             SELECT * from documents
-            ${where_clauses.length > 0 ? 'WHERE':''}
+            ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
             ORDER BY document_creation_timestamp DESC
         `).then(res => {
             callback({
-                code: 200, 
+                code: 200,
                 status: 'OK',
                 data: res.rows
             })
@@ -50,12 +50,12 @@ function documentsFetch(data, callback) {
 }
 
 function documentsCreate(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Documents,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Documents, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -73,14 +73,14 @@ function documentsCreate(data, callback) {
                 if (!callback) return
                 if (res.rowCount == 1) {
                     callback({
-                        code: 200, 
+                        code: 200,
                         status: 'OK',
                         message: 'added record to db',
                         data: res.rows[0]
                     });
                 } else {
                     callback({
-                        code: 500, 
+                        code: 500,
                         status: 'INTERNAL ERROR',
                         message: 'unexpected DB response'
                     });
@@ -94,7 +94,7 @@ function documentsCreate(data, callback) {
         }).catch((err) => {
             console.error(err)
             callback({
-                code: 500, 
+                code: 500,
                 status: 'OK',
                 message: `error uploading file: ${JSON.stringify(err)}`,
             });
@@ -103,12 +103,12 @@ function documentsCreate(data, callback) {
 }
 
 function documentsDelete(data, callback) {
-    console.log(`[${data.event}] called data received:`,data)
-    const validator = validations.validateRequestData(data,new Documents,data.event)
+    console.log(`[${data.event}] called data received:`, data)
+    const validator = validations.validateRequestData(data, new Documents, data.event)
     if (!validator.valid) {
         if (callback) {
             callback({
-                code: 400, 
+                code: 400,
                 status: 'BAD REQUEST',
                 message: validator.reason
             });
@@ -120,7 +120,7 @@ function documentsDelete(data, callback) {
             if (res.rowCount == 1) {
                 if (callback) {
                     callback({
-                        code: 200, 
+                        code: 200,
                         status: 'OK',
                         message: `deleted ${data.document_id} record from db`
                     });
@@ -128,7 +128,7 @@ function documentsDelete(data, callback) {
             } else if (res.rowCount == 0) {
                 if (callback) {
                     callback({
-                        code: 400, 
+                        code: 400,
                         status: 'BAD REQUEST',
                         message: `record ${data.document_id} does not exist`
                     });
@@ -136,7 +136,7 @@ function documentsDelete(data, callback) {
             } else {
                 if (callback) {
                     callback({
-                        code: 500, 
+                        code: 500,
                         status: 'INTERNAL ERROR',
                         message: `${res.rowCount} rows deleted`
                     });
@@ -152,18 +152,18 @@ function documentsDelete(data, callback) {
 }
 
 async function uploadDocumentsFromArray(documents) {
-    return new Promise((resolve,reject) => {
+    return new Promise((resolve, reject) => {
         const document_ids = []
         const promises = []
         documents.map(doc => {
-            if (doc.document_id) return document_ids.push({document_id: doc.document_id})
+            if (doc.document_id) return document_ids.push({ document_id: doc.document_id })
             else {
                 promises.push(
-                    new Promise((resolve,reject) => {
-                        documentsCreate({document: doc.document, document_name: doc.document_name}, (res) => {
-                            console.log('uploadDocumentsFromArray',res)
+                    new Promise((resolve, reject) => {
+                        documentsCreate({ document: doc.document, document_name: doc.document_name }, (res) => {
+                            console.log('uploadDocumentsFromArray', res)
                             if (res.code == 200) {
-                                document_ids.push({document_id: res.data.document_id})
+                                document_ids.push({ document_id: res.data.document_id })
                                 resolve(true)
                             } else {
                                 resolve(false)
@@ -182,8 +182,8 @@ async function uploadDocumentsFromArray(documents) {
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
 
-    if (['documents_insert','documents_update','documents_delete'].includes(notification.channel)) {
-        event_emitter.emit('notifyAll', {event: 'documents/listener/changed', data: payload[0] || payload})
+    if (['documents_insert', 'documents_update', 'documents_delete'].includes(notification.channel)) {
+        event_emitter.emit('notifyAll', { event: 'documents/listener/changed', data: payload[0] || payload })
     }
 })
 
