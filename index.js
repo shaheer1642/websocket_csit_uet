@@ -76,7 +76,7 @@ app.get('/api/', (req, res) => {
   })
 });
 
-app.use(express.static(path.join(__dirname, 'front_end', 'build')))
+// app.use(express.static(path.join(__dirname, 'front_end', 'build')))
 
 app.get("*", (req, res) => {
   res.send('<h3>The website is currently under maintenance. For any query, please contact +92 348 8947255</h3>')
