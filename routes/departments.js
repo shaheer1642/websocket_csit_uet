@@ -31,7 +31,7 @@ router.get('/departments',
             ${data.department_id ? ` WHERE department_id = '${data.department_id}'` : ''}
             ORDER BY serial ASC;
         `).then(db_res => {
-            res.send(db_res.rowCount == 1 ? db_res.rows[0] : db_res.rows)
+            res.send(data.department_id ? db_res.rows[0] : db_res.rows)
         }).catch(err => {
             console.error(err)
             return res.status(500).send(err.message || err.detail || JSON.stringify(err))
