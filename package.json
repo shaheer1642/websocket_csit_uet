@@ -11,11 +11,12 @@
   "author": "shaheer1642",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.1332.0",
+    "@aws-sdk/client-s3": "^3.617.0",
+    "aws-sdk": "^2.1661.0",
     "axios": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
-    "express": "^4.18.1",
+    "express": "^4.19.2",
     "express-session": "^1.18.0",
     "express-validator": "^7.1.0",
     "firebase-admin": "^12.2.0",
@@ -30,6 +31,8 @@
     "pg": "^8.8.0",
     "socket.io": "^4.5.2",
     "socket.io-client": "^4.7.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^9.0.0"
   }
 }

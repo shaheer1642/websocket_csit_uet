@@ -186,6 +186,16 @@ function formatCNIC(str) {
     str = str.replace(/-/g, '')
     if (str.length === 13) return str.slice(0, 5) + '-' + str.slice(5, 12) + '-' + str.slice(12);
     else return undefined
+}// utils/extractValidators.js
+
+function extractValidators(validators) {
+    return validators.map(validator => {
+        const { builder } = validator;
+        return {
+            field: builder.fields[0],
+            validations: builder.stack.map(stackItem => stackItem.message),
+        };
+    });
 }
 
 module.exports = {
@@ -204,5 +214,6 @@ module.exports = {
     convertTimestampToSeasonYear,
     escapeDBJSONCharacters,
     generateRandom1000To9999,
-    formatCNIC
+    formatCNIC,
+    extractValidators
 };

@@ -10,6 +10,7 @@ const ioEmitter = require('./modules/io_emitter');
 const path = require('path');
 const { readdirSync } = require('fs');
 const { getEndpoints } = require('./modules/endpoints/endpoints');
+const { swaggerUi, swaggerSpec } = require('./modules/swagger');
 require('./modules/socket_events')
 require('./modules/gmail_client')
 // require('./modules/email_notifications')
@@ -23,6 +24,7 @@ const io = new socketIo.Server(server);  // websocket initialize
 app.use(cors())
 app.use(bodyParser.json({ limit: '20mb' }))
 app.use(bodyParser.urlencoded({ extended: true }))
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(session({
     secret: process.env.JWT_SECRET,

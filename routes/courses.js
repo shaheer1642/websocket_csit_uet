@@ -136,3 +136,33 @@ router.delete('/courses/:course_id',
 )
 
 module.exports = router
+
+
+
+/**
+ * @swagger
+ * /courses:
+ *   post:
+ *     summary: Create new course
+ *     tags: [Courses]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               course_id:
+ *                 type: string
+ *               course_name:
+ *                 type: string
+ *               course_description:
+ *                 type: string
+ *               course_type:
+ *                 type: string
+ *               credit_hours:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Added successfully
+ */
