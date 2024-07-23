@@ -56,7 +56,7 @@ router.get('/teachers',
             ${where_clauses.join(' AND ')}
             ORDER BY T.teacher_name ASC;
         `).then(db_res => {
-            res.send(db_res.rows)
+            res.send(db_res.rowCount == 1 ? db_res.rows[0] : db_res.rows)
         }).catch(err => {
             console.error(err)
             res.status(500).send(err.detail || err.message || JSON.stringify(err))
@@ -71,10 +71,10 @@ router.post('/teachers',
         body('teacher_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('cnic').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('reg_no').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('teacher_gender').isString().isIn(['male', 'female']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('qualification').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('designation').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('user_email').isEmail().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('teacher_gender').isString().isIn(['male', 'female']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('qualification').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('designation').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('user_email').isEmail().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     async (req, res) => {
         const data = { ...req.body }
@@ -122,7 +122,7 @@ router.post('/teachers',
 )
 
 router.post('/teachers/:teacher_id',
-    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga', 'teacher']),
     (req, res, next) => validateData([
         param('teacher_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('cnic').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),

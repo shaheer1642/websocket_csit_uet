@@ -40,4 +40,33 @@ router.get('/schema/courses',
     }
 )
 
+router.get('/schema/teachers',
+    (req, res) => {
+
+        class Teachers {
+            name = 'Teachers';
+            description = 'Endpoints for creating teacher'
+            data_types = {
+                teacher_id: new DataTypes(true, ['teachers/update', 'teachers/delete'], ['teachers/fetch']).uuid,
+                cnic: new DataTypes(true, [], ['teachers/create', 'teachers/update'], false, '1730155555555').string,
+                teacher_name: new DataTypes(true, ['teachers/create'], ['teachers/update']).string,
+                teacher_gender: new DataTypes(true, [], ['teachers/create', 'teachers/update'], false, 'male').string,
+                digital_signature: new DataTypes(true, [], ['teachers/update'], false, 'image-buffer').any,
+                areas_of_interest: new DataTypes(true, [], ['teachers/update']).array,
+                teacher_department_id: new DataTypes(true, ['teachers/create'], ['teachers/update']).string,
+                qualification: new DataTypes(true, [], ['teachers/create', 'teachers/update'], false, 'male').string,
+                designation: new DataTypes(true, [], ['teachers/create', 'teachers/update'], false, 'male').string,
+                teacher_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
+                user_id: new DataTypes(true).uuid,
+                username: new DataTypes(true).string,
+                password: new DataTypes(true).string,
+                user_type: new DataTypes(true).string,
+                user_email: new DataTypes(true, [], ['teachers/update', 'teachers/create']).email,
+            }
+        }
+
+        res.send(new Teachers())
+    }
+)
+
 module.exports = router
