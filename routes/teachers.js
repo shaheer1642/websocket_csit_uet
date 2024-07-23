@@ -57,7 +57,6 @@ router.get('/teachers',
             ORDER BY T.teacher_name ASC;
         `).then(db_res => {
             res.send(db_res.rows)
-            return callback({ code: 200, status: 'OK', data: res.rows })
         }).catch(err => {
             console.error(err)
             res.status(500).send(err.detail || err.message || JSON.stringify(err))
@@ -142,7 +141,7 @@ router.post('/teachers/:teacher_id',
 
         if (data.cnic) {
             data.cnic = formatCNIC(data.cnic)
-            if (!data.cnic) return callback({ code: 400, status: 'BAD REQUEST', message: 'CNIC must be exactly 13 characters long' });
+            if (!data.cnic) return res.status(400).send('CNIC must be exactly 13 characters long')
         }
 
         var update_clauses = []
@@ -160,7 +159,7 @@ router.post('/teachers/:teacher_id',
             console.log('fileUrl', fileUrl)
             if (fileUrl) update_clauses.push(`digital_signature = '${fileUrl}'`)
         }
-        if (update_clauses.length == 0) return callback({ code: 400, status: 'BAD REQUEST', message: `No valid parameters found in requested data.` });
+        if (update_clauses.length == 0) return res.status(400).send('No valid parameters found in requested data.')
 
         db.query(
             data.cnic || data.reg_no ?
