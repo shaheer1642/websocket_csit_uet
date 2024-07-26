@@ -13,6 +13,7 @@ const { getEndpoints } = require('./modules/endpoints/endpoints');
 const { swaggerUi, swaggerSpec } = require('./modules/swagger');
 require('./modules/socket_events')
 require('./modules/gmail_client')
+require('aws-sdk/lib/maintenance_mode_message').suppress = true;
 // require('./modules/email_notifications')
 // require('./modules/scheduled_db_queries')
 
