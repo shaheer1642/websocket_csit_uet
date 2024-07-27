@@ -39,7 +39,7 @@ router.post('/documents',
                 )
                 returning *;
             `).then(db_res => {
-                if (db_res.rowCount == 1) res.send('added record to db')
+                if (db_res.rowCount == 1) res.send(db_res.rows[0])
                 else res.status(500).send('unexpected DB response')
             }).catch(err => {
                 console.error(err)

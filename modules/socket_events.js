@@ -1,25 +1,22 @@
 const db = require("./db");
 const ioEmitter = require("./io_emitter");
 
-const tables = ['users',
-    'achievements',
-    'amenities',
-    'contact_messages',
-    'customers',
-    'destinations',
-    'faqs',
-    'favorites',
-    'hotels',
-    'icons',
-    'managers',
-    'messages',
-    'news',
-    'news_categories',
-    'news_comments',
-    'reviews',
-    'rooms',
-    'testimonials',
-    'reservations',
+const tables = [
+    'applications',
+    'applications_templates',
+    'batches',
+    'courses',
+    'documents',
+    'events',
+    'notifications',
+    'semesters_courses',
+    'semesters',
+    'students_batch',
+    'students_courses',
+    'students_thesis',
+    'students',
+    'teachers',
+    'users',
 ]
 
 db.on('connect', () => {
@@ -42,9 +39,7 @@ db.on('reconnect', () => {
             LISTEN ${t}_insert;
             LISTEN ${t}_update;
             LISTEN ${t}_delete;
-        `
-    ).join('\n')
-        }
+        `).join('\n')}
     `).catch(console.error)
 })
 

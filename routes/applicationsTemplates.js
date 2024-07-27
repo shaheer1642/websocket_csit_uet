@@ -1,43 +1,41 @@
 const express = require('express')
 const router = express.Router()
 const db = require('../modules/db')
-const { validateData } = require('../modules/validator');
-const { body, param, check } = require('express-validator')
+const { validateData, isBase64 } = require('../modules/validator');
+const { body, param, check, query } = require('express-validator')
 const { isAdmin, hasRole } = require('../modules/auth')
 const passport = require('passport');
 const { validateApplicationTemplateDetailStructure } = require('../modules/validations');
+const { uploadFile } = require('../modules/aws/aws');
+const { escapeDBCharacters, getDepartmentIdFromCourseId } = require('../modules/functions');
 
-
-// class ApplicationsTemplates {
-//     name = 'Applications Templates';
-//     description = 'Endpoints for creating/fetching applications templates'
+// class Courses {
+//     name = 'Courses';
+//     description = 'Endpoints for creating courses'
 //     data_types = {
-//         template_id: new DataTypes(true, ['applicationsTemplates/update', 'applicationsTemplates/delete'], ['applicationsTemplates/fetch']).uuid,
-//         application_title: new DataTypes(true, ['applicationsTemplates/create'], ['applicationsTemplates/update']).string,
-//         detail_structure: new DataTypes(true, ['applicationsTemplates/create'], ['applicationsTemplates/update']).array,
-//         degree_type: new DataTypes(true, [], ['applicationsTemplates/create', 'applicationsTemplates/update']).string,
-//         submit_to: new DataTypes(true, [], ['applicationsTemplates/create', 'applicationsTemplates/update']).uuid,
-//         visibility: new DataTypes(true, ['applicationsTemplates/create'], ['applicationsTemplates/update']).array,
-//         restrict_visibility: new DataTypes(true, [], ['applicationsTemplates/fetch']).boolean,
+//         course_id: new DataTypes(true, ['courses/create', 'courses/update', 'courses/delete'], ['courses/fetch'], false, 'CS-103').string,
+//         course_name: new DataTypes(true, ['courses/create'], ['courses/update'], false, 'Algorithms').string,
+//         course_description: new DataTypes(true, [], ['courses/create', 'courses/update'], true).string,
+//         department_id: new DataTypes(true, [], [], false, 'CS&IT').string,
+//         course_type: new DataTypes(true, ['courses/create'], ['courses/update'], false, 'core').string,
+//         credit_hours: new DataTypes(true, ['courses/create'], ['courses/update'], false, 3).number,
+//         course_creation_timestamp: new DataTypes(true).unix_timestamp_milliseconds,
 //     }
 // }
 
 router.get('/applicationsTemplates',
     passport.authenticate('jwt'),
+    (req, res, next) => validateData([
+        query('template_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        query('restrict_visibility').isBoolean().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+    ], req, res, next),
     (req, res) => {
-
         const data = { ...req.user, ...req.query }
 
         var where_clauses = []
         if (data.template_id) where_clauses.push(`template_id = '${data.template_id}'`)
         if (data.user_id && (data.restrict_visibility == undefined || data.restrict_visibility == true)) where_clauses.push(`visibility @> to_jsonb((SELECT user_type FROM users WHERE user_id = '${data.user_id}')::text)`)
-        console.log(`
-            SELECT * FROM students s JOIN students_batch sb on sb.student_id = s.student_id JOIN batches b on b.batch_id = sb.batch_id WHERE s.student_id = '${data.user_id}';
-            SELECT * from applications_templates
-            ${where_clauses.length > 0 ? 'WHERE' : ''}
-            ${where_clauses.join(' AND ')}
-            ORDER BY application_title;
-        `)
+
         db.query(`
             SELECT * FROM students s JOIN students_batch sb on sb.student_id = s.student_id JOIN batches b on b.batch_id = sb.batch_id WHERE s.student_id = '${data.user_id}';
             SELECT * from applications_templates
@@ -48,42 +46,7 @@ router.get('/applicationsTemplates',
             const user = db_res[0].rows
             var templates = db_res[1].rows
             if (user.length > 0) templates = templates.filter(template => !template.degree_type || user.some(batch => template.degree_type == batch.degree_type))
-            return res.send(templates)
-        }).catch(err => {
-            console.error(err)
-            res.status(500).send(err.message || err.detail || JSON.stringify(err))
-        })
-    }
-)
-
-router.post('/applications',
-    passport.authenticate('jwt'),
-    (req, res, next) => validateData([
-        body('application_title').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('submitted_to').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('detail_structure').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-    ], req, res, next),
-    async (req, res) => {
-        const data = { ...req.user, ...req.body }
-
-        const detailStructureValidator = validateApplicationTemplateDetailStructure(data.detail_structure, { field_value_not_empty: true })
-        if (!detailStructureValidator.valid) return res.sendStatus(400)
-
-        db.query(`
-            INSERT INTO applications (
-                application_title,
-                submitted_by,
-                submitted_to,
-                detail_structure
-            ) VALUES (
-                '${data.application_title}',
-                '${data.user_id}',
-                '${data.submitted_to}',
-                '${JSON.stringify(data.detail_structure)}'
-            )`
-        ).then(db_res => {
-            if (db_res.rowCount == 1) return res.send('added record to db');
-            else return res.send('database could not add record');
+            res.send(templates)
         }).catch(err => {
             console.error(err)
             res.status(500).send(err.detail || err.message || JSON.stringify(err))
@@ -91,136 +54,103 @@ router.post('/applications',
     }
 )
 
-router.patch('/applications/:application_id/forward',
-    passport.authenticate('jwt'), hasRole.bind(['admin, pga, teacher']),
+router.post('/applicationsTemplates',
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
-        param('application_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('forward_to').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('remarks').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('application_title').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('detail_structure').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('visibility').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('degree_type').isString().isIn(['ms', 'phd']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('submit_to').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
-    (req, res) => {
-        const data = { ...req.user, ...req.body, ...req.params }
+    async (req, res) => {
+        const data = { ...req.body }
+
+        const detailStructureValidator = validateApplicationTemplateDetailStructure(data.detail_structure)
+        if (!detailStructureValidator.valid) return res.status(400).send(detailStructureValidator.message)
 
         db.query(`
-            SELECT * FROM applications WHERE application_id = '${data.application_id}';
+            INSERT INTO applications_templates (
+                application_title,
+                detail_structure,
+                visibility
+                ${data.degree_type ? ',degree_type' : ''}
+                ${data.submit_to ? ',submit_to' : ''}
+            ) VALUES (
+                '${data.application_title}',
+                '${JSON.stringify(data.detail_structure)}',
+                '${JSON.stringify(data.visibility)}'
+                ${data.degree_type ? `,'${data.degree_type}'` : ''}
+                ${data.submit_to ? `,'${data.submit_to}'` : ''}
+            )
         `).then(db_res => {
-            if (db_res.rowCount == 0) return res.sendStatus(400);
-
-            const application = db_res.rows[0]
-
-            const prev_forwarder = application.forwarded_to.pop()
-            if (prev_forwarder) {
-                if (prev_forwarder.receiver_id == data.user_id && prev_forwarder.status == 'under_review') {
-                    prev_forwarder.status = 'approved'
-                    prev_forwarder.completion_timestamp = new Date().getTime()
-                    application.forwarded_to.push(prev_forwarder)
-                } else {
-                    if (application.submitted_to != data.user_id) {
-                        return res.sendStatus(500);
-                    }
-                    application.forwarded_to.push(prev_forwarder)
-                }
-            } else {
-                if (application.submitted_to != data.user_id) {
-                    return res.sendStatus(500);
-                }
-            }
-
-            application.forwarded_to.push({
-                sender_id: data.user_id,
-                receiver_id: data.forward_to,
-                sender_remarks: data.remarks,
-                status: 'under_review',
-                forward_timestamp: new Date().getTime(),
-            })
-
-            db.query(`
-                UPDATE applications SET
-                forwarded_to = '${JSON.stringify(application.forwarded_to)}'
-                WHERE application_id = '${data.application_id}';
-            `).then(db_res => {
-                if (db_res.rowCount == 1) res.send("Updated successfully")
-                else if (db_res.rowCount == 0) res.sendStatus(404)
-                else res.status(500).send(`Unexpected DB response. Updated ${db_res.rowCount} rows`)
-            }).catch(err => {
-                console.error(err)
-                res.status(500).send(err.message || err.detail || JSON.stringify(err));
-            })
+            if (db_res.rowCount == 1) res.send('Added record to db')
+            else res.status(500).send('Unexpected DB error')
         }).catch(err => {
             console.error(err)
-            res.status(500).send(err.message || err.detail || JSON.stringify(err))
+            res.status(500).send(err.detail || err.message || JSON.stringify(err))
         })
     }
 )
 
-router.patch('/applications/:application_id/updateStatus',
-    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga', 'teacher']),
+router.post('/applicationsTemplates/:template_id',
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
-        param('application_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('remarks').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('status').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        param('template_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('application_title').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('detail_structure').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('visibility').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('degree_type').isString().isIn(['ms', 'phd']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
+        body('submit_to').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
     ], req, res, next),
-    (req, res) => {
-        const data = { ...req.user, ...req.body, ...req.params }
+    async (req, res) => {
+        const data = { ...req.params, ...req.body }
+
+        if (data.detail_structure) {
+            const detailStructureValidator = validateApplicationTemplateDetailStructure(data.detail_structure)
+            if (!detailStructureValidator.valid) return res.status(400).send(detailStructureValidator.message)
+        }
+
+        var update_clauses = []
+        if (data.application_title) update_clauses.push(`application_title = '${data.application_title}'`)
+        if (data.detail_structure) update_clauses.push(`detail_structure = '${JSON.stringify(data.detail_structure)}'`)
+        if (data.visibility) update_clauses.push(`visibility = '${JSON.stringify(data.visibility)}'`)
+        if (data.degree_type !== undefined) update_clauses.push(`degree_type = ${data.degree_type === null ? 'NULL' : `'${data.degree_type}'`}`)
+        if (data.submit_to !== undefined) update_clauses.push(`submit_to = ${data.submit_to === null ? 'NULL' : `'${data.submit_to}'`}`)
+        if (update_clauses.length == 0) return res.status(400).send(`No valid parameters found in requested data.`)
 
         db.query(`
-            SELECT * FROM applications WHERE application_id = '${data.application_id}';
+            UPDATE applications_templates SET
+            ${update_clauses.join(',')}
+            WHERE template_id = '${data.template_id}';
         `).then(db_res => {
-            if (db_res.rowCount == 0) return res.sendStatus(400);
-
-            const application = db_res.rows[0]
-
-            console.log(data.application_id, application.submitted_to, data.user_id);
-            if (application.submitted_to == data.user_id) {
-                db.query(`
-                    UPDATE applications SET
-                    status = '${data.status}',
-                    remarks = '${data.remarks}',
-                    application_completion_timestamp = ${new Date().getTime()}
-                    WHERE application_id = '${data.application_id}';
-                `).then(db_res => {
-                    if (db_res.rowCount == 1) res.send("Updated successfully")
-                    else if (db_res.rowCount == 0) res.sendStatus(404)
-                    else res.status(500).send(`Unexpected DB response. Updated ${db_res.rowCount} rows`)
-                }).catch(err => {
-                    console.error(err)
-                    res.status(500).send(err.message || err.detail || JSON.stringify(err));
-                })
-            } else {
-                const prev_forwarder = application.forwarded_to.pop()
-                console.log(prev_forwarder)
-                if (prev_forwarder) {
-                    if (prev_forwarder.receiver_id == data.user_id && prev_forwarder.status == 'under_review') {
-                        prev_forwarder.status = data.status
-                        prev_forwarder.receiver_remarks = data.remarks
-                        prev_forwarder.completion_timestamp = new Date().getTime()
-                        application.forwarded_to.push(prev_forwarder)
-                    } else {
-                        console.error('error 1')
-                        return res.sendStatus(500);
-                    }
-                } else {
-                    console.error('error 2')
-                    return res.sendStatus(500);
-                }
-
-                db.query(`
-                    UPDATE applications SET
-                    forwarded_to = '${JSON.stringify(application.forwarded_to)}'
-                    WHERE application_id = '${data.application_id}';
-                `).then(db_res => {
-                    if (db_res.rowCount == 1) res.send("Updated successfully")
-                    else if (db_res.rowCount == 0) res.sendStatus(404)
-                    else res.status(500).send(`Unexpected DB response. Updated ${db_res.rowCount} rows`)
-                }).catch(err => {
-                    console.error(err)
-                    res.status(500).send(err.message || err.detail || JSON.stringify(err));
-                })
-            }
+            if (db_res.rowCount == 1) res.send("Updated successfully")
+            else if (db_res.rowCount == 0) res.sendStatus(404)
+            else res.status(500).send(`Unexpected DB response. Updated ${db_res.rowCount} rows`)
         }).catch(err => {
             console.error(err)
-            res.status(500).send(err.message || err.detail || JSON.stringify(err))
+            res.status(500).send(err.detail || err.message || JSON.stringify(err))
         })
+    }
+)
+
+router.delete('/applicationsTemplates/:template_id',
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
+    (req, res, next) => validateData([
+        param('template_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+    ], req, res, next),
+    (req, res) => {
+        const data = req.params
+
+        db.query(`DELETE FROM applications_templates WHERE template_id = '${data.template_id}'`)
+            .then(db_res => {
+                if (db_res.rowCount == 1) res.send("Deleted successfully")
+                else if (db_res.rowCount == 0) res.sendStatus(404)
+                else res.status(500).send(`Unexpected DB response. Deleted ${db_res.rowCount} rows`)
+            }).catch(err => {
+                console.error(err)
+                res.status(500).send(err.detail || err.message || JSON.stringify(err))
+            })
     }
 )
 

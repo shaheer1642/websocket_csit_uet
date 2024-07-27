@@ -1,13 +1,13 @@
 const express = require('express')
 const router = express.Router()
 const db = require('../modules/db')
-const { validateData, isBase64 } = require('../modules/validator');
-const { body, param, check, query } = require('express-validator')
-const { isAdmin, hasRole } = require('../modules/auth')
+const { validateData } = require('../modules/validator');
+const { body, param, query } = require('express-validator')
+const { hasRole } = require('../modules/auth')
 const passport = require('passport');
-const { validateApplicationTemplateDetailStructure } = require('../modules/validations');
-const { uploadFile } = require('../modules/aws/aws');
-const { escapeDBCharacters, getDepartmentIdFromCourseId, generateRandom1000To9999 } = require('../modules/functions');
+const { generateRandom1000To9999, formatCNIC } = require('../modules/functions');
+const { hashPassword } = require('../modules/hashing');
+const { calculateTranscript } = require('../modules/grading_functions');
 
 router.get('/students',
     (req, res, next) => validateData([
@@ -43,6 +43,55 @@ router.get('/students',
             ORDER BY B.batch_no DESC;
         `).then(db_res => {
             res.send(db_res.rows)
+        }).catch(err => {
+            console.error(err)
+            res.status(500).send(err.detail || err.message || JSON.stringify(err))
+        })
+    }
+)
+
+router.get('/students/transcript/:student_batch_id',
+    (req, res, next) => validateData([
+        param('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)
+    ], req, res, next),
+    (req, res) => {
+        const data = req.query
+
+        db.query(`
+            SELECT * FROM students_courses SDC
+            JOIN semesters_courses SMC ON SMC.sem_course_id = SDC.sem_course_id
+            JOIN semesters SM ON SM.semester_id = SMC.semester_id
+            JOIN students_batch SDB ON SDB.student_batch_id = SDC.student_batch_id
+            JOIN batches B ON SDB.batch_id = B.batch_id
+            JOIN students S ON S.student_id = SDB.student_id
+            JOIN courses C ON C.course_id = SMC.course_id
+            JOIN grades G ON SDC.grade = G.grade
+            WHERE SDC.student_batch_id = '${data.student_batch_id}'
+            ORDER BY SM.semester_start_timestamp ASC;
+            SELECT * FROM students_thesis WHERE student_batch_id = '${data.student_batch_id}';
+        `).then(res => {
+            if (res[0].rowCount == 0) return res.send('No courses assigned yet')
+            const courses = res[0].rows
+            const thesis = res[1].rows[0]
+            const data = courses[0]
+            const attributes = {
+                reg_no: data.reg_no,
+                cnic: data.cnic,
+                student_name: data.student_name,
+                student_father_name: data.student_father_name,
+                degree_type: data.degree_type,
+                department: `Computer Science & Information Technology`,
+                specialization: convertUpper(data.batch_stream),
+                thesis_title: data.thesis_title,
+                thesis_grade: data.thesis_grade
+            }
+            const { semestersCourses, gpa } = calculateTranscript(courses)
+            return res.send({
+                thesis,
+                attributes,
+                semestersCourses,
+                gpa
+            })
         }).catch(err => {
             console.error(err)
             res.status(500).send(err.detail || err.message || JSON.stringify(err))
@@ -192,6 +241,106 @@ router.post('/students/:student_id',
     }
 )
 
+router.patch('/students/:student_batch_id/completeDegree',
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
+    (req, res, next) => validateData([
+        param('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('degree_completed').isBoolean().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)
+    ], req, res, next),
+    async (req, res) => {
+        const data = { ...req.params, ...req.body }
+
+        db.query(`
+            UPDATE students_batch SET
+            degree_completed = ${data.degree_completed}
+            WHERE student_batch_id = '${data.student_batch_id}';
+        `).then(db_res => {
+            if (db_res.rowCount == 1) res.send("Updated successfully")
+            else if (db_res.rowCount == 0) res.sendStatus(404)
+            else res.status(500).send(`Unexpected DB response. Updated ${db_res.rowCount} rows`)
+        }).catch(err => {
+            console.error(err)
+            res.status(500).send(err.message || err.detail || JSON.stringify(err))
+        })
+    }
+)
+
+router.patch('/students/:student_batch_id/extendDegreeTime',
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
+    (req, res, next) => validateData([
+        param('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('degree_extension_period').isObject().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)
+    ], req, res, next),
+    async (req, res) => {
+        const data = { ...req.params, ...req.body }
+
+        if (!data.degree_extension_period.period && !data.degree_extension_period.reason) return res.status(400).send('Missing period or reason')
+        data.degree_extension_period.period = Number(data.degree_extension_period.period)
+        if (!data.degree_extension_period.period) return res.status(400).send('Invalid type for period')
+
+        db.query(`
+            UPDATE students_batch SET
+            degree_extension_periods = degree_extension_periods || '${JSON.stringify(data.degree_extension_period)}'
+            WHERE student_batch_id = '${data.student_batch_id}';
+        `).then(db_res => {
+            if (db_res.rowCount == 1) res.send("Updated successfully")
+            else if (db_res.rowCount == 0) res.sendStatus(404)
+            else res.status(500).send(`Unexpected DB response. Updated ${db_res.rowCount} rows`)
+        }).catch(err => {
+            console.error(err)
+            res.status(500).send(err.message || err.detail || JSON.stringify(err))
+        })
+    }
+)
+
+router.patch('/students/:student_batch_id/freezeSemester',
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
+    (req, res, next) => validateData([
+        param('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('semester_frozen').isBoolean().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)
+    ], req, res, next),
+    async (req, res) => {
+        const data = { ...req.params, ...req.body }
+
+        db.query(`
+            UPDATE students_batch SET
+            semester_frozen = ${data.semester_frozen}
+            WHERE student_batch_id = '${data.student_batch_id}';
+        `).then(db_res => {
+            if (db_res.rowCount == 1) res.send("Updated successfully")
+            else if (db_res.rowCount == 0) res.sendStatus(404)
+            else res.status(500).send(`Unexpected DB response. Updated ${db_res.rowCount} rows`)
+        }).catch(err => {
+            console.error(err)
+            res.status(500).send(err.message || err.detail || JSON.stringify(err))
+        })
+    }
+)
+
+router.patch('/students/:student_batch_id/cancelAdmission',
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
+    (req, res, next) => validateData([
+        param('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('admission_cancelled').isBoolean().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)
+    ], req, res, next),
+    async (req, res) => {
+        const data = { ...req.params, ...req.body }
+
+        db.query(`
+            UPDATE students_batch SET
+            admission_cancelled = ${data.admission_cancelled}
+            WHERE student_batch_id = '${data.student_batch_id}';
+        `).then(db_res => {
+            if (db_res.rowCount == 1) res.send("Updated successfully")
+            else if (db_res.rowCount == 0) res.sendStatus(404)
+            else res.status(500).send(`Unexpected DB response. Updated ${db_res.rowCount} rows`)
+        }).catch(err => {
+            console.error(err)
+            res.status(500).send(err.message || err.detail || JSON.stringify(err))
+        })
+    }
+)
+
 router.delete('/students/:student_id/:batch_id',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
@@ -204,7 +353,7 @@ router.delete('/students/:student_id/:batch_id',
         db.query(`
             SELECT * FROM students_batch WHERE student_id = '${data.student_id}';
         `).then(db_res => {
-            if (db_res.rowCount == 1 && res.rows.some(row => row.batch_id == data.batch_id)) {
+            if (db_res.rowCount == 1 && db_res.rows.some(row => row.batch_id == data.batch_id)) {
                 db.query(`
                     DELETE FROM users WHERE user_id='${data.student_id}';
                 `).then(db_res => {
