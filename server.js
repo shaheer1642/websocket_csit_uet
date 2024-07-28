@@ -9,7 +9,7 @@ const socketIo = require("socket.io");
 const ioEmitter = require('./modules/io_emitter');
 const path = require('path');
 const { readdirSync } = require('fs');
-const { getEndpoints } = require('./modules/endpoints/endpoints');
+const { getEndpoints } = require('./modules/deprecated-endpoints/endpoints');
 const { swaggerUi, swaggerSpec } = require('./modules/swagger');
 require('./modules/socket_events')
 require('./modules/gmail_client')
