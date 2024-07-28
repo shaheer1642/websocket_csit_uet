@@ -1,5 +1,5 @@
-const {db} = require('../db_connection')
-const {event_emitter} = require('../event_emitter')
+const db = require('../db')
+const { event_emitter } = require('../event_emitter')
 const JSONbig = require('json-bigint');
 
 var users = {}
@@ -9,7 +9,7 @@ db.on('connected', () => {
 })
 
 function updateUsers(user_id) {
-    db.query(`SELECT * FROM users ${user_id ? `WHERE user_id = '${user_id}'`:''}`).then(res => {
+    db.query(`SELECT * FROM users ${user_id ? `WHERE user_id = '${user_id}'` : ''}`).then(res => {
         res.rows.forEach(row => {
             users[row.user_id] = row
         })
@@ -19,7 +19,7 @@ function updateUsers(user_id) {
 function removeUserToken(token) {
 }
 
-db.on('notification',(notification) => {
+db.on('notification', (notification) => {
     const payload = JSONbig.parse(notification.payload);
 
     if (notification.channel == 'users_insert') {

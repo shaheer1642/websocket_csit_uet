@@ -1,7 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
-const { db } = require('./db_connection');
+const db = require('./db');
 const MailComposer = require('nodemailer/lib/mail-composer');
 
 // If modifying these scopes, delete gmail_token.json.
@@ -78,6 +78,9 @@ function getNewToken(oAuth2Client, callback) {
 
 const sendMail = async (title, body, email, exclude_footer, is_html) => {
     if (!gmail_client) throw Error('Could not authorize gmail')
+
+    console.log(body)
+    // return '123'
 
     throw Error('Email service has been temporarily disabled')
 

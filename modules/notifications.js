@@ -1,4 +1,4 @@
-const { db } = require("./db_connection");
+const db = require("./db");
 const { FCMNotify } = require("./firebase/FCM");
 const { escapeDBCharacters, convertUpper, msToFullTime } = require("./functions");
 const { sendMail } = require("./gmail_client");
@@ -12,14 +12,14 @@ db.on('connected', () => {
 researchNotificationsTimer()
 function researchNotificationsTimer() {
     console.log('[researchNotificationsTimer] called')
-    const months = [3,6,9,12]
+    const months = [3, 6, 9, 12]
     const currentMonth = new Date().getMonth() + 1
     const upcomingMonth = months.find(month => month >= currentMonth)
-    const nextCall = new Date(new Date(new Date().setMonth(upcomingMonth - 1)).setDate(1)).setHours(0,0,0,0)
+    const nextCall = new Date(new Date(new Date().setMonth(upcomingMonth - 1)).setDate(1)).setHours(0, 0, 0, 0)
     const currentTime = new Date().getTime()
     const msUntilNextCall = nextCall - currentTime
     if (msUntilNextCall > 0 && msUntilNextCall < 2147483647) {
-        console.log('[researchNotificationsTimer] executing in',nextCall - currentTime,'ms')
+        console.log('[researchNotificationsTimer] executing in', nextCall - currentTime, 'ms')
         setTimeout(() => {
             console.log('[researchNotificationsTimer] executed')
             db.query(`
@@ -41,7 +41,7 @@ function researchNotificationsTimer() {
     }
 }
 
-function markNotificationAsSent(notification_id,type) {
+function markNotificationAsSent(notification_id, type) {
     db.query(`update notifications set ${type} = true where notification_id = ${notification_id}`).catch(console.error)
 }
 
@@ -52,14 +52,14 @@ function sendNotification(notification) {
         db.query(`SELECT user_email FROM users WHERE user_id = '${notification.user_id}'`).then(res => {
             const email = res.rows[0]?.user_email
             if (email) {
-                sendMail(notification.title,notification.body,email).then(res => {
-                    console.log('[sendNotification] Sent notification to',email)
-                    markNotificationAsSent(notification.notification_id,'email_sent')
+                sendMail(notification.title, notification.body, email).then(res => {
+                    console.log('[sendNotification] Sent notification to', email)
+                    markNotificationAsSent(notification.notification_id, 'email_sent')
                 }).catch(err => {
-                    console.error('[sendNotification] Error sending notification to',email,':', err.message || err.stack || err)
+                    console.error('[sendNotification] Error sending notification to', email, ':', err.message || err.stack || err)
                 })
             } else {
-                markNotificationAsSent(notification.notification_id,'email_sent')
+                markNotificationAsSent(notification.notification_id, 'email_sent')
             }
         }).catch(console.error)
     }
@@ -70,10 +70,10 @@ function sendNotification(notification) {
             body: notification.body,
             user_ids: [notification.user_id]
         }).then(res => {
-            markNotificationAsSent(notification.notification_id,'push_notified')
+            markNotificationAsSent(notification.notification_id, 'push_notified')
         }).catch(err => {
             if (err?.code == 4000) {
-                markNotificationAsSent(notification.notification_id,'push_notified')
+                markNotificationAsSent(notification.notification_id, 'push_notified')
             } else {
                 console.error(err)
             }
@@ -81,7 +81,7 @@ function sendNotification(notification) {
     }
 }
 
-async function createNotification(title,body,id,id_type) {
+async function createNotification(title, body, id, id_type) {
     var user_id;
     if (id_type != 'user_id') {
         const res = await db.query(`SELECT * FROM students_batch SB JOIN users ON SB.student_id = users.user_id WHERE SB.student_batch_id = '${id}'`).catch(console.error)
@@ -95,11 +95,11 @@ async function createNotification(title,body,id,id_type) {
 
 db.on('notification', (notification) => {
     const payload = JSON.parse(notification.payload);
-    
+
     if (notification.channel == 'notifications_insert') {
         sendNotification(payload)
     }
-    
+
     if (notification.channel == 'students_courses_update') {
         if (payload.grade != payload.old_grade) {
             db.query(`
