@@ -59,11 +59,16 @@ router.get('/studentsCourses',
     }
 )
 
+const default_objects = {
+    students_courses_marking: { "quiz_1": 0, "quiz_2": 0, "quiz_3": 0, "result": { "absolute": { "grade": "N", "evaluation": { "mid_term": { "total": 25, "obtained": 0 }, "sessional": { "total": 25, "obtained": 0 }, "final_term": { "total": 50, "obtained": 0 } }, "percentage": 0, "total_marks": 100, "obtained_marks": 0 }, "relative": { "grade": "N", "evaluation": { "mid_term": { "total": 25, "obtained": 0 }, "sessional": { "total": 25, "obtained": 0 }, "final_term": { "total": 50, "obtained": 0 } }, "percentage": 0, "total_marks": 100, "obtained_marks": 0 } }, "mid_term": 0, "attendance": 0, "final_term": 0, "assignment_1": 0, "assignment_2": 0, "assignment_3": 0 },
+    students_courses_attendance: { "week1": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week2": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week3": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week4": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week5": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week6": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week7": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week8": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week9": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week10": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week11": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week12": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week13": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week14": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week15": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "week16": { "classes": [{ "remarks": "", "cancelled": false, "timestamp": 1684840177930, "attendance": "" }] }, "percentage": 0 }
+}
+
 router.patch('/studentsCourses/:sem_course_id/assignStudents',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
         param('sem_course_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        param('student_batch_ids').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('student_batch_ids').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
     (req, res) => {
         const data = { ...req.user, ...req.body, ...req.params }
@@ -129,12 +134,12 @@ router.patch('/studentsCourses/:sem_course_id/assignStudents',
     }
 )
 
-router.patch('/studentsCourses/:sem_course_id/updateGrade',
+router.patch('/studentsCourses/:student_batch_id/:sem_course_id/updateGrade',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga', 'teacher']),
     (req, res, next) => validateData([
         param('sem_course_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         param('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        param('grade').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('grade').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
     (req, res) => {
         const data = { ...req.user, ...req.body, ...req.params }
@@ -170,7 +175,7 @@ router.patch('/studentsCourses/:sem_course_id/updateMarkings',
     passport.authenticate('jwt'), hasRole.bind(this, ['teacher']),
     (req, res, next) => validateData([
         param('sem_course_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        param('markings').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('markings').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
     (req, res) => {
         const data = { ...req.user, ...req.body, ...req.params }
@@ -216,7 +221,7 @@ router.patch('/studentsCourses/:sem_course_id/updateAttendances',
     passport.authenticate('jwt'), hasRole.bind(this, ['teacher']),
     (req, res, next) => validateData([
         param('sem_course_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        param('attendances').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('attendances').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
     (req, res) => {
         const data = { ...req.user, ...req.body, ...req.params }

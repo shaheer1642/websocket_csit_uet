@@ -5,11 +5,12 @@ const { validateData } = require('../modules/validator');
 const { body, param, query } = require('express-validator')
 const { hasRole } = require('../modules/auth')
 const passport = require('passport');
+const { escapeDBJSONCharacters } = require('../modules/functions');
 
 
 router.get('/instructions',
     (req, res, next) => validateData([
-        query('instruction_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        query('instruction_id').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
         const data = req.query
@@ -33,9 +34,9 @@ router.get('/instructions',
 router.post('/instructions/:instruction_id',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
-        param('instruction_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('instruction_detail_key').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('instruction').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        param('instruction_id').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('instruction_detail_key').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('instruction').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
     async (req, res) => {
         const data = { ...req.params, ...req.body }

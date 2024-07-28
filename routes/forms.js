@@ -7,7 +7,7 @@ const { isAdmin, hasRole } = require('../modules/auth')
 const passport = require('passport');
 const { validateApplicationTemplateDetailStructure } = require('../modules/validations');
 const { uploadFile } = require('../modules/aws/aws');
-const { escapeDBCharacters, getDepartmentIdFromCourseId, convertTimestampToSeasonYear } = require('../modules/functions');
+const { escapeDBCharacters, getDepartmentIdFromCourseId, convertTimestampToSeasonYear, convertUpper } = require('../modules/functions');
 const { calculateTranscript, calculateQualityPoints, getGradePoints } = require('../modules/grading_functions');
 
 // class Courses {
@@ -24,7 +24,7 @@ const { calculateTranscript, calculateQualityPoints, getGradePoints } = require(
 //     }
 // }
 
-router.get('/resultFormG2A',
+router.get('/forms/resultFormG2A',
     passport.authenticate('jwt'), hasRole.bind(this, ['teacher']),
     (req, res, next) => validateData([
         query('sem_course_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)
@@ -108,7 +108,7 @@ router.get('/resultFormG2A',
                 <th>FINAL SEMESTER GRADE</th>
                 <th>QUALITY POINTS</th>
             </tr>
-            ${res.rows.map((record, index) => {
+            ${db_res.rows.map((record, index) => {
                         return `<tr>
                     <td>${index + 1}</td>
                     <td>${record.student_name}</td>
@@ -156,7 +156,7 @@ router.get('/resultFormG2A',
     }
 )
 
-router.get('/resultFormG2B',
+router.get('/forms/resultFormG2B',
     passport.authenticate('jwt'), hasRole.bind(this, ['teacher']),
     (req, res, next) => validateData([
         query('sem_course_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
@@ -176,7 +176,7 @@ router.get('/resultFormG2B',
             WHERE SMC.sem_course_id = '${reqData.sem_course_id}' AND SMC.teacher_id = '${reqData.user_id}';
         `).then(db_res => {
             if (db_res.rowCount == 0) return res.status(404).send('Could not find matching data')
-            const data = res.rows[0]
+            const data = db_res.rows[0]
             const attributes = {
                 semester_season: data.semester_season,
                 semester_year: data.semester_year,
@@ -273,7 +273,7 @@ router.get('/resultFormG2B',
                 <th></th>
                 <th></th>
             </tr>
-            ${res.rows.map((record, index) => {
+            ${db_res.rows.map((record, index) => {
                         return `<tr>
                     <td>${record.student_name}</td>
                     <td>${record.student_father_name}</td>
@@ -325,7 +325,7 @@ router.get('/resultFormG2B',
     }
 )
 
-router.get('/studentTranscript',
+router.get('/forms/studentTranscript',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga', 'student']),
     (req, res, next) => validateData([
         query('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)

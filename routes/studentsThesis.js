@@ -7,7 +7,7 @@ const { isAdmin, hasRole } = require('../modules/auth')
 const passport = require('passport');
 const { validateApplicationTemplateDetailStructure } = require('../modules/validations');
 const { uploadFile } = require('../modules/aws/aws');
-const { escapeDBCharacters, getDepartmentIdFromCourseId } = require('../modules/functions');
+const { escapeDBCharacters, getDepartmentIdFromCourseId, dynamicSortDesc } = require('../modules/functions');
 
 
 // class Courses {
@@ -108,14 +108,14 @@ router.post('/studentsThesis/:student_batch_id',
         body('thesis_type').isString().isIn(['research', 'project']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('thesis_title').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
 
-        body('supervisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('co_supervisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('internal_examiner').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('external_examiner').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('examiner_within_department').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('examiner_outside_department').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('examiner_outside_university').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('examiner_from_industry').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('supervisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
+        body('co_supervisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
+        body('internal_examiner').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
+        body('external_examiner').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
+        body('examiner_within_department').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
+        body('examiner_outside_department').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
+        body('examiner_outside_university').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
+        body('examiner_from_industry').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
 
         body('foreign_thesis_evaluator_1').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('foreign_thesis_evaluator_2').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
@@ -150,16 +150,16 @@ router.post('/studentsThesis/:student_batch_id',
             if (data.thesis_type) update_clauses.push(`thesis_type = '${data.thesis_type}'`)
             if (data.thesis_title) update_clauses.push(`thesis_title = '${escapeDBCharacters(data.thesis_title)}'`)
 
-            if (data.supervisor_id != undefined) update_clauses.push(`supervisor_id = ${data.supervisor_id ? `'${data.supervisor_id}'` : 'NULL'}`)
-            if (data.co_supervisor_id != undefined) update_clauses.push(`co_supervisor_id = ${data.co_supervisor_id ? `'${data.co_supervisor_id}'` : 'NULL'}`)
-            if (data.internal_examiner != undefined) update_clauses.push(`internal_examiner = ${data.internal_examiner ? `'${data.internal_examiner}'` : 'NULL'}`)
-            if (data.external_examiner != undefined) update_clauses.push(`external_examiner = ${data.external_examiner ? `'${data.external_examiner}'` : 'NULL'}`)
-            if (data.examiner_within_department != undefined) update_clauses.push(`examiner_within_department = ${data.examiner_within_department ? `'${data.examiner_within_department}'` : 'NULL'}`)
-            if (data.examiner_outside_department != undefined) update_clauses.push(`examiner_outside_department = ${data.examiner_outside_department ? `'${data.examiner_outside_department}'` : 'NULL'}`)
-            if (data.examiner_outside_university != undefined) update_clauses.push(`examiner_outside_university = ${data.examiner_outside_university ? `'${data.examiner_outside_university}'` : 'NULL'}`)
-            if (data.examiner_from_industry != undefined) update_clauses.push(`examiner_from_industry = ${data.examiner_from_industry ? `'${data.examiner_from_industry}'` : 'NULL'}`)
-            if (data.foreign_thesis_evaluator_1 != undefined) update_clauses.push(`foreign_thesis_evaluator_1 = ${data.foreign_thesis_evaluator_1 ? `'${data.foreign_thesis_evaluator_1}'` : 'NULL'}`)
-            if (data.foreign_thesis_evaluator_2 != undefined) update_clauses.push(`foreign_thesis_evaluator_2 = ${data.foreign_thesis_evaluator_2 ? `'${data.foreign_thesis_evaluator_2}'` : 'NULL'}`)
+            if (data.supervisor_id !== undefined) update_clauses.push(`supervisor_id = ${data.supervisor_id ? `'${data.supervisor_id}'` : 'NULL'}`)
+            if (data.co_supervisor_id !== undefined) update_clauses.push(`co_supervisor_id = ${data.co_supervisor_id ? `'${data.co_supervisor_id}'` : 'NULL'}`)
+            if (data.internal_examiner !== undefined) update_clauses.push(`internal_examiner = ${data.internal_examiner ? `'${data.internal_examiner}'` : 'NULL'}`)
+            if (data.external_examiner !== undefined) update_clauses.push(`external_examiner = ${data.external_examiner ? `'${data.external_examiner}'` : 'NULL'}`)
+            if (data.examiner_within_department !== undefined) update_clauses.push(`examiner_within_department = ${data.examiner_within_department ? `'${data.examiner_within_department}'` : 'NULL'}`)
+            if (data.examiner_outside_department !== undefined) update_clauses.push(`examiner_outside_department = ${data.examiner_outside_department ? `'${data.examiner_outside_department}'` : 'NULL'}`)
+            if (data.examiner_outside_university !== undefined) update_clauses.push(`examiner_outside_university = ${data.examiner_outside_university ? `'${data.examiner_outside_university}'` : 'NULL'}`)
+            if (data.examiner_from_industry !== undefined) update_clauses.push(`examiner_from_industry = ${data.examiner_from_industry ? `'${data.examiner_from_industry}'` : 'NULL'}`)
+            if (data.foreign_thesis_evaluator_1 !== undefined) update_clauses.push(`foreign_thesis_evaluator_1 = ${data.foreign_thesis_evaluator_1 ? `'${data.foreign_thesis_evaluator_1}'` : 'NULL'}`)
+            if (data.foreign_thesis_evaluator_2 !== undefined) update_clauses.push(`foreign_thesis_evaluator_2 = ${data.foreign_thesis_evaluator_2 ? `'${data.foreign_thesis_evaluator_2}'` : 'NULL'}`)
 
             if (data.boasar_notification_timestamp) update_clauses.push(`boasar_notification_timestamp = ${data.boasar_notification_timestamp}`)
             if (data.qe_notification_timestamp) update_clauses.push(`qe_notification_timestamp = ${data.qe_notification_timestamp}`)
@@ -311,6 +311,7 @@ async function uploadDocumentsFromArray(documents, token) {
                     fetch(process.env.SERVER_URL + `/api/documents`, {
                         method: 'POST',
                         headers: {
+                            'Content-type': 'application/json',
                             Authorization: `Bearer ${token}`
                         },
                         body: JSON.stringify({

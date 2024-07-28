@@ -22,8 +22,8 @@ router.get('/applications',
             ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
             ORDER BY application_creation_timestamp DESC;
-            SELECT * FROM teachers t JOIN users u on u.user_id = t.user_id WHERE t.user_id IN (SELECT submitted_by FROM applications);
-            SELECT * FROM students s JOIN users u on u.user_id = s.user_id JOIN students_batch sb on sb.user_id = s.user_id JOIN batches b on b.batch_id = sb.batch_id WHERE s.user_id IN (SELECT submitted_by FROM applications);
+            SELECT * FROM teachers t JOIN users u on u.user_id = t.teacher_id WHERE t.teacher_id IN (SELECT submitted_by FROM applications);
+            SELECT * FROM students s JOIN users u on u.user_id = s.student_id JOIN students_batch sb on sb.student_id = s.student_id JOIN batches b on b.batch_id = sb.batch_id WHERE s.student_id IN (SELECT submitted_by FROM applications);
             SELECT * FROM users u WHERE u.user_type NOT IN ('student','teacher');
         `).then(db_res => {
             const applications = db_res[0].rows
@@ -40,7 +40,7 @@ router.get('/applications',
                             Object.fromEntries(Object.entries(user).filter(([key]) => key == 'user_id' || key == 'teacher_name' || key == 'teacher_gender' || key == 'reg_no')) : {}
                 )
             })
-            console.log(users_list)
+            // console.log(users_list)
             applications.map((application, index) => {
                 applications[index].applicant_detail = users_list.filter(user => user.user_id == application.submitted_by)
             })

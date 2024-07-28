@@ -58,7 +58,7 @@ router.get('/semestersCourses',
 router.post('/semestersCourses',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
-        body('course_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('course_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('teacher_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('semester_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
@@ -148,13 +148,18 @@ router.patch('/semestersCourses/:sem_course_id/lockGrades',
                         fetch(process.env.SERVER_URL + `/api/studentsCourses/${studentCourse.student_batch_id}/${studentCourse.sem_course_id}/updateGrade`, {
                             method: 'PATCH',
                             headers: {
+                                'Content-type': 'application/json',
                                 Authorization: `Bearer ${req.user.jwt_token}`
                             },
                             body: JSON.stringify({
                                 grade: studentCourse.marking?.result[studentCourse?.grade_distribution?.marking?.type]?.grade,
                             })
                         }).then(r => {
-                            if (r.status > 200) resolve()
+                            if (r.ok) resolve()
+                            else {
+                                console.error(r)
+                                reject('internal error')
+                            }
                         }).catch(reject)
                         // studentsCoursesUpdateGrade({
                         //     event: 'studentsCourses/updateGrade',
@@ -248,13 +253,14 @@ router.patch('/semestersCourses/:sem_course_id/updateGradeDistribution',
                     fetch(process.env.SERVER_URL + `/api/studentsCourses/${data.sem_course_id}/updateAttendances`, {
                         method: 'PATCH',
                         headers: {
+                            'Content-type': 'application/json',
                             Authorization: `Bearer ${req.user.jwt_token}`
                         },
                         body: JSON.stringify({
                             attendances: attendances
                         })
                     }).then(r => {
-                        if (r.status > 200) {
+                        if (r.ok) {
                             db.query(`
                                 SELECT * FROM students_courses WHERE sem_course_id = '${data.sem_course_id}'
                             `).then(db_res => {
@@ -263,15 +269,17 @@ router.patch('/semestersCourses/:sem_course_id/updateGradeDistribution',
                                 fetch(process.env.SERVER_URL + `/api/studentsCourses/${data.sem_course_id}/updateMarkings`, {
                                     method: 'PATCH',
                                     headers: {
+                                        'Content-type': 'application/json',
                                         Authorization: `Bearer ${req.user.jwt_token}`
                                     },
                                     body: JSON.stringify({
                                         markings: markings
                                     })
                                 }).then(r => {
-                                    if (r.status > 200) {
+                                    if (r.ok) {
                                         res.send(`updated ${data.sem_course_id} record in db`)
                                     } else {
+                                        console.error(r)
                                         res.sendStatus(500)
                                     }
                                 }).catch((err) => {
@@ -288,6 +296,7 @@ router.patch('/semestersCourses/:sem_course_id/updateGradeDistribution',
                                 // })
                             })
                         } else {
+                            console.error(r)
                             res.sendStatus(500)
                         }
                     }).catch((err) => {

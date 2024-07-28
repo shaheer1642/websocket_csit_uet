@@ -38,7 +38,7 @@ const isURL = (value) => {
 }
 
 const isBase64 = (value) => {
-    const base64Regex = /^(data:image\/[a-zA-Z]+;base64,){1}[^\s]+$/;
+    const base64Regex = /^(data:[a-zA-Z0-9]+\/[a-zA-Z0-9.-]+;base64,)[^\s]+$/;
 
     if (base64Regex.test(value))
         return true

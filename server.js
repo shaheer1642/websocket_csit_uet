@@ -40,7 +40,7 @@ app.use(passport.session());
 
 readdirSync('routes').forEach(file => app.use('/api', require(`./routes/${file}`)))
 
-app.get('/endpoints', (req, res) => {
+app.get('/deprecated-endpoints', (req, res) => {
     res.send(getEndpoints());
 });
 
@@ -71,8 +71,8 @@ app.use(express.static(path.join(__dirname, 'front_end', 'dist')))
 
 app.get("*", (req, res) => {
     console.log('sending index.html', req.path);
-    res.send('<h3>The website is currently under maintenance. For any query, please contact +92 348 8947255</h3>')
-    // res.sendFile(path.join(__dirname, 'front_end', 'dist', 'index.html'))
+    // res.send('<h3>The website is currently under maintenance. For any query, please contact +92 348 8947255</h3>')
+    res.sendFile(path.join(__dirname, 'front_end', 'dist', 'index.html'))
 });
 
 server.listen(PORT, (error) => {
