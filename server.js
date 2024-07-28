@@ -67,12 +67,12 @@ app.get('/deprecated-endpoints', (req, res) => {
 // app.use('/api', require('./routes/news_comments'))
 // app.use('/api', require('./routes/news_categories'))
 
-app.use(express.static(path.join(__dirname, 'front_end', 'dist')))
+app.use(express.static(path.join(__dirname, 'front_end', 'build')))
 
 app.get("*", (req, res) => {
     console.log('sending index.html', req.path);
     // res.send('<h3>The website is currently under maintenance. For any query, please contact +92 348 8947255</h3>')
-    res.sendFile(path.join(__dirname, 'front_end', 'dist', 'index.html'))
+    res.sendFile(path.join(__dirname, 'front_end', 'build', 'index.html'))
 });
 
 server.listen(PORT, (error) => {
