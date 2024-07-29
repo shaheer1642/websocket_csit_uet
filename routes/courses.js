@@ -26,20 +26,22 @@ const { escapeDBCharacters, getDepartmentIdFromCourseId } = require('../modules/
 router.get('/courses',
     (req, res, next) => validateData([
         query('course_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        query('course_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
         const data = req.query
 
         var where_clauses = []
         if (data.course_id) where_clauses.push(`course_id = '${data.course_id}'`)
+        if (data.course_department_id) where_clauses.push(`course_department_id = '${data.course_department_id}'`)
 
         db.query(`
             SELECT * FROM courses
-            JOIN departments ON departments.department_id = courses.department_id
+            JOIN departments ON departments.department_id = courses.course_department_id
             ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
         `).then(db_res => {
-            res.send(data.course_id ? db_res.rows[0] : db_res.rows)
+            res.send(db_res.rows)
         }).catch(err => {
             console.error(err)
             res.status(500).send(err.detail || err.message || JSON.stringify(err))
@@ -57,15 +59,15 @@ router.post('/courses',
         body('credit_hours').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
     async (req, res) => {
-        const data = { ...req.body }
+        const data = { ...req.user, ...req.body }
 
         db.query(`
-            INSERT INTO courses (course_id,course_name,course_description,department_id, course_type, credit_hours) 
+            INSERT INTO courses (course_id,course_name,course_description,course_department_id, course_type, credit_hours) 
             VALUES (
                 '${data.course_id.toUpperCase()}',
                 '${data.course_name}',
                 ${data.course_description ? `'${escapeDBCharacters(data.course_description)}'` : 'NULL'},
-                '${getDepartmentIdFromCourseId(data.course_id)}',
+                '${data.user_department_id}',
                 '${data.course_type}',
                 ${data.credit_hours}
             );

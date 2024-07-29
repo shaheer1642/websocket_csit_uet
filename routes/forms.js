@@ -326,7 +326,7 @@ router.get('/forms/resultFormG2B',
 )
 
 router.get('/forms/studentTranscript',
-    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga', 'student']),
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga', 'student', 'dpgs']),
     (req, res, next) => validateData([
         query('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)
     ], req, res, next),

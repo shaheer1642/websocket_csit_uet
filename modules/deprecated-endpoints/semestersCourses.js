@@ -39,7 +39,7 @@ function semestersCoursesFetch(data, callback) {
         db.query(`
             SELECT *, (SELECT COUNT(student_batch_id) AS registered_students FROM students_courses WHERE sem_course_id = SC.sem_course_id) FROM semesters_courses SC
             JOIN courses C ON C.course_id = SC.course_id
-            JOIN departments D ON D.department_id = C.department_id
+            JOIN departments D ON D.department_id = C.course_department_id
             JOIN teachers T ON T.teacher_id = SC.teacher_id
             JOIN semesters S ON S.semester_id = SC.semester_id
             ${where_clauses.length > 0 ? 'WHERE' : ''}

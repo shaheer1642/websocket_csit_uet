@@ -1,13 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const db = require('../modules/db')
-const { validateData, isBase64 } = require('../modules/validator');
-const { body, param, check, query } = require('express-validator')
+const { validateData } = require('../modules/validator');
+const { body, param, query } = require('express-validator')
 const { isAdmin, hasRole } = require('../modules/auth')
 const passport = require('passport');
 const { validateApplicationTemplateDetailStructure } = require('../modules/validations');
-const { uploadFile } = require('../modules/aws/aws');
-const { escapeDBCharacters, getDepartmentIdFromCourseId } = require('../modules/functions');
 
 // class Courses {
 //     name = 'Courses';
@@ -35,6 +33,7 @@ router.get('/applicationsTemplates',
         var where_clauses = []
         if (data.template_id) where_clauses.push(`template_id = '${data.template_id}'`)
         if (data.user_id && (data.restrict_visibility == undefined || data.restrict_visibility == true)) where_clauses.push(`visibility @> to_jsonb((SELECT user_type FROM users WHERE user_id = '${data.user_id}')::text)`)
+        where_clauses.push(`(template_department_id = '${data.user_department_id}' OR template_department_id IS NULL)`)
 
         db.query(`
             SELECT * FROM students s JOIN students_batch sb on sb.student_id = s.student_id JOIN batches b on b.batch_id = sb.batch_id WHERE s.student_id = '${data.user_id}';
@@ -64,7 +63,7 @@ router.post('/applicationsTemplates',
         body('submit_to').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     async (req, res) => {
-        const data = { ...req.body }
+        const data = { ...req.user, ...req.body }
 
         const detailStructureValidator = validateApplicationTemplateDetailStructure(data.detail_structure)
         if (!detailStructureValidator.valid) return res.status(400).send(detailStructureValidator.message)
@@ -73,12 +72,14 @@ router.post('/applicationsTemplates',
             INSERT INTO applications_templates (
                 application_title,
                 detail_structure,
+                template_department_id,
                 visibility
                 ${data.degree_type ? ',degree_type' : ''}
                 ${data.submit_to ? ',submit_to' : ''}
             ) VALUES (
                 '${data.application_title}',
                 '${JSON.stringify(data.detail_structure)}',
+                '${data.user_department_id}',
                 '${JSON.stringify(data.visibility)}'
                 ${data.degree_type ? `,'${data.degree_type}'` : ''}
                 ${data.submit_to ? `,'${data.submit_to}'` : ''}

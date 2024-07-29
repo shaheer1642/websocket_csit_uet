@@ -33,6 +33,7 @@ const { hashPassword } = require('../modules/hashing');
 
 router.get('/teachers',
     (req, res, next) => validateData([
+        query('user_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         query('teacher_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
@@ -40,6 +41,7 @@ router.get('/teachers',
 
         var where_clauses = []
         if (data.teacher_id) where_clauses.push(`T.teacher_id = '${data.teacher_id}'`)
+        where_clauses.push(`U.user_department_id = '${data.user_department_id}'`)
 
         db.query(`
             SELECT 
@@ -56,7 +58,7 @@ router.get('/teachers',
             ${where_clauses.join(' AND ')}
             ORDER BY T.teacher_name ASC;
         `).then(db_res => {
-            res.send(db_res.rowCount == 1 ? db_res.rows[0] : db_res.rows)
+            res.send(db_res.rows)
         }).catch(err => {
             console.error(err)
             res.status(500).send(err.detail || err.message || JSON.stringify(err))
@@ -67,8 +69,9 @@ router.get('/teachers',
 router.post('/teachers',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
+        // body('user_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('teacher_name').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('teacher_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        // body('teacher_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('cnic').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('reg_no').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('teacher_gender').isString().isIn(['male', 'female']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
@@ -77,7 +80,8 @@ router.post('/teachers',
         body('user_email').isEmail().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     async (req, res) => {
-        const data = { ...req.body }
+        const user = req.user
+        const data = req.body
 
         if (!data.cnic && !data.reg_no) return res.status(400).send('Both CNIC and Reg No cannot be empty');
         data.cnic = data.cnic?.toString().toLowerCase()
@@ -89,17 +93,18 @@ router.post('/teachers',
         const default_password = generateRandom1000To9999()
         db.query(`
             WITH query_one AS ( 
-                INSERT INTO users (username, password, default_password, user_type, user_email) 
+                INSERT INTO users (username, password, default_password, user_type, user_email, user_department_id) 
                 VALUES (
                     '${data.reg_no || data.cnic}',
                     '${hashPassword(default_password)}',
                     '${default_password}',
                     'teacher',
-                    ${data.user_email ? `'${data.user_email}'` : null}
+                    ${data.user_email ? `'${data.user_email}'` : null},
+                    '${user.user_department_id}'
                 ) 
                 RETURNING user_id 
             )
-            INSERT INTO teachers (teacher_id, cnic, reg_no, teacher_name, teacher_gender, qualification, designation, teacher_department_id) 
+            INSERT INTO teachers (teacher_id, cnic, reg_no, teacher_name, teacher_gender, qualification, designation) 
             VALUES (
                 ( select user_id from query_one ),
                 ${data.cnic ? `'${data.cnic}'` : null},
@@ -107,8 +112,7 @@ router.post('/teachers',
                 '${data.teacher_name}',
                 ${data.teacher_gender ? `'${data.teacher_gender}'` : null},
                 ${data.qualification ? `'${escapeDBCharacters(data.qualification)}'` : null},
-                ${data.designation ? `'${data.designation}'` : null},
-                '${data.teacher_department_id}'
+                ${data.designation ? `'${data.designation}'` : null}
             );
         `).then(db_res => {
             if (db_res.rowCount == 1) res.send("Added successfully")
@@ -131,7 +135,7 @@ router.post('/teachers/:teacher_id',
         body('teacher_gender').isString().isIn(['male', 'female']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('digital_signature').custom(isBase64).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('areas_of_interest').isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('teacher_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        // body('teacher_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('qualification').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('designation').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('user_email').isEmail().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
@@ -152,7 +156,7 @@ router.post('/teachers/:teacher_id',
         if (data.cnic) update_clauses.push(`cnic = '${data.cnic}'`)
         if (data.reg_no) update_clauses.push(`reg_no = '${data.reg_no}'`)
         if (data.areas_of_interest) update_clauses.push(`areas_of_interest = '${JSON.stringify(data.areas_of_interest)}'`)
-        if (data.teacher_department_id) update_clauses.push(`teacher_department_id = '${data.teacher_department_id}'`)
+        // if (data.teacher_department_id) update_clauses.push(`teacher_department_id = '${data.teacher_department_id}'`)
         if (data.digital_signature) {
             console.log('digital_signature detected')
             const fileUrl = await uploadFile('digital_signature', data.digital_signature).catch(console.error)
@@ -197,7 +201,7 @@ router.delete('/teachers/:teacher_id',
         const data = req.params
 
         db.query(`
-            DELETE FROM users WHERE teacher_id='${data.teacher_id}';
+            DELETE FROM users WHERE user_id='${data.teacher_id}';
         `).then(db_res => {
             if (db_res.rowCount == 1) res.send("Deleted successfully")
             else if (db_res.rowCount == 0) res.sendStatus(404)

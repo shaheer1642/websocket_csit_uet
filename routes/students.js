@@ -10,12 +10,15 @@ const { hashPassword } = require('../modules/hashing');
 const { calculateTranscript } = require('../modules/grading_functions');
 
 router.get('/students',
+    passport.authenticate('jwt'),
     (req, res, next) => validateData([
+        query('user_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('student_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
+        const user = req.user
         const data = req.query
 
         var where_clauses = []
@@ -24,6 +27,7 @@ router.get('/students',
         if (data.student_id) where_clauses.push(`S.student_id = '${data.student_id}'`)
         if (data.reg_no) where_clauses.push(`S.reg_no = '${data.reg_no.toLowerCase()}'`)
         if (data.cnic) where_clauses.push(`S.cnic = '${data.cnic}'`)
+        where_clauses.push(`U.user_department_id = '${user.user_department_id || data.user_department_id}'`)
 
         db.query(`
             SELECT 
@@ -42,6 +46,7 @@ router.get('/students',
             ${where_clauses.join(' AND ')}
             ORDER BY B.batch_no DESC;
         `).then(db_res => {
+            console.log(db_res.rows)
             res.send(db_res.rows)
         }).catch(err => {
             console.error(err)
@@ -50,7 +55,8 @@ router.get('/students',
     }
 )
 
-router.get('/students/transcript/:student_batch_id',
+router.get('/students/:student_batch_id/transcript',
+    passport.authenticate('jwt'),
     (req, res, next) => validateData([
         param('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`)
     ], req, res, next),
@@ -114,7 +120,9 @@ router.post('/students',
         body('user_email').isEmail().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional()
     ], req, res, next),
     async (req, res) => {
-        const data = { ...req.body }
+        const user = req.user
+        const data = req.body
+        console.log('post students department id', data)
 
         if (!data.cnic && !data.reg_no) return res.status(400).send('Both CNIC and Reg No cannot be empty')
         data.cnic = data.cnic?.toString().toLowerCase()
@@ -126,13 +134,14 @@ router.post('/students',
         const default_password = generateRandom1000To9999()
         db.query(`
             WITH query_one AS ( 
-                INSERT INTO users (username, password, default_password, user_type, user_email) 
+                INSERT INTO users (username, password, default_password, user_type, user_email, user_department_id) 
                 VALUES (
                     '${data.reg_no || data.cnic}',
                     '${hashPassword(default_password)}',
                     '${default_password}',
                     'student',
-                    ${data.user_email ? `'${data.user_email}'` : null}
+                    ${data.user_email ? `'${data.user_email}'` : null},
+                    '${user.user_department_id}'
                 ) 
                 RETURNING user_id 
             ), query_two AS (

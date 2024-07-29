@@ -80,7 +80,7 @@ const sendMail = async (title, body, email, exclude_footer, is_html) => {
     if (!gmail_client) throw Error('Could not authorize gmail')
 
     console.log(body)
-    // return '123'
+    return '123'
 
     throw Error('Email service has been temporarily disabled')
 

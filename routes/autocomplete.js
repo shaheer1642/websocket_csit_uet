@@ -21,7 +21,9 @@ const { convertUpper } = require('../modules/functions');
 // }
 
 router.get('/autocomplete/users',
+    passport.authenticate('jwt'),
     (req, res, next) => validateData([
+        query('user_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('exclude_user_types').customSanitizer(v => v.split(',')).isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('exclude_user_ids').customSanitizer(v => v.split(',')).isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
@@ -29,16 +31,16 @@ router.get('/autocomplete/users',
         const data = req.query
 
         db.query(`
-            SELECT * FROM users WHERE user_type NOT IN ('student','teacher');
-            SELECT * FROM users JOIN students on students.student_id = users.user_id;
-            SELECT * FROM users JOIN teachers on teachers.teacher_id = users.user_id;
+            SELECT * FROM users WHERE user_type NOT IN ('student','teacher') ${data.user_department_id ? `WHERE users.user_department_id = '${data.user_department_id}'` : ''};
+            SELECT * FROM users JOIN students on students.student_id = users.user_id ${data.user_department_id ? `WHERE users.user_department_id = '${data.user_department_id}'` : ''};
+            SELECT * FROM users JOIN teachers on teachers.teacher_id = users.user_id ${data.user_department_id ? `WHERE users.user_department_id = '${data.user_department_id}'` : ''};
         `).then(db_res => {
             var users_list = []
 
             db_res[0].rows.concat(db_res[1].rows.concat(db_res[2].rows)).forEach(user => {
                 users_list.push({
                     user_id: user.user_id,
-                    name: user.student_name || user.teacher_name || user.user_type,
+                    name: user.student_name || user.teacher_name || user.username,
                     user_type: user.user_type
                 })
             })
@@ -56,19 +58,26 @@ router.get('/autocomplete/users',
 
 
 router.get('/autocomplete/teachers',
+    passport.authenticate('jwt'),
     (req, res, next) => validateData([
+        query('user_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('include_roles').customSanitizer(v => v.split(',')).isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
+        const user = req.user
         const data = req.query
-        console.log(data)
+
+        console.log(user.user_department_id || data.user_department_id)
+
         db.query(`
             SELECT 
-            T.*,
-            (SELECT department_id AS chairman FROM departments WHERE chairman_id = T.teacher_id) ,
-            (SELECT 'Batch '||batch_no||' '||degree_type||' '||batch_stream AS batch_advisor FROM batches WHERE batch_advisor_id = T.teacher_id limit 1),
-            (SELECT CASE WHEN semester_coordinator_id = T.teacher_id THEN semester_season::text||' '||semester_year END AS semester_coordinator FROM semesters ORDER BY semester_start_timestamp DESC limit 1)
-            FROM teachers T;
+                T.*,
+                (SELECT department_id AS chairman FROM departments WHERE chairman_id = T.teacher_id) ,
+                (SELECT 'Batch '||batch_no||' '||degree_type||' '||batch_stream AS batch_advisor FROM batches WHERE batch_advisor_id = T.teacher_id limit 1),
+                (SELECT CASE WHEN semester_coordinator_id = T.teacher_id THEN semester_season::text||' '||semester_year END AS semester_coordinator FROM semesters ORDER BY semester_start_timestamp DESC limit 1)
+            FROM teachers T
+            JOIN users U ON U.user_id = T.teacher_id
+            WHERE U.user_department_id = '${user.user_department_id || data.user_department_id}';
         `).then(db_res => {
             res.send(db_res.rows.map(row => ({
                 id: row.teacher_id,
@@ -82,9 +91,16 @@ router.get('/autocomplete/teachers',
 )
 
 router.get('/autocomplete/faculty',
+    passport.authenticate('jwt'),
+    (req, res, next) => validateData([
+        query('user_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+    ], req, res, next),
     (req, res) => {
+        const user = req.user
+        const data = req.query
+
         db.query(`
-            SELECT * FROM users WHERE username = 'admin' OR username = 'pga';
+            SELECT * FROM users WHERE (username LIKE 'admin%' OR username LIKE 'pga%') AND user_department_id = '${user.user_department_id || data.user_department_id}';
         `).then(db_res => {
             res.send([...db_res.rows.map(row => ({ id: row.user_id, label: row.username }))])
         }).catch(err => {
@@ -95,6 +111,7 @@ router.get('/autocomplete/faculty',
 )
 
 router.get('/autocomplete/courses',
+    passport.authenticate('jwt'),
     (req, res) => {
         db.query(`
             SELECT * FROM courses;
@@ -112,7 +129,7 @@ router.get('/autocomplete/departments',
         db.query(`
             SELECT * FROM departments;
         `).then(db_res => {
-            res.send(db_res.rows.map(row => ({ id: row.department_id, label: `${row.department_name}` })))
+            res.send(db_res.rows.map(row => ({ id: row.department_id, label: row.department_id == 'CS&IT' ? 'Computer Science & IT' : `${row.department_name}` })))
         }).catch(err => {
             console.error(err)
             return res.status(500).send(err.message || err.detail || JSON.stringify(err))
@@ -121,11 +138,14 @@ router.get('/autocomplete/departments',
 )
 
 router.get('/autocomplete/batchStudents',
+    passport.authenticate('jwt'),
     (req, res, next) => validateData([
+        query('user_department_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('constraints').customSanitizer(v => v.split(',')).isArray().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
+        const user = req.user
         const data = req.query
 
         const where_clauses = []
@@ -134,11 +154,13 @@ router.get('/autocomplete/batchStudents',
             if (data.constraints.includes('exclude_thesis_students'))
                 where_clauses.push('SB.student_batch_id NOT IN (select student_batch_id from students_thesis)')
         }
+        where_clauses.push(`U.user_department_id = '${user.user_department_id || data.user_department_id}'`)
 
         db.query(`
             SELECT * FROM students_batch SB
             JOIN students S ON S.student_id = SB.student_id
             JOIN batches B ON B.batch_id = SB.batch_id
+            JOIN users U ON U.user_id = SB.student_id
             ${where_clauses.length > 0 ? `WHERE ` : ''}
             ${where_clauses.join(' AND ')}
             ORDER BY S.student_name;
@@ -152,6 +174,7 @@ router.get('/autocomplete/batchStudents',
 )
 
 router.get('/autocomplete/studentsThesisExaminers',
+    passport.authenticate('jwt'),
     (req, res, next) => validateData([
         query('examiner_type').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional()
     ], req, res, next),
@@ -179,6 +202,7 @@ router.get('/autocomplete/studentsThesisExaminers',
 )
 
 router.get('/autocomplete/areasOfInterest',
+    passport.authenticate('jwt'),
     (req, res) => {
         db.query(`
             SELECT * FROM teachers WHERE jsonb_array_length(areas_of_interest) > 0;

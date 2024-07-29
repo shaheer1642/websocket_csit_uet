@@ -27,12 +27,14 @@ const { escapeDBCharacters, getDepartmentIdFromCourseId, dynamicSortDesc } = req
 router.get('/studentsThesis',
     passport.authenticate('jwt'),
     (req, res, next) => validateData([
+        query('user_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('thesis_type').isString().isIn(['research', 'project']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('grade').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('supervisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
+        const user = req.user
         const data = req.query
 
         var where_clauses = []
@@ -40,6 +42,7 @@ router.get('/studentsThesis',
         if (data.grade) where_clauses.push(`ST.grade = '${data.grade}'`)
         if (data.thesis_type) where_clauses.push(`ST.thesis_type = '${data.thesis_type}'`)
         if (data.supervisor_id) where_clauses.push(`ST.supervisor_id = '${data.supervisor_id}'`)
+        where_clauses.push(`U.user_department_id = '${user.user_department_id || data.user_department_id}'`)
 
         db.query(`
             ${['students_thesis_ms_research', 'students_thesis_ms_project', 'students_thesis_phd_research'].map(table => {
@@ -47,6 +50,7 @@ router.get('/studentsThesis',
                     SELECT * FROM ${table} ST
                     JOIN students_batch SB ON SB.student_batch_id = ST.student_batch_id
                     JOIN students S ON S.student_id = SB.student_id
+                    JOIN users U ON U.user_id = SB.student_id
                     JOIN batches B ON B.batch_id = SB.batch_id
                     ${where_clauses.length > 0 ? 'WHERE' : ''}
                     ${where_clauses.join(' AND ')};

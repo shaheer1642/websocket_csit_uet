@@ -21,7 +21,7 @@ router.get('/documents',
 )
 
 router.post('/documents',
-    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga', 'dpgs']),
     (req, res, next) => validateData([
         body('document').custom(isBase64).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('document_name').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
@@ -53,7 +53,7 @@ router.post('/documents',
 )
 
 router.delete('/documents/:document_id',
-    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
+    passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga', 'dpgs']),
     (req, res, next) => validateData([
         param('document_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),

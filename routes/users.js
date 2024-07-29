@@ -17,21 +17,25 @@ router.get('/user', passport.authenticate('jwt'), (req, res) => {
         ${user_type == 'student' ? `
                 SELECT * FROM students S
                 JOIN users U ON U.user_id = S.student_id
+                JOIN departments D ON D.department_id = U.user_department_id
                 WHERE S.student_id = '${req.user.user_id}';
             ` : user_type == 'teacher' ? `
                 SELECT * FROM teachers T
                 JOIN users U ON U.user_id = T.teacher_id
+                JOIN departments D ON D.department_id = U.user_department_id
                 WHERE T.teacher_id = '${req.user.user_id}';
             ` : `
-                SELECT * FROM users
-                WHERE user_id = '${req.user.user_id}';
+                SELECT * FROM users U
+                LEFT JOIN departments D ON D.department_id = U.user_department_id
+                WHERE U.user_id = '${req.user.user_id}';
             `
         }
     `).then((db_res) => {
+            // console.log(db_res.rows)
             if (db_res.rowCount == 1) {
                 const user = db_res.rows[0]
                 user.user_id = (user.user_id || user.student_id || user.teacher_id);
-                user.name = (user.student_name || user.teacher_name || user.user_type)
+                user.name = (user.student_name || user.teacher_name || user.username)
 
                 delete user.password
                 delete user.jwt_token
@@ -118,11 +122,11 @@ router.post('/user/sendEmailVerificationCode',
         const data = req.body
 
         if (data.username) {
-            if (!['admin', 'pga'].includes(data.username) && !data.user_type) return res.status(400).send('user_type not provided with the username')
+            if (!['admin', 'pga', 'dpgs'].some(type => data.username.startsWith(type)) && !data.user_type) return res.status(400).send('user_type not provided with the username')
             db.query(`
                 SELECT * FROM users WHERE 
                 username = '${data.username}'
-                ${['admin', 'pga'].includes(data.username) ? '' : `AND user_type = '${data.user_type}'`};
+                ${['admin', 'pga', 'dpgs'].some(type => data.username.startsWith(type)) ? '' : `AND user_type = '${data.user_type}'`};
             `).then(db_res => {
                 const user = db_res.rows[0]
                 if (!user) return res.status(400).send('No user registered with given username and user type')

@@ -35,7 +35,7 @@ function coursesFetch(data, callback) {
             where_clauses.push(`course_id = '${data.course_id}'`)
         db.query(`
             SELECT * FROM courses
-            JOIN departments ON departments.department_id = courses.department_id
+            JOIN departments ON departments.department_id = courses.course_department_id
             ${where_clauses.length > 0 ? 'WHERE' : ''}
             ${where_clauses.join(' AND ')}
         `).then(res => {

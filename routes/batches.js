@@ -1,19 +1,19 @@
 const express = require('express')
 const router = express.Router()
 const db = require('../modules/db')
-const { validateData, isBase64 } = require('../modules/validator');
-const { body, param, check, query } = require('express-validator')
+const { validateData } = require('../modules/validator');
+const { body, param, query } = require('express-validator')
 const { isAdmin, hasRole } = require('../modules/auth')
 const passport = require('passport');
-const { validateApplicationTemplateDetailStructure } = require('../modules/validations');
-const { uploadFile } = require('../modules/aws/aws');
-const { escapeDBCharacters, getDepartmentIdFromCourseId } = require('../modules/functions');
 
 router.get('/batches',
+    passport.authenticate('jwt'),
     (req, res, next) => validateData([
-        query('batch_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        query('batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        query('batch_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
+        const user = req.user
         const data = req.query
 
         db.query(`
@@ -22,8 +22,9 @@ router.get('/batches',
                 D.*,
                 (SELECT count(student_id) FROM students_batch SB WHERE SB.batch_id = B.batch_id) AS registered_students
             FROM batches B
-            JOIN departments D ON D.department_id = B.department_id
-            ${data.batch_id ? ` WHERE B.batch_id = '${data.batch_id}'` : ''}
+            JOIN departments D ON D.department_id = B.batch_department_id
+            WHERE B.batch_department_id = '${user.user_department_id || data.batch_department_id}'
+            ${data.batch_id ? `AND B.batch_id = '${data.batch_id}'` : ''}
             ORDER BY B.batch_creation_timestamp DESC
         `).then(db_res => {
             res.send(db_res.rows)
@@ -37,19 +38,20 @@ router.get('/batches',
 router.post('/batches',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
-        body('batch_advisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('batch_advisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
         body('batch_no').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('batch_stream').isString().isIn(['computer_science', 'data_science', 'cyber_security']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
+        body('batch_stream').isString().isIn(['computer_science', 'data_science', 'cyber_security', 'main']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('enrollment_year').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('enrollment_season').isString().isIn(['spring', 'fall']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('degree_type').isString().isIn(['ms', 'phd']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('batch_expiration_timestamp').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
     async (req, res) => {
-        const data = { ...req.body }
+        const data = { ...req.user, ...req.body }
 
         db.query(`
             INSERT INTO batches (
+                batch_department_id,
                 batch_no,
                 batch_stream,
                 enrollment_year,
@@ -58,6 +60,7 @@ router.post('/batches',
                 batch_advisor_id,
                 batch_expiration_timestamp
             ) VALUES (
+                '${data.user_department_id}',
                 ${data.batch_no},
                 '${data.batch_stream}',
                 ${data.enrollment_year},
@@ -80,9 +83,9 @@ router.post('/batches/:batch_id',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
         param('batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('batch_advisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('batch_advisor_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
         body('batch_no').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
-        body('batch_stream').isString().isIn(['computer_science', 'data_science', 'cyber_security']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('batch_stream').isString().isIn(['computer_science', 'data_science', 'cyber_security', 'main']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('enrollment_year').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('enrollment_season').isString().isIn(['spring', 'fall']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('degree_type').isString().isIn(['ms', 'phd']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
@@ -98,7 +101,7 @@ router.post('/batches/:batch_id',
         if (data.enrollment_season) update_clauses.push(`enrollment_season = '${data.enrollment_season}'`)
         if (data.degree_type) update_clauses.push(`degree_type = '${data.degree_type}'`)
         if (data.batch_expiration_timestamp) update_clauses.push(`batch_expiration_timestamp = ${data.batch_expiration_timestamp}`)
-        if (data.batch_advisor_id != undefined) update_clauses.push(`batch_advisor_id = ${data.batch_advisor_id ? `'${data.batch_advisor_id}'` : 'NULL'}`)
+        if (data.batch_advisor_id !== undefined) update_clauses.push(`batch_advisor_id = ${data.batch_advisor_id ? `'${data.batch_advisor_id}'` : 'NULL'}`)
         if (update_clauses.length == 0) return res.status(400).send(`No valid parameters found in requested data.`)
 
         db.query(`

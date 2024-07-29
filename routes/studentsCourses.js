@@ -43,7 +43,7 @@ router.get('/studentsCourses',
             SELECT * FROM students_courses SC
             JOIN semesters_courses SMC ON SMC.sem_course_id = SC.sem_course_id
             JOIN courses C ON C.course_id = SMC.course_id
-            JOIN departments D ON C.department_id = D.department_id
+            JOIN departments D ON C.course_department_id = D.department_id
             JOIN semesters SM ON SM.semester_id = SMC.semester_id
             JOIN teachers T ON SMC.teacher_id = T.teacher_id
             JOIN students S ON S.student_id = (select student_id from students_batch where student_batch_id = SC.student_batch_id)

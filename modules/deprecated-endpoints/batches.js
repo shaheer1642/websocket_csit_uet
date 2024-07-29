@@ -39,7 +39,7 @@ function batchesFetch(data, callback) {
                 D.*,
                 (SELECT count(student_id) FROM students_batch SB WHERE SB.batch_id = B.batch_id) AS registered_students
             FROM batches B
-            JOIN departments D ON D.department_id = B.department_id
+            JOIN departments D ON D.department_id = B.batch_department_id
             ${data.batch_id ? ` WHERE B.batch_id = '${data.batch_id}'` : ''}
             ORDER BY B.batch_creation_timestamp DESC
         `).then(res => {

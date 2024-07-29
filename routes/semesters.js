@@ -24,16 +24,20 @@ const { escapeDBCharacters, getDepartmentIdFromCourseId } = require('../modules/
 // }
 
 router.get('/semesters',
+    passport.authenticate('jwt'),
     (req, res, next) => validateData([
+        query('semester_department_id').isString().notEmpty().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('semester_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         query('student_batch_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
     ], req, res, next),
     (req, res) => {
+        const user = req.user
         const data = req.query
 
         var where_clauses = []
         if (data.semester_id) where_clauses.push(`S.semester_id = '${data.semester_id}'`)
         if (data.student_batch_id) where_clauses.push(`S.semester_id IN (SELECT SMC.semester_id FROM students_courses SC JOIN semesters_courses SMC ON SC.sem_course_id = SMC.sem_course_id WHERE SC.student_batch_id = '${data.student_batch_id}')`)
+        where_clauses.push(`S.semester_department_id = '${user.user_department_id || data.semester_department_id}'`)
 
         db.query(`
             SELECT S.*,(SELECT count(course_id) AS offered_courses FROM semesters_courses SC WHERE SC.semester_id = S.semester_id) FROM semesters S
@@ -52,23 +56,24 @@ router.get('/semesters',
 router.post('/semesters',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
-        body('semester_coordinator_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('semester_coordinator_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
         body('semester_year').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('semester_season').isString().isIn(['spring', 'fall']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('semester_start_timestamp').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
         body('semester_end_timestamp').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
     ], req, res, next),
     async (req, res) => {
-        const data = { ...req.body }
+        const data = { ...req.user, ...req.body }
 
         db.query(`
-            INSERT INTO semesters (semester_year, semester_season, semester_coordinator_id, semester_start_timestamp, semester_end_timestamp) 
+            INSERT INTO semesters (semester_year, semester_season, semester_coordinator_id, semester_start_timestamp, semester_end_timestamp, semester_department_id) 
             VALUES (
                 ${data.semester_year},
                 '${data.semester_season}',
                 ${data.semester_coordinator_id ? `'${data.semester_coordinator_id}'` : 'NULL'},
                 ${data.semester_start_timestamp},
-                ${data.semester_end_timestamp}
+                ${data.semester_end_timestamp},
+                '${data.user_department_id}'
             );
         `).then(db_res => {
             if (db_res.rowCount == 1) res.send("Added successfully")
@@ -84,7 +89,7 @@ router.post('/semesters/:semester_id',
     passport.authenticate('jwt'), hasRole.bind(this, ['admin', 'pga']),
     (req, res, next) => validateData([
         param('semester_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`),
-        body('semester_coordinator_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
+        body('semester_coordinator_id').isUUID().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional({ values: 'null' }),
         body('semester_year').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('semester_season').isString().isIn(['spring', 'fall']).withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
         body('semester_start_timestamp').isInt().withMessage((value, { path }) => `Invalid value "${value}" provided for field "${path}"`).optional(),
@@ -96,7 +101,7 @@ router.post('/semesters/:semester_id',
         var update_clauses = []
         if (data.semester_year) update_clauses.push(`semester_year = ${data.semester_year}`)
         if (data.semester_season) update_clauses.push(`semester_season = '${data.semester_season}'`)
-        if (data.semester_coordinator_id != undefined) update_clauses.push(`semester_coordinator_id = ${data.semester_coordinator_id ? `'${data.semester_coordinator_id}'` : 'NULL'}`)
+        if (data.semester_coordinator_id !== undefined) update_clauses.push(`semester_coordinator_id = ${data.semester_coordinator_id ? `'${data.semester_coordinator_id}'` : 'NULL'}`)
         if (data.semester_start_timestamp) update_clauses.push(`semester_start_timestamp = ${data.semester_start_timestamp}`)
         if (data.semester_end_timestamp) update_clauses.push(`semester_end_timestamp = ${data.semester_end_timestamp}`)
         if (update_clauses.length == 0) return res.status(400).send(`No valid parameters found in requested data.`)
