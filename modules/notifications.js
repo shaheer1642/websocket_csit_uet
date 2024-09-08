@@ -3,7 +3,7 @@ const { FCMNotify } = require("./firebase/FCM");
 const { escapeDBCharacters, convertUpper, msToFullTime } = require("./functions");
 const { sendMail } = require("./gmail_client");
 
-db.on('connected', () => {
+db.on('connect', () => {
     db.query(`SELECT * FROM notifications WHERE email_sent = false OR push_notified = false`).then(res => {
         res.rows.forEach(notification => sendNotification(notification))
     }).catch(console.error)

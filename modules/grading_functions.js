@@ -2,7 +2,7 @@ const db = require("./db");
 
 const grades_obj = {}
 
-db.on('connected', () => {
+db.on('connect', () => {
     db.query(`select * from grades ORDER BY serial ASC`).then(res => {
         res.rows.forEach(row => {
             grades_obj[row.grade] = {
@@ -14,6 +14,7 @@ db.on('connected', () => {
 })
 
 function calculateQualityPoints(grade, credit_hours) {
+    console.log('calculateQualityPoints', grades_obj[grade]?.grade_points)
     return Number((grades_obj[grade]?.grade_points * credit_hours).toFixed(2)) || 0
 }
 

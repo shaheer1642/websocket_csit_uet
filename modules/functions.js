@@ -162,7 +162,7 @@ function isEmailValid(value) {
 
 var semesters_array = []
 
-db.on('connected', fetchSemesters)
+db.on('connect', fetchSemesters)
 event_emitter.on('notifyAll', (e) => e.event == 'semesters/listener/insert' ? fetchSemesters() : null)
 event_emitter.on('notifyAll', (e) => e.event == 'semesters/listener/update' ? fetchSemesters() : null)
 event_emitter.on('notifyAll', (e) => e.event == 'semesters/listener/delete' ? fetchSemesters() : null)

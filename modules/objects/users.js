@@ -4,7 +4,7 @@ const JSONbig = require('json-bigint');
 
 var users = {}
 
-db.on('connected', () => {
+db.on('connect', () => {
     updateUsers()
 })
 

@@ -22,7 +22,11 @@ require('aws-sdk/lib/maintenance_mode_message').suppress = true;
 const app = express();  // express initialize
 const server = http.createServer(app);  // server initialize
 const PORT = process.env.PORT || 4000;
-const io = new socketIo.Server(server);  // websocket initialize
+const io = new socketIo.Server(server, {
+    cors: {
+        origin: '*'
+    }
+});  // websocket initialize
 
 app.use(cors())
 app.use(bodyParser.json({ limit: '20mb' }))
